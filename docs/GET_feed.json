@@ -1,0 +1,34 @@
+{
+  "items": [
+    {
+      "type": "question_answered",
+      "created_at": "2026-10-14T08:05:00+00:00",
+      "question": {
+        "id": "question_school",
+        "text": "Grandma, what was school like when you were young?",
+        "asker_id": "person_elif"
+      },
+      "answer": {
+        "story_id": "story_school",
+        "story_title": "Walking to School in the Snow",
+        "teller": { "id": "person_fatma", "name": "Fatma Yilmaz", "relation_to_center": null },
+        "session_id": "session_demo2",
+        "start_ms": 61000,
+        "end_ms": 118500,
+        "audio_url": "/api/audio/session_demo2?start=61000&end=118500"
+      }
+    },
+    {
+      "type": "story_published",
+      "created_at": "2026-10-13T16:00:00+00:00",
+      "story": {
+        "id": "story_mulberry",
+        "title": "The Mulberry Tree",
+        "ai_summary": "Fatma recalls climbing the mulberry tree with her sister every summer as a child in their village garden.",
+        "teller": { "id": "person_fatma", "name": "Fatma Yilmaz", "relation_to_center": null },
+        "subjects": [ { "person_id": "person_fatma", "period": "childhood", "period_source": "ai" } ],
+        "duration_ms": 45000
+      }
+    }
+  ]
+}

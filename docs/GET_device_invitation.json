@@ -1,0 +1,10 @@
+{
+  "active": true,
+  "invitation": {
+    "id": "invitation_today",
+    "person_id": "person_fatma",
+    "date": "2026-10-14",
+    "reason": "Elif has a question for you.",
+    "status": "sent"
+  }
+}

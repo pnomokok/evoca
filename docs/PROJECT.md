@@ -455,6 +455,7 @@ Cevap iletimi (bildirim) `record_answer`'ın yan etkisidir; ajan doğrudan bildi
 | `DELETE /api/links/{id}` | Aile paneli | Yanlış bağlantıyı kaldırır (`status = removed`) |
 | `POST /api/admin/members`, `/sensitive-topics`, `PATCH /api/admin/circle` | Yönetici | Üye, hassas konu, sohbet saati |
 | `GET /api/audio/{session_id}?start=&end=` | Herkes | Ses aralığını akıtır; erişim kontrolü burada da yapılır |
+| GET /api/circle | Aile paneli | Çember, "ben" ve üyeler (rol, relation\_to\_center). Kimlik kararı verilene kadar izleyen kişi X-Person-Id başlığından okunur. Örnek cevaplar: docs/api-samples/ |
 
 **Arka plan işleri**
 
@@ -646,6 +647,7 @@ Yeni kararlar tablonun en üstüne eklenir. Bir karar geri alınırsa satır sil
 
 | Tarih | Karar | Gerekçe |
 | --- | --- | --- |
+| 13 Ekim | REST cevap şekilleri docs/api-samples/ altında taslak sözleşme; GET /api/circle eklendi; geçici kimlik X-Person-Id başlığı | Aleyna backend'i beklemeden sahte veriyle çalışabilsin; panelin isim ve rol listesine ihtiyacı var |
 | 13 Ekim | Membership'e relation\_to\_center eklendi; uygulamayı kullanmayan kişiler (ör. vefat etmiş dede) sadece hikâye metninde isim olarak geçer | Ajan sıcak hitap eder ("torununuz Elif"), arşivci "kızım"ı doğru kişiye bağlar; değeri yönetici girdiği için soy ağacı riski yok |
 | 13 Ekim | LLM: Amazon Bedrock; iki ajan da şimdilik Nova 2 Lite | Testte en hızlı (1,4 sn), sıcak cevap, krediden düşüyor, Amazon'un modeli |
 | 13 Ekim | STT: yerel faster-whisper; aile ve yer isimleri her zaman ipucu olarak verilir | Transcribe ücretsiz planda kapalı; ipucuyla 6/6 isim doğru |
