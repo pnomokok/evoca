@@ -1,1 +1,5 @@
 mcp[cli]>=2.3,<3
+boto3[crt]>=1.41
+faster-whisper>=1.2
+# av 19 breaks faster-whisper 1.2 (removed the metadata_errors argument)
+av>=15,<17
