@@ -1,0 +1,22 @@
+{
+  "circle": {
+    "id": "circle_yilmaz",
+    "name": "The Yilmaz Family",
+    "center_person_id": "person_fatma",
+    "status": "active",
+    "chat_time": "10:00",
+    "timezone": "Europe/Istanbul"
+  },
+  "me": {
+    "id": "person_elif",
+    "name": "Elif Yilmaz",
+    "role": "member",
+    "relation_to_center": "granddaughter"
+  },
+  "members": [
+    { "id": "person_fatma", "name": "Fatma Yilmaz", "birth_year": 1948, "role": "center", "relation_to_center": null },
+    { "id": "person_ayse",  "name": "Ayşe Yilmaz",  "birth_year": 1975, "role": "admin",  "relation_to_center": "daughter" },
+    { "id": "person_elif",  "name": "Elif Yilmaz",  "birth_year": 2003, "role": "member", "relation_to_center": "granddaughter" },
+    { "id": "person_can",   "name": "Can Yilmaz",   "birth_year": 2006, "role": "member", "relation_to_center": "grandson" }
+  ]
+}

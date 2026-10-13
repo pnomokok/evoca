@@ -1,0 +1,22 @@
+{
+  "session_id": "session_demo1",
+  "session_open": true,
+  "heard_text": "Alexa, what's new?",
+  "reply_text": "Good morning, Fatma! Elif laughed a lot at your mulberry tree story. And your granddaughter Elif would love to know: what was school like when you were young?",
+  "reply_audio_url": "/api/tts/turn_0001.mp3",
+  "cards": [
+    {
+      "type": "reaction",
+      "story_id": "story_mulberry",
+      "story_title": "The Mulberry Tree",
+      "from": { "id": "person_elif", "name": "Elif Yilmaz", "relation_to_center": "granddaughter" },
+      "emoji": "laugh"
+    },
+    {
+      "type": "question",
+      "question_id": "question_school",
+      "text": "Grandma, what was school like when you were young?",
+      "asker": { "id": "person_elif", "name": "Elif Yilmaz", "relation_to_center": "granddaughter" }
+    }
+  ]
+}
