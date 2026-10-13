@@ -100,7 +100,8 @@ class Membership(Base):
 
     person_id = Column(String, ForeignKey("person.id"), primary_key=True)
     circle_id = Column(String, ForeignKey("circle.id"), primary_key=True)
-    role = Column(String, nullable=False)   # Role enum value
+    role = Column(String, nullable=False)                # Role enum value
+    relation_to_center = Column(String, nullable=True)   # e.g. "daughter", "grandson"; None for the center
 
     person = relationship("Person", back_populates="memberships")
     circle = relationship("Circle", back_populates="memberships")
@@ -184,8 +185,10 @@ class Story(Base):
             self._d = d
 
         @property
-        def type(self) -> str:
-            return self._d.get("type", AccessType.circle)
+        def type(self) -> str | None:
+            # Return None (not a default type) when the key is absent so that
+            # can_see() falls through to "return False" — fail closed.
+            return self._d.get("type", None)
 
         @property
         def person_ids(self) -> list[str]:

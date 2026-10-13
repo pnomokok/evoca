@@ -16,24 +16,25 @@ Coverage matrix:
   ─────────────────────────────────────────────────────────────────────────────
   teller always sees their own story (regardless of access type)
   non-member viewer is blocked for circle-type stories
+  missing access.type     → fails closed (not visible to anyone)
+  FK enforcement          → IntegrityError on bogus foreign key
 """
 
 from __future__ import annotations
 
-import os
 import pytest
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 
-# Use in-memory SQLite so tests are isolated and fast.
-os.environ["EVOCA_DB_PATH"] = ":memory:"  # overridden below via engine fixture
-
-from core.models import Base, Circle, Membership, Person, Story
+from core.models import Base, Circle, Membership, Person, Question, Story
 from core.enums import (
     AccessType,
     CircleStatus,
     LifePeriod,
     PeriodSource,
+    QuestionSource,
+    QuestionStatus,
     Role,
     SessionKind,
     SessionStart,
@@ -47,20 +48,31 @@ from core.access import can_see, is_member, role, shares_any_circle
 # Fixtures
 # ---------------------------------------------------------------------------
 
+def _enable_fk(dbapi_conn, _record):
+    cursor = dbapi_conn.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
+
+
 @pytest.fixture(scope="function")
 def db():
-    """Provide a fresh in-memory SQLite session per test function."""
-    engine = create_engine(
+    """Provide a fresh in-memory SQLite session per test function.
+
+    Foreign-key enforcement is turned on via the same event listener used in
+    core.db, so FK violation tests behave identically to a file-backed DB.
+    """
+    eng = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
     )
-    Base.metadata.create_all(bind=engine)
-    Session = sessionmaker(bind=engine, autocommit=False, autoflush=False,
+    event.listen(eng, "connect", _enable_fk)
+    Base.metadata.create_all(bind=eng)
+    Session = sessionmaker(bind=eng, autocommit=False, autoflush=False,
                            expire_on_commit=False)
     session = Session()
     yield session
     session.close()
-    Base.metadata.drop_all(bind=engine)
+    Base.metadata.drop_all(bind=eng)
 
 
 @pytest.fixture(scope="function")
@@ -105,13 +117,13 @@ def family(db):
     db.flush()
 
     db.add_all([
-        Membership(person_id=fatma.id,  circle_id=circle_a.id, role=Role.center),
-        Membership(person_id=ayse.id,   circle_id=circle_a.id, role=Role.admin),
-        Membership(person_id=elif_.id,  circle_id=circle_a.id, role=Role.member),
-        Membership(person_id=can.id,    circle_id=circle_a.id, role=Role.member),
+        Membership(person_id=fatma.id,  circle_id=circle_a.id, role=Role.center, relation_to_center=None),
+        Membership(person_id=ayse.id,   circle_id=circle_a.id, role=Role.admin,  relation_to_center="daughter"),
+        Membership(person_id=elif_.id,  circle_id=circle_a.id, role=Role.member, relation_to_center="granddaughter"),
+        Membership(person_id=can.id,    circle_id=circle_a.id, role=Role.member, relation_to_center="grandson"),
         # circle_b
-        Membership(person_id=fatma.id,  circle_id=circle_b.id, role=Role.center),
-        Membership(person_id=cousin.id, circle_id=circle_b.id, role=Role.member),
+        Membership(person_id=fatma.id,  circle_id=circle_b.id, role=Role.center, relation_to_center=None),
+        Membership(person_id=cousin.id, circle_id=circle_b.id, role=Role.member, relation_to_center="cousin"),
     ])
     db.commit()
 
@@ -430,3 +442,78 @@ class TestHelpers:
     def test_shares_any_circle_false(self, family):
         f = family
         assert shares_any_circle(f.db, f.outsider.id, f.fatma.id) is False
+
+
+# ---------------------------------------------------------------------------
+# Missing access.type — fail closed (item 2)
+# ---------------------------------------------------------------------------
+
+class TestMissingAccessType:
+    def test_circle_member_cannot_see_story_without_type(self, family):
+        """
+        If the access JSON has no 'type' key, _AccessProxy.type returns None.
+        can_see() falls through all access-type branches and returns False.
+        """
+        f = family
+        story = Story(
+            circle_id=f.circle_a.id,
+            teller_id=f.fatma.id,
+            kind=StoryKind.original,
+            title="Corrupt access story",
+            ai_summary="",
+            sources=[],
+            # Deliberately omit 'type' — simulates a corrupt or migrated row.
+            access={"person_ids": []},
+            status=StoryStatus.published,
+            publish_at="2026-10-14T10:00:00+00:00",
+        )
+        f.db.add(story)
+        f.db.flush()
+
+        # Circle member cannot see it
+        assert can_see(f.db, f.elif_.id, story) is False
+
+    def test_admin_cannot_see_story_without_type(self, family):
+        f = family
+        story = Story(
+            circle_id=f.circle_a.id,
+            teller_id=f.fatma.id,
+            kind=StoryKind.original,
+            title="Corrupt access story 2",
+            ai_summary="",
+            sources=[],
+            access={"person_ids": []},
+            status=StoryStatus.published,
+            publish_at="2026-10-14T10:00:00+00:00",
+        )
+        f.db.add(story)
+        f.db.flush()
+
+        # Admin cannot see it either
+        assert can_see(f.db, f.ayse.id, story) is False
+
+
+# ---------------------------------------------------------------------------
+# Foreign-key enforcement (item 3)
+# ---------------------------------------------------------------------------
+
+class TestForeignKeyEnforcement:
+    def test_question_with_bogus_target_person_raises_integrity_error(self, family):
+        """
+        SQLite FK enforcement is ON (PRAGMA foreign_keys=ON set in fixture).
+        Inserting a Question whose target_person_id does not exist in the
+        person table must raise IntegrityError.
+        """
+        f = family
+        bad_question = Question(
+            circle_id=f.circle_a.id,
+            target_person_id="00000000-0000-0000-0000-000000000000",  # does not exist
+            asker_id=f.elif_.id,
+            text="Will this blow up?",
+            source=QuestionSource.family,
+            status=QuestionStatus.waiting,
+            answer=None,
+        )
+        f.db.add(bad_question)
+        with pytest.raises(IntegrityError):
+            f.db.flush()

@@ -43,7 +43,6 @@ from core.models import (
     Person,
     Question,
     Reaction,
-    Reaction,
     Segment,
     Session,
     SensitiveTopic,
@@ -79,7 +78,7 @@ def reset_and_seed() -> None:
             created_at=_iso(now),
         )
         ayse = Person(
-            name="Ayse Yilmaz",
+            name="Ayşe Yilmaz",
             birth_year=1975,
             language="en",
             created_at=_iso(now),
@@ -116,10 +115,10 @@ def reset_and_seed() -> None:
         # Memberships
         # ------------------------------------------------------------------
         db.add_all([
-            Membership(person_id=fatma.id, circle_id=circle.id, role=Role.center),
-            Membership(person_id=ayse.id,  circle_id=circle.id, role=Role.admin),
-            Membership(person_id=elif_.id, circle_id=circle.id, role=Role.member),
-            Membership(person_id=can.id,   circle_id=circle.id, role=Role.member),
+            Membership(person_id=fatma.id, circle_id=circle.id, role=Role.center, relation_to_center=None),
+            Membership(person_id=ayse.id,  circle_id=circle.id, role=Role.admin,  relation_to_center="daughter"),
+            Membership(person_id=elif_.id, circle_id=circle.id, role=Role.member, relation_to_center="granddaughter"),
+            Membership(person_id=can.id,   circle_id=circle.id, role=Role.member, relation_to_center="grandson"),
         ])
         db.flush()
 
@@ -350,7 +349,7 @@ def reset_and_seed() -> None:
 
     print("Seed complete.")
     print(f"  Circle : The Yilmaz Family")
-    print(f"  People : Fatma (center), Ayse (admin), Elif (member), Can (member)")
+    print(f"  People : Fatma (center), Ayşe (admin), Elif (member), Can (member)")
     print(f"  Stories: {story_mulberry.title!r}, {story_sister.title!r}, {story_pending.title!r}")
     print(f"  Database: {os.environ.get('EVOCA_DB_PATH', 'data/evoca.db')}")
 
