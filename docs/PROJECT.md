@@ -327,7 +327,9 @@ Circle:
   chat_time: "HH:MM", timezone: str            # ör. "Europe/Istanbul"
 
 Membership:                                     # PK (person_id, circle_id)
-  person_id, circle_id, role: Role
+  person_id, circle_id, role: Role,
+  relation_to_center: str | None                # ör. "daughter", "granddaughter"; yönetici girer,
+                                                # yapay zekâ tahmin etmez; merkez kişide boş
 
 Session:
   id, circle_id, kind: SessionKind, started_by: SessionStart,
@@ -620,6 +622,7 @@ Kalan üç karar (ürün adı, LLM, konuşmadan metne servisi) 13 Ekim akşamın
 | Buluşma modu yapılsın mı? | **Karar verildi:** çekirdek eksiksizse evet; kontrol 18 Ekim | 18 Ekim |
 | Ses (TTS) kalitesi | Polly standard robotik. Seçenekler: Edge Natural sesler, ücretli plan + Polly neural | 21 Ekim |
 | Claude kullanımı krediden düşüyor mu? | Faturalama ekranından kontrol; düşüyorsa arşivci Claude Haiku 4.5'e geçebilir | 14 Ekim |
+| Kimlik: panel isteğin kimden geldiğini nasıl bilir? | Belgede tanımlı değil. Seçenekler: A kişi seçici (şifresiz, demo), B e-posta + şifre, C kişisel davet linki. Öneri: C; geliştirmede geçici olarak A. Veri katmanı ikisine de uyar. | 14 Ekim |
 
 **Riskler**
 
@@ -643,6 +646,7 @@ Yeni kararlar tablonun en üstüne eklenir. Bir karar geri alınırsa satır sil
 
 | Tarih | Karar | Gerekçe |
 | --- | --- | --- |
+| 13 Ekim | Membership'e relation\_to\_center eklendi; uygulamayı kullanmayan kişiler (ör. vefat etmiş dede) sadece hikâye metninde isim olarak geçer | Ajan sıcak hitap eder ("torununuz Elif"), arşivci "kızım"ı doğru kişiye bağlar; değeri yönetici girdiği için soy ağacı riski yok |
 | 13 Ekim | LLM: Amazon Bedrock; iki ajan da şimdilik Nova 2 Lite | Testte en hızlı (1,4 sn), sıcak cevap, krediden düşüyor, Amazon'un modeli |
 | 13 Ekim | STT: yerel faster-whisper; aile ve yer isimleri her zaman ipucu olarak verilir | Transcribe ücretsiz planda kapalı; ipucuyla 6/6 isim doğru |
 | 13 Ekim | TTS: şimdilik Polly standard (eu-north-1); kalite kararı demo öncesi | Ücretsiz planda proje bölgesi Stockholm ve orada neural ses yok |
