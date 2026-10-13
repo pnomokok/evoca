@@ -253,7 +253,7 @@ Sistem yedi parçadan oluşur; ajan backend içinde çalışan bir **MCP istemci
 | 2 | Web istemci: Aile paneli | Telefon genişliğinde. Soru, bildirim, hikâye sayfası, hayat çizgisi, kayıt, tepki. |
 | 3 | Web istemci: Buluşma ekranı | QR, fotoğraf, çok konuşmacı (Sonra). |
 | 4 | Backend API | Panelin REST uçları, cihaz oturumu, ses yükleme, ajan döngüsü (LLM + MCP istemcisi). |
-| 5 | MCP sunucusu | Projenin beyni. Araçlar + erişim filtresi. Streamable HTTP, spec 2025-11-25. |
+| 5 | MCP sunucusu | Projenin beyni. Araçlar + erişim filtresi. Streamable HTTP; protokol 2026-07-28 (2025-11-25 istemcileri de desteklenir). |
 | 6 | Ses servisleri | Konuşmadan metne (kelime zaman damgalı) ve metinden konuşmaya. |
 | 7 | Veri | Veritabanı + ses dosyaları. Arka plan işleri: davet zamanlayıcı, 24 saat yayınlama, oturum sonrası işleme. |
 
@@ -280,11 +280,11 @@ Web istemciler sadece backend ile konuşur; ajanlar veriye doğrudan değil, eri
 
 | Alan | Öneri | Not |
 | --- | --- | --- |
-| Backend + MCP | Python, FastAPI, resmi MCP Python SDK (FastMCP) | Profilimize uygun. SDK'nın 2025-11-25 spec sürümünü desteklediği **ilk gün doğrulanmalı.** |
+| Backend + MCP | Python, FastAPI, resmi MCP Python SDK v2 (\`mcp\` 2.3.0, sınıf adı \`MCPServer\`; eski adı FastMCP) | Profilimize uygun. 13 Ekim'de kontrol edildi: v2, 2026-07-28 revizyonunu uygular ve 2025-11-25 istemcilerine de hizmet verir. İlk testte negotiated sürüm **2026-07-28 çıktı, doğrulandı.** |
 | Web istemci | React + Vite (veya sade HTML/JS) | Bağımlılığı az tutun; 3 ekran. |
-| LLM | Araç çağırmayı iyi yapan bir model API'si | Bedrock kota riski var; sağlayıcı ilk gün seçilir. |
-| Konuşmadan metne | Amazon Transcribe veya Whisper (`word_timestamps`) | İngilizce ve kelime zaman damgası şart. İkisi de ilk gün 1 dakikalık İngilizce kayıtla denenir. |
-| Metinden konuşmaya | Amazon Polly veya tarayıcı sesi | Polly, AWS Builder anlatımını da güçlendirir. |
+| LLM | Amazon Bedrock, Converse API. İki ajan da şimdilik Nova 2 Lite; arşivci için aday Claude Haiku 4.5 | 13 Ekim testinde üç model de araç çağırdı; Nova 2 Lite en hızlısı (1,4 sn). Claude'un krediden düştüğü teyit edilene kadar Nova. Bölge us-east-1, us. profilleri. |
+| Konuşmadan metne | faster-whisper small.en, yerel CPU (`word_timestamps`) | İngilizce ve kelime zaman damgası şart. Transcribe ücretsiz planda kapalı. Testte 73 sn ses 25 sn sürdü; aile isimleri ipucu olarak verilince isimler doğru. Ayrıntı: docs/spike-results.md |
+| Metinden konuşmaya | Şimdilik Amazon Polly standard (eu-north-1); aday: Polly neural veya tarayıcı sesi | Ücretsiz planda proje bölgesi Stockholm; orada sadece robotik standard ses var. Demo öncesi Edge Natural sesler veya ücretli plan değerlendirilir. Kodda tek bir speak() fonksiyonunun arkasında. |
 | Veri | SQLite (+ yerel dosya), istenirse Postgres + S3 | Hackathon için SQLite yeterli. |
 | Geliştirme aracı | Kiro | AWS Builder mini yarışması için; kullanım README'de belgelenir. |
 
@@ -490,8 +490,8 @@ Demoda zaman ileri sarılabilmeli: bir **demo saati** (`DEMO_NOW` ayarı) davet 
 
 - [ ] Ortak: bu belgeyi okuyup itirazları karar günlüğüne yazmak; isim ve demo dili kararı
 - [ ] Ortak: akşam 4-5 kişiyle kısa kullanıcı görüşmesi
-- [ ] A: repo, lisans, FastAPI + MCP sunucusu "merhaba" aracı Streamable HTTP üzerinden; SDK'nın spec 2025-11-25 desteğini doğrulamak
-- [ ] A: 1 dakikalık Türkçe kayıtla iki STT seçeneğini kelime zaman damgasıyla denemek; LLM sağlayıcısını seçip araç çağırma testi
+- [x] A: repo, lisans, FastAPI + MCP sunucusu "merhaba" aracı Streamable HTTP üzerinden; SDK'nın spec 2025-11-25 desteğini doğrulamak
+- [x] A: 1 dakikalık Türkçe kayıtla iki STT seçeneğini kelime zaman damgasıyla denemek; LLM sağlayıcısını seçip araç çağırma testi
 - [ ] B: web iskeleti; cihaz ekranında bas-konuş kayıt ve ses çalma
 
 **14 Ekim Çarşamba · İlk uçtan uca konuşma**
@@ -614,10 +614,12 @@ Kalan üç karar (ürün adı, LLM, konuşmadan metne servisi) 13 Ekim akşamın
 | İngilizce ürün adı | Aday: *Evoca*. Alt başlıkta "Echo" kelimesi olmamalı (Amazon markası) | 13 Ekim |
 | Demo dili | **Karar verildi:** her şey İngilizce | – |
 | Demo anlatıcısı | Ertelendi. Seçenekler: gerçek bir büyük, bir oyuncu, açıkça etiketlenmiş yapay ses | 18 Ekim |
-| LLM sağlayıcısı | Araç çağırma testi sonucuna göre | 13 Ekim |
-| Konuşmadan metne servisi | İngilizce + kelime zaman damgası testine göre | 13 Ekim |
+| LLM sağlayıcısı | Karar verildi: Amazon Bedrock, Nova 2 Lite (Claude Haiku 4.5 arşivci için aday) | – |
+| Konuşmadan metne servisi | Karar verildi: yerel faster-whisper + aile isimleri ipucu (Transcribe ücretsiz planda kapalı) | – |
 | Kim A, kim B? | **Karar verildi:** A Zeynep Sude, B Aleyna | – |
 | Buluşma modu yapılsın mı? | **Karar verildi:** çekirdek eksiksizse evet; kontrol 18 Ekim | 18 Ekim |
+| Ses (TTS) kalitesi | Polly standard robotik. Seçenekler: Edge Natural sesler, ücretli plan + Polly neural | 21 Ekim |
+| Claude kullanımı krediden düşüyor mu? | Faturalama ekranından kontrol; düşüyorsa arşivci Claude Haiku 4.5'e geçebilir | 14 Ekim |
 
 **Riskler**
 
@@ -625,11 +627,11 @@ Kalan üç karar (ürün adı, LLM, konuşmadan metne servisi) 13 Ekim akşamın
 | --- | --- | --- |
 | "Bu sadece LLM sohbeti" eleştirisi | Fikir ve teknik puanı düşer | İki ajan ve 14 araçlı MCP sunucusu; boşluk tespiti; videoda araç çağrıları paneli |
 | "Neden telefon etmiyorum?" itirazı | Etki puanı düşer | Bire çok paylaşım, kalıcılık, toplu hatırlama, aramaya teşvik eden bildirim; görüşmelerden alıntılar |
-| MCP SDK spec 2025-11-25'i desteklemiyor | İlk eleme riski | İlk gün doğrulama; gerekirse SDK sürümü veya elle uyumluluk |
-| Yaşlı konuşmasında tanıma hatası | Döküm ve eşleştirme bozulur | Ses asıl kaynak; döküm düzeltilebilir; demo kayıtları önceden denenir |
+| MCP SDK spec 2025-11-25'i desteklemiyor | İlk eleme riski | 13 Ekim'de doğrulandı (2026-07-28); risk kalktı |
+| Yaşlı konuşmasında tanıma hatası | Döküm ve eşleştirme bozulur | Ses asıl kaynak; döküm düzeltilebilir; aile isimleri Whisper'a ipucu olarak verilir; demo kayıtları önceden denenir |
 | Cevap eşleştirmede yanlış aralık | Torun yanlış parçayı duyar | Eşleştirmeye birkaç saniye pay; demo öncesi elle kontrol |
 | LLM'in gizli içeriği sızdırması | Güven kaybı | Filtre LLM'den önce; gizli parçalar bağlama hiç girmez |
-| Yeni AWS hesabında kota veya kredi sorunu | Servis çalışmaz | Bedrock'a bağımlı değiliz; AWS Builder için Polly/Transcribe + Kiro |
+| Yeni AWS hesabında kota veya kredi sorunu | Servis çalışmaz | 13 Ekim: Bedrock çalışıyor, Transcribe ücretsiz planda kapalı (yerine Whisper). AWS Builder için Bedrock + Polly standard + Kiro |
 | Alexa'nın Türkçe desteklememesi | Jüri sorusu | Ürün ve demo İngilizce; risk kalktı |
 | Zaman | Çekirdek yetişmez | Karar noktaları (16 ve 18 Ekim); buluşma modu kesilebilir |
 
@@ -641,6 +643,11 @@ Yeni kararlar tablonun en üstüne eklenir. Bir karar geri alınırsa satır sil
 
 | Tarih | Karar | Gerekçe |
 | --- | --- | --- |
+| 13 Ekim | LLM: Amazon Bedrock; iki ajan da şimdilik Nova 2 Lite | Testte en hızlı (1,4 sn), sıcak cevap, krediden düşüyor, Amazon'un modeli |
+| 13 Ekim | STT: yerel faster-whisper; aile ve yer isimleri her zaman ipucu olarak verilir | Transcribe ücretsiz planda kapalı; ipucuyla 6/6 isim doğru |
+| 13 Ekim | TTS: şimdilik Polly standard (eu-north-1); kalite kararı demo öncesi | Ücretsiz planda proje bölgesi Stockholm ve orada neural ses yok |
+| 13 Ekim | AWS'ye bağlantı aws login ile, erişim anahtarı yok | Repo herkese açık; sızabilecek anahtar olmasın |
+| 13 Ekim | Deneme kodu sohbette hazırlanır, ürün kodu Kiro'da yazılır | Kiro'nun 50 kredisi ürün koduna kalsın |
 | 13 Ekim | Geliştirme ortamı: Kiro (ana), bu sohbet planlama ve belge için; AWS Builder için çalışma anında Polly/Transcribe | Kurallar "tek başına yeterli" ifadesini sadece Kiro Crew için kullanıyor |
 | 13 Ekim | Platform: tek web uygulaması; aile paneli mobil öncelikli, native uygulama yok | Kapsam; telefonda tarayıcı yeterli |
 | 13 Ekim | Ürün ve demo tamamen İngilizce | Alexa Türkçe desteklemiyor; yarışma İngilizce |
