@@ -476,6 +476,14 @@ Demoda zaman ileri sarılabilmeli: bir **demo saati** (`DEMO_NOW` ayarı) davet 
 
 İkinizin buluştuğu yer *Veri modeli* ve *REST uçları* bölümleri. B, A'yı beklemeden sahte (mock) verilerle çalışabilsin diye A ilk gün örnek JSON cevaplarını `docs/api-samples/` altına koyar.
 
+**Git çalışma kuralları**
+
+- `main` her zaman çalışır durumda kalır; demo ve testler oradan yapılır.
+- Her iş için kısa ömürlü bir dal: `zeynep/<iş>`, `aleyna/<iş>`. Dallar `main`'den açılır.
+- İş bitince aynı gün pull request ve `main`'e birleştirme. Onay şartı yok; karşı tarafı etkileyen değişiklik (ör. bir REST ucunun cevabı) haber verilir ve bu belgede güncellenir.
+- Her gün başlamadan önce `main`'e geçip Pull.
+- Commit mesajları İngilizce ve kısa: `Add save_story tool`, `Fix audio range playback`.
+
 **Günlük plan** (Türkiye saati)
 
 **13 Ekim Salı · Kurulum ve doğrulama**
