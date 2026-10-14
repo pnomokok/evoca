@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { apiClient } from '../../api/client';
-import { Play, Pause, PhoneCall, Sparkles, Clock, MessageSquarePlus, Mic, ChevronRight, Heart, AlertCircle, ArrowUpRight } from 'lucide-react';
+import { Play, Pause, PhoneCall, Sparkles, Clock, MessageSquarePlus, Mic, ChevronRight, Heart, AlertCircle, ArrowUpRight, ArrowRight } from 'lucide-react';
+import FamilyTreeCard from './FamilyTreeCard';
+import FamilyTreeModal from './FamilyTreeModal';
 
 export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
-  const { setSelectedStoryId, setPanelSubTab, showToast, circleData, currentViewerId } = useApp();
+  const { setSelectedStoryId, setPanelSubTab, showToast, circleData, currentViewerId, switchViewer } = useApp();
   const [featuredStory, setFeaturedStory] = useState(null);
   const [feedItems, setFeedItems] = useState([]);
   const [lifeline, setLifeline] = useState(null);
   const [playingId, setPlayingId] = useState(null);
+  const [isTreeModalOpen, setIsTreeModalOpen] = useState(false);
 
   const me = circleData?.me || { name: 'Elif Yilmaz', role: 'member', relation_to_center: 'granddaughter' };
   const circle = circleData?.circle || { name: 'The Yilmaz Family', chat_time: '10:00' };
@@ -30,6 +33,26 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
     }
     loadData();
   }, []);
+
+  // Compute actual deduplicated story count from all existing data sources
+  const uniqueStoryIds = new Set();
+  if (lifeline?.periods) {
+    lifeline.periods.forEach(p => {
+      (p.stories || []).forEach(s => {
+        if (s?.id) uniqueStoryIds.add(s.id);
+      });
+    });
+  }
+  if (feedItems) {
+    feedItems.forEach(item => {
+      if (item?.story?.id) uniqueStoryIds.add(item.story.id);
+      if (item?.answer?.story_id) uniqueStoryIds.add(item.answer.story_id);
+    });
+  }
+  if (featuredStory?.id) {
+    uniqueStoryIds.add(featuredStory.id);
+  }
+  const storyCount = uniqueStoryIds.size;
 
   const handlePlayAudio = (id, textSample, title) => {
     if (playingId === id) {
@@ -58,29 +81,62 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
 
   return (
     <div className="album-dashboard">
-      {/* 1. Welcome Editorial Hero Section */}
-      <section className="album-hero" aria-labelledby="hero-heading">
-        <div className="hero-text-side">
-          <div className="hero-greeting">
-            <span className="greeting-lead">Family Chronicle · {circle.name}</span>
-            <span className="greeting-viewer">Welcome back, {me.name.split(' ')[0]}</span>
+      {/* 1. New Two-Column Top Hero Layout */}
+      <div className="hero-two-column-wrapper">
+        {/* Left Card: Welcome & Featured Family Memory (~68% desktop width) */}
+        <section className="hero-left-card welcome-memory-card" aria-labelledby="hero-heading">
+          <div className="welcome-card-top">
+            <div className="hero-greeting">
+              <span className="greeting-lead">Family Chronicle · {circle.name}</span>
+              <span className="greeting-viewer">Welcome back, {me.name.split(' ')[0]}</span>
+            </div>
+
+            <h1 id="hero-heading" className="hero-headline">
+              Every family carries a thousand untold stories.
+            </h1>
+
+            <p className="hero-supporting">
+              Discover the voices, moments, and memories that make your family yours. Preserved simply through natural daily conversation with Grandma Fatma.
+            </p>
           </div>
 
-          <h1 id="hero-heading" className="hero-headline">
-            Every family carries a thousand untold stories.
-          </h1>
+          {/* Featured Archival Memory Preview inside Left Card */}
+          <div className="hero-featured-memory-spread">
+            <figure className="photo-matte-frame hero-card-photo-frame">
+              <img
+                src={featuredStory?.photo_url || "/family_hero.jpg"}
+                alt="Archival family photograph gathered on the veranda"
+                className="archival-photo"
+              />
+              <figcaption className="photo-caption">
+                <span>{featuredStory?.place || "Akçaabat, summer 1974"}</span>
+                <span className="caption-dot">·</span>
+                <span>{featuredStory?.year ? `Three generations (${featuredStory.year})` : "Three generations on the veranda"}</span>
+              </figcaption>
+            </figure>
 
-          <p className="hero-supporting">
-            Discover the voices, moments, and memories that make your family yours. Preserved simply through natural daily conversation with Grandma Fatma.
-          </p>
+            <div className="hero-memory-quote-block">
+              <span className="quote-mark">“</span>
+              <blockquote className="hero-quote-text">
+                {featuredStory?.excerpt || "We packed two wooden trunks with olive oil tins, dried figs, and my mother's hand-embroidered curtains. The air smelled of salt and wild pine as the truck rounded the coastal bend."}
+              </blockquote>
 
+              <div className="hero-memory-meta">
+                <span className="hero-memory-title">{featuredStory?.title || "The Summer We Moved to the Coast"}</span>
+                <span className="hero-memory-teller">Told by {featuredStory?.storyteller || "Grandma Fatma"}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Primary Actions Group */}
           <div className="hero-cta-group">
             <button
+              type="button"
               className="editorial-btn primary"
               onClick={() => handlePlayAudio(
                 'hero_preview',
-                "We packed two wooden trunks with olive oil tins, dried figs, and my mother's curtains. The salt air felt like a brand new life.",
-                "The Summer We Moved to the Coast"
+                featuredStory?.excerpt || "We packed two wooden trunks with olive oil tins, dried figs, and my mother's curtains. The salt air felt like a brand new life.",
+                featuredStory?.title || "The Summer We Moved to the Coast"
               )}
             >
               {playingId === 'hero_preview' ? <Pause size={17} /> : <Play size={17} style={{ marginLeft: '2px' }} />}
@@ -88,31 +144,49 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
             </button>
 
             <button
+              type="button"
               className="editorial-btn secondary"
               onClick={() => onOpenAskModal && onOpenAskModal(null)}
             >
               <MessageSquarePlus size={16} />
               <span>Ask Grandma a question</span>
             </button>
-          </div>
-        </div>
 
-        {/* Hero Archival Photograph */}
-        <div className="hero-photo-side">
-          <figure className="photo-matte-frame hero-frame">
-            <img
-              src="/family_hero.jpg"
-              alt="Archival family photograph of the Yilmaz family gathered in Akçaabat"
-              className="archival-photo"
-            />
-            <figcaption className="photo-caption">
-              <span>Akçaabat, summer 1974</span>
-              <span className="caption-dot">·</span>
-              <span>Three generations on the veranda</span>
-            </figcaption>
-          </figure>
-        </div>
-      </section>
+            {featuredStory && (
+              <button
+                type="button"
+                className="hero-read-more-link"
+                onClick={() => handleOpenStory(featuredStory.id)}
+              >
+                <span>Read full memory</span>
+                <ArrowRight size={14} />
+              </button>
+            )}
+          </div>
+        </section>
+
+        {/* Right Card: Family Tree Preview (~32% desktop width) */}
+        <FamilyTreeCard
+          circleData={circleData}
+          currentViewerId={currentViewerId}
+          onSwitchViewer={switchViewer}
+          storyCount={storyCount}
+          onOpenRecordModal={onOpenRecordModal}
+          onOpenTreeModal={() => setIsTreeModalOpen(true)}
+          onNavigateLifeline={() => setPanelSubTab('lifeline')}
+        />
+      </div>
+
+      {/* Family Tree Lineage Modal */}
+      <FamilyTreeModal
+        isOpen={isTreeModalOpen}
+        onClose={() => setIsTreeModalOpen(false)}
+        circleData={circleData}
+        currentViewerId={currentViewerId}
+        onSwitchViewer={switchViewer}
+        onNavigateLifeline={() => setPanelSubTab('lifeline')}
+        storyCount={storyCount}
+      />
 
       {/* Decorative Editorial Divider */}
       <div className="editorial-divider">
@@ -121,85 +195,7 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
         <span className="divider-line" />
       </div>
 
-      {/* 2. Featured Memory Section */}
-      {featuredStory && (
-        <section className="featured-story-section" aria-labelledby="featured-story-heading">
-          <div className="section-header-editorial">
-            <span className="section-eyebrow">Featured Family Memory</span>
-            <h2 id="featured-story-heading" className="section-title-serif">
-              {featuredStory.title}
-            </h2>
-            <div className="story-byline">
-              <span>Told by <strong>{featuredStory.storyteller}</strong></span>
-              <span className="byline-sep">/</span>
-              <span>{featuredStory.period_label}</span>
-              <span className="byline-sep">/</span>
-              <span>{featuredStory.place} ({featuredStory.year})</span>
-            </div>
-          </div>
-
-          <div className="featured-story-layout">
-            <figure className="photo-matte-frame featured-frame">
-              <img
-                src={featuredStory.photo_url || "/coast_memory.jpg"}
-                alt={featuredStory.title}
-                className="archival-photo"
-              />
-              <figcaption className="photo-caption">
-                <span>Original archival photo · Akçaabat coast</span>
-              </figcaption>
-            </figure>
-
-            <div className="featured-story-narrative">
-              <blockquote className="editorial-blockquote">
-                "{featuredStory.excerpt}"
-              </blockquote>
-
-              {featuredStory.ai_summary && (
-                <div className="ai-summary-note">
-                  <span className="ai-label-pill">AI-Generated Summary</span>
-                  <p>{featuredStory.ai_summary}</p>
-                </div>
-              )}
-
-              {/* Bespoke Warm Audio Player */}
-              <div className="editorial-player">
-                <button
-                  className="player-play-btn"
-                  onClick={() => handlePlayAudio(
-                    featuredStory.id,
-                    featuredStory.excerpt,
-                    featuredStory.title
-                  )}
-                  aria-label={playingId === featuredStory.id ? "Pause story" : "Play story"}
-                >
-                  {playingId === featuredStory.id ? <Pause size={18} /> : <Play size={18} style={{ marginLeft: '2px' }} />}
-                </button>
-
-                <div className="player-track-info">
-                  <div className="player-label-row">
-                    <span className="player-title">{featuredStory.title}</span>
-                    <span className="player-time">1:04</span>
-                  </div>
-                  <div className="player-scrubber-bg">
-                    <div className={`player-scrubber-fill ${playingId === featuredStory.id ? 'active' : ''}`} />
-                  </div>
-                </div>
-
-                <button
-                  className="open-story-link"
-                  onClick={() => handleOpenStory(featuredStory.id)}
-                >
-                  <span>Read full memory</span>
-                  <ArrowUpRight size={15} />
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* 3. Recent Memories Section */}
+      {/* 2. Recent Family Stories Section */}
       <section className="recent-memories-section" aria-labelledby="recent-heading">
         <div className="section-header-editorial">
           <span className="section-eyebrow">Archive Entries</span>
@@ -239,6 +235,7 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
 
               <div className="card-action-bar">
                 <button
+                  type="button"
                   className="mini-audio-btn"
                   onClick={() => handlePlayAudio(
                     'story_mulberry',
@@ -251,6 +248,7 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
                 </button>
 
                 <button
+                  type="button"
                   className="read-more-text"
                   onClick={() => handleOpenStory('story_mulberry')}
                 >
@@ -289,6 +287,7 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
 
               <div className="card-action-bar">
                 <button
+                  type="button"
                   className="mini-audio-btn"
                   onClick={() => handlePlayAudio(
                     'story_school',
@@ -301,6 +300,7 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
                 </button>
 
                 <button
+                  type="button"
                   className="read-more-text"
                   onClick={() => handleOpenStory('story_school')}
                 >
@@ -319,7 +319,7 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
         <span className="divider-line" />
       </div>
 
-      {/* 4. Stories Waiting to Be Told Section */}
+      {/* 3. Stories Waiting to Be Told Section */}
       <section className="stories-waiting-section" aria-labelledby="waiting-heading">
         <div className="section-header-editorial">
           <span className="section-eyebrow">Unexplored Chapters</span>
@@ -385,6 +385,9 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
               className={`chapter-card ${ch.status}`}
               onClick={() => onOpenAskModal && onOpenAskModal(ch.period, ch.prompt)}
               title={ch.status === 'waiting' ? "Click to ask Grandma this question" : "Explore chapter"}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && onOpenAskModal && onOpenAskModal(ch.period, ch.prompt)}
             >
               <div className="chapter-top">
                 <span className="chapter-name">{ch.title}</span>
@@ -426,7 +429,7 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
         <span className="divider-line" />
       </div>
 
-      {/* 5. Recent Family Activity Section */}
+      {/* 4. Recent Family Activity Section */}
       <section className="family-activity-section" aria-labelledby="activity-heading">
         <div className="section-header-editorial">
           <span className="section-eyebrow">Intimate Connections</span>
@@ -468,6 +471,7 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
                         <span>Her voice is warm and she was thinking of you this morning.</span>
                       </div>
                       <button
+                        type="button"
                         className="call-grandma-action-btn"
                         onClick={() => showToast("Calling Grandma Fatma... (+90 532 ...)", "info")}
                       >
@@ -497,6 +501,7 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
                     </h4>
                     <p className="activity-story-excerpt">{item.story.ai_summary}</p>
                     <button
+                      type="button"
                       className="inline-listen-link"
                       onClick={() => handleOpenStory(item.story.id)}
                     >
@@ -512,7 +517,7 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
         </div>
       </section>
 
-      {/* Floating or Footer Contribution Bar */}
+      {/* 5. Floating / Editorial Contribution Bar */}
       <footer className="dashboard-editorial-footer">
         <div className="footer-callout">
           <div className="footer-callout-text">
@@ -521,6 +526,7 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
           </div>
           <div className="footer-callout-actions">
             <button
+              type="button"
               className="editorial-btn secondary"
               onClick={() => onOpenRecordModal && onOpenRecordModal()}
             >
@@ -528,6 +534,7 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
               <span>Record your own memory</span>
             </button>
             <button
+              type="button"
               className="editorial-btn primary"
               onClick={() => onOpenAskModal && onOpenAskModal(null)}
             >

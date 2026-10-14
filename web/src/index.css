@@ -362,48 +362,65 @@ h1, h2, h3, h4, .serif-font {
   gap: 72px;
 }
 
-/* 1. Welcome Editorial Hero Section */
-.album-hero {
+/* ==========================================================================
+   ALBUM DASHBOARD — TWO-COLUMN HERO & FAMILY TREE PREVIEW SPREAD
+   ========================================================================== */
+.album-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 64px;
+}
+
+/* 1. New Two-Column Top Hero Layout (approx 68% left / 32% right) */
+.hero-two-column-wrapper {
   display: grid;
-  grid-template-columns: 1.15fr 1fr;
-  gap: 60px;
-  align-items: center;
+  grid-template-columns: minmax(0, 68fr) minmax(0, 32fr);
+  gap: 28px;
+  align-items: stretch;
+}
+
+@media (max-width: 980px) {
+  .hero-two-column-wrapper {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+/* Left Card — Welcome & Featured Family Memory */
+.hero-left-card.welcome-memory-card {
   background: var(--bg-white);
   border: 1px solid var(--border-paper);
   border-radius: var(--radius-xl);
-  padding: 56px 64px;
+  padding: 34px 38px;
   box-shadow: var(--shadow-subtle);
-}
-
-@media (max-width: 1100px) {
-  .album-hero {
-    grid-template-columns: 1fr;
-    padding: 36px 32px;
-    gap: 40px;
-  }
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 20px;
 }
 
 @media (max-width: 600px) {
-  .album-hero {
+  .hero-left-card.welcome-memory-card {
     padding: 24px 20px;
     border-radius: var(--radius-lg);
+    gap: 18px;
   }
 }
 
-.hero-text-side {
+.welcome-card-top {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 12px;
 }
 
 .hero-greeting {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .greeting-lead {
-  font-size: 14px;
+  font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--accent-sage);
@@ -412,30 +429,744 @@ h1, h2, h3, h4, .serif-font {
 
 .greeting-viewer {
   font-family: var(--font-serif);
-  font-size: 20px;
+  font-size: 18px;
   font-style: italic;
   color: var(--text-charcoal-muted);
 }
 
 .hero-headline {
-  font-size: clamp(44px, 3.8vw, 62px);
-  line-height: 1.14;
+  font-size: clamp(28px, 2.2vw, 38px);
+  line-height: 1.18;
   color: var(--text-charcoal);
   font-weight: 600;
 }
 
 .hero-supporting {
-  font-size: 18px;
-  line-height: 1.75;
+  font-size: 15.5px;
+  line-height: 1.62;
+  color: var(--text-charcoal-muted);
+}
+
+/* Featured Archival Memory Spread inside Left Card */
+.hero-featured-memory-spread {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 20px;
+  align-items: center;
+  background: var(--bg-paper-light);
+  border: 1px solid var(--border-paper);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+}
+
+@media (max-width: 1200px) {
+  .hero-featured-memory-spread {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}
+
+.hero-card-photo-frame {
+  margin: 0;
+  background: var(--bg-white);
+  padding: 8px 8px 10px 8px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-paper);
+  box-shadow: var(--shadow-photo);
+}
+
+.hero-card-photo-frame .photo-caption {
+  font-size: 12.5px;
+  margin-top: 6px;
+  gap: 6px;
+}
+
+.hero-memory-quote-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+}
+
+.quote-mark {
+  font-family: var(--font-serif);
+  font-size: 34px;
+  line-height: 1;
+  color: var(--accent-terracotta);
+  opacity: 0.5;
+  margin-bottom: -14px;
+}
+
+.hero-quote-text {
+  font-family: var(--font-serif);
+  font-size: 14.5px;
+  font-style: italic;
+  line-height: 1.6;
+  color: var(--text-charcoal);
+  margin: 0;
+}
+
+.hero-memory-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-top: 1px solid var(--border-paper);
+  padding-top: 8px;
+}
+
+.hero-memory-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-charcoal);
+}
+
+.hero-memory-teller {
+  font-size: 12px;
   color: var(--text-charcoal-muted);
 }
 
 .hero-cta-group {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   flex-wrap: wrap;
-  margin-top: 8px;
+}
+
+.hero-read-more-link {
+  background: transparent;
+  border: none;
+  color: var(--accent-terracotta);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  transition: var(--transition-gentle);
+  margin-left: auto;
+}
+
+.hero-read-more-link:hover {
+  text-decoration: underline;
+  transform: translateX(2px);
+}
+
+@media (max-width: 600px) {
+  .hero-read-more-link {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+/* ==========================================================================
+   RIGHT CARD — FAMILY TREE PREVIEW & GENERATION TIERS
+   ========================================================================== */
+.family-tree-preview-card {
+  background: var(--bg-white);
+  border: 1px solid var(--border-paper);
+  border-radius: var(--radius-xl);
+  padding: 30px 26px;
+  box-shadow: var(--shadow-subtle);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+@media (max-width: 600px) {
+  .family-tree-preview-card {
+    padding: 24px 20px;
+    border-radius: var(--radius-lg);
+  }
+}
+
+.tree-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.tree-eyebrow-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tree-botanical-ornament {
+  font-size: 14px;
+  color: var(--accent-sage);
+}
+
+.tree-eyebrow {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent-sage);
+}
+
+.tree-family-title {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-charcoal);
+  line-height: 1.15;
+}
+
+.tree-supporting-text {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-charcoal-muted);
+}
+
+/* Story Counter */
+.tree-story-counter-container {
+  width: 100%;
+}
+
+.story-counter-pill {
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  border: 1px solid var(--border-paper);
+}
+
+.story-counter-pill.has-stories {
+  background: var(--bg-paper-light);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.counter-main-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  color: var(--text-charcoal);
+}
+
+.counter-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-terracotta);
+  box-shadow: 0 0 0 2px rgba(169, 95, 70, 0.2);
+}
+
+.counter-count-label {
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.counter-count-label strong {
+  font-weight: 700;
+  color: var(--accent-terracotta);
+}
+
+.counter-sub-quote {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text-charcoal-muted);
+  margin-left: 16px;
+}
+
+/* Empty Stories State */
+.story-counter-pill.empty-stories {
+  background: #FFFDF9;
+  border: 1px dashed var(--border-paper-dark);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: center;
+  align-items: center;
+  padding: 14px;
+}
+
+.counter-empty-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent-terracotta);
+}
+
+.counter-empty-title {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.counter-empty-desc {
+  font-size: 12px;
+  color: var(--text-charcoal-muted);
+  line-height: 1.45;
+}
+
+.tree-record-first-btn {
+  background: var(--accent-terracotta);
+  color: var(--bg-white);
+  border: none;
+  padding: 7px 15px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  transition: var(--transition-gentle);
+}
+
+.tree-record-first-btn:hover {
+  background: var(--accent-terracotta-hover);
+  transform: translateY(-1px);
+}
+
+/* View Family Tree Button */
+.view-family-tree-btn {
+  width: 100%;
+  padding: 11px 18px;
+  background: var(--bg-paper-light);
+  border: 1px solid var(--border-paper);
+  border-radius: var(--radius-sm);
+  color: var(--text-charcoal);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  transition: var(--transition-gentle);
+}
+
+.view-family-tree-btn:hover {
+  background: var(--accent-terracotta);
+  color: var(--bg-white);
+  border-color: var(--accent-terracotta);
+  box-shadow: 0 4px 12px rgba(169, 95, 70, 0.22);
+  transform: translateY(-1px);
+}
+
+.view-family-tree-btn:hover .tree-btn-arrow {
+  transform: translateX(3px);
+}
+
+.tree-btn-arrow {
+  transition: transform 0.2s ease;
+}
+
+/* Vertical Family Tree Canvas */
+.vertical-family-tree-canvas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  background: var(--bg-paper-light);
+  border: 1px solid var(--border-paper);
+  border-radius: var(--radius-md);
+  padding: 14px 12px;
+}
+
+.tree-tier {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.tier-label {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-charcoal-faint);
+  font-weight: 700;
+}
+
+.tier-nodes-row {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.tree-person-node {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-white);
+  border: 1px solid var(--border-paper);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: var(--transition-gentle);
+  width: 100%;
+  max-width: 320px;
+  box-shadow: var(--shadow-subtle);
+  user-select: none;
+}
+
+.tree-person-node:hover {
+  background: #FFFDF9;
+  border-color: var(--border-paper-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-photo);
+}
+
+.tree-person-node.active-viewer {
+  border-color: var(--accent-terracotta);
+  background: #FFFDF9;
+  box-shadow: 0 0 0 2px rgba(169, 95, 70, 0.15);
+}
+
+/* Cameo Portrait Circle */
+.cameo-portrait-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--border-paper);
+  background: var(--bg-paper-light);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(48, 47, 41, 0.06);
+}
+
+.cameo-portrait-circle.elder-cameo {
+  width: 48px;
+  height: 48px;
+  border-color: var(--accent-terracotta);
+  background: rgba(169, 95, 70, 0.08);
+}
+
+.cameo-portrait-circle.grandchild-cameo {
+  width: 38px;
+  height: 38px;
+}
+
+.cameo-monogram {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text-charcoal);
+}
+
+.cameo-portrait-circle.grandchild-cameo .cameo-monogram {
+  font-size: 13px;
+}
+
+.cameo-emoji-tag {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.node-text-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.node-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.node-person-name {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-charcoal);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.viewer-active-tag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: rgba(169, 95, 70, 0.12);
+  color: var(--accent-terracotta);
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+}
+
+.node-relationship {
+  font-size: 12px;
+  color: var(--text-charcoal-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.node-birth-year {
+  font-size: 11px;
+  color: var(--text-charcoal-faint);
+}
+
+/* Vertical Stems */
+.tree-vertical-stem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 22px;
+  justify-content: center;
+  gap: 1px;
+}
+
+.stem-line {
+  width: 1.5px;
+  height: 8px;
+  background: var(--border-paper-dark);
+}
+
+.stem-leaf-node {
+  font-size: 9px;
+  color: var(--accent-sage);
+  line-height: 1;
+}
+
+.tree-vertical-fork-stem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 60%;
+  height: 20px;
+  position: relative;
+}
+
+.stem-line-upper {
+  width: 1.5px;
+  height: 7px;
+  background: var(--border-paper-dark);
+}
+
+.fork-horizontal-bar {
+  width: 100%;
+  height: 1.5px;
+  background: var(--border-paper-dark);
+}
+
+.fork-down-legs {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  height: 11px;
+}
+
+.fork-leg {
+  width: 1.5px;
+  height: 11px;
+  background: var(--border-paper-dark);
+}
+
+/* Grandchildren Split Tier */
+.tier-nodes-grid-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+}
+
+.tier-nodes-grid-split .tree-person-node {
+  padding: 8px 10px;
+  gap: 8px;
+}
+
+.tree-card-footer-cue {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-charcoal-faint);
+  text-align: center;
+}
+
+.cue-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent-sage);
+}
+
+/* ==========================================================================
+   FAMILY TREE MODAL (Archival Lineage Deep Dive)
+   ========================================================================== */
+.family-tree-modal {
+  max-width: 680px;
+}
+
+.modal-generations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-generation-card {
+  background: var(--bg-paper-light);
+  border: 1px solid var(--border-paper);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gen-badge {
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--accent-sage);
+}
+
+.gen-member-item {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.gen-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--bg-white);
+  border: 2px solid var(--border-paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-charcoal);
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(48, 47, 41, 0.06);
+}
+
+.gen-avatar.elder {
+  border-color: var(--accent-terracotta);
+  color: var(--accent-terracotta);
+  background: rgba(169, 95, 70, 0.06);
+}
+
+.gen-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.gen-name-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.gen-name-row strong {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  color: var(--text-charcoal);
+}
+
+.gen-year-pill {
+  font-size: 12px;
+  color: var(--text-charcoal-muted);
+}
+
+.gen-tag {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.gen-tag.center {
+  background: rgba(169, 95, 70, 0.12);
+  color: var(--accent-terracotta);
+}
+
+.gen-tag.admin {
+  background: rgba(104, 119, 91, 0.14);
+  color: var(--accent-sage);
+}
+
+.gen-desc {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-charcoal-muted);
+  margin: 2px 0 0 0;
+}
+
+.gen-links {
+  margin-top: 6px;
+}
+
+.gen-action-link {
+  background: transparent;
+  border: none;
+  color: var(--accent-terracotta);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+}
+
+.gen-action-link:hover {
+  text-decoration: underline;
+}
+
+.gen-grandchildren-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .gen-grandchildren-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.gen-grandchild-card {
+  background: var(--bg-white);
+  border: 1px solid var(--border-paper);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.gen-avatar.child {
+  width: 40px;
+  height: 40px;
+  font-size: 14px;
+}
+
+.gen-sub {
+  font-size: 12px;
+  color: var(--text-charcoal-muted);
+}
+
+.gen-note {
+  font-size: 11.5px;
+  color: var(--text-charcoal-faint);
+  line-height: 1.4;
 }
 
 .editorial-btn {
