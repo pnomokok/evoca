@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { apiClient } from '../../api/client';
-import { Calendar, HelpCircle, Edit3, Sparkles, BookOpen, Clock, ChevronRight } from 'lucide-react';
+import { Calendar, HelpCircle, Edit3, Sparkles, BookOpen, Clock, ChevronRight, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function LifelineView({ onOpenAskModal }) {
   const { setSelectedStoryId, setPanelSubTab, showToast } = useApp();
@@ -23,7 +23,7 @@ export default function LifelineView({ onOpenAskModal }) {
   const handleCorrectPeriod = async (storyId, newPeriod) => {
     try {
       await apiClient.patchStorySubject(storyId, 'person_fatma', newPeriod);
-      showToast("Period corrected by family! (Saved to record)", "info");
+      showToast("Period corrected by family! (Saved to permanent record)", "info");
       setEditingStoryId(null);
       // Reload updated lifeline
       const updated = await apiClient.getLifeline('person_fatma');
@@ -39,103 +39,118 @@ export default function LifelineView({ onOpenAskModal }) {
   };
 
   if (!lifelineData) {
-    return <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '40px' }}>Loading Lifeline...</div>;
+    return <div className="loading-state">Loading Lifeline archive...</div>;
   }
 
+  const totalStories = lifelineData.periods.reduce((acc, p) => acc + (p.stories?.length || 0), 0);
+  const totalGaps = lifelineData.gaps?.length || 0;
+
   return (
-    <div className="lifeline-container">
-      {/* Elder Profile Header */}
-      <div className="lifeline-person-header">
-        <div className="elder-avatar-big">👵</div>
-        <div>
-          <div style={{ fontSize: '18px', fontWeight: 800, color: '#fff' }}>
-            {lifelineData.person.name}'s Lifeline
+    <div className="lifeline-web-container">
+      {/* Top Profile & Timeline Stats Header */}
+      <div className="lifeline-hero-banner">
+        <div className="hero-left-profile">
+          <div className="elder-avatar-big">👵</div>
+          <div>
+            <div className="elder-hero-name">{lifelineData.person.name}'s Lifeline</div>
+            <div className="elder-hero-meta">
+              Born {lifelineData.person.birth_year} · Akçaabat & Istanbul · Living Memory Archive
+            </div>
           </div>
-          <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-            Born {lifelineData.person.birth_year} · Akçaabat & Istanbul
+        </div>
+
+        <div className="hero-stats-row">
+          <div className="stat-box">
+            <span className="stat-number">{totalStories}</span>
+            <span className="stat-label">Stories Preserved</span>
+          </div>
+          <div className="stat-box">
+            <span className="stat-number highlight-gap">{totalGaps}</span>
+            <span className="stat-label">Chapters with Gaps</span>
           </div>
         </div>
       </div>
 
-      <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-        Memories chronologically anchored to life periods. Gaps highlight moments waiting to be shared.
+      <div className="lifeline-intro-bar">
+        <p>
+          Stories are chronologically categorized into life chapters. Periods marked with <strong>Gap</strong> invite family members to ask questions and bridge missing memories.
+        </p>
       </div>
 
-      {/* Life Periods List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {/* Vertical Timeline */}
+      <div className="lifeline-periods-tree">
         {lifelineData.periods.map((p, idx) => {
           const hasStories = p.stories && p.stories.length > 0;
           return (
-            <div key={idx} className="lifeline-period-block">
-              <div className="period-heading">
-                <span>{p.title || p.period.replace(/_/g, ' ').toUpperCase()}</span>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                  ({p.stories.length} {p.stories.length === 1 ? 'memory' : 'memories'})
-                </span>
+            <section key={idx} className={`timeline-period-node ${hasStories ? 'has-content' : 'is-gap'}`}>
+              <div className="timeline-node-marker">
+                <span className="marker-dot" />
               </div>
 
-              {/* Story Cards in Period */}
-              {hasStories ? (
-                p.stories.map((s) => (
-                  <div
-                    key={s.id}
-                    className="feed-card"
-                    style={{ cursor: 'pointer', background: 'rgba(28, 35, 56, 0.45)' }}
-                    onClick={() => handleOpenStory(s.id)}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div style={{ fontSize: '16px', fontWeight: 700, color: '#fff' }}>
-                        {s.title}
-                      </div>
-                      <span
-                        className="feed-badge"
-                        style={{
-                          background: s.period_source === 'family' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                          color: s.period_source === 'family' ? 'var(--accent-emerald)' : 'var(--accent-gold)'
-                        }}
-                        title={s.period_source === 'family' ? 'Verified by family' : 'Estimated by AI'}
-                      >
-                        {s.period_source === 'family' ? 'Family Verified' : 'AI Estimate'}
-                      </span>
-                    </div>
-
-                    <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                      {s.ai_summary}
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
-                      <span style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <Clock size={12} /> {Math.round(s.duration_ms / 1000)}s
-                      </span>
-                      <span style={{ fontSize: '12px', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center' }}>
-                        View Story <ChevronRight size={14} />
-                      </span>
-                    </div>
+              <div className="timeline-period-content">
+                <div className="period-title-bar">
+                  <div className="period-title-group">
+                    <h3 className="period-title-heading">{p.title || p.period.replace(/_/g, ' ').toUpperCase()}</h3>
+                    <span className="period-count-badge">
+                      {hasStories ? `${p.stories.length} ${p.stories.length === 1 ? 'memory' : 'memories'}` : 'Gap · No memories yet'}
+                    </span>
                   </div>
-                ))
-              ) : (
-                /* Gap Card (Boş Dönem) */
-                <div className="gap-card">
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#e2e8f0' }}>
-                      No stories preserved yet
-                    </div>
-                    <div className="gap-text">
-                      Ask Fatma what was happening during this chapter of her life.
-                    </div>
-                  </div>
-                  <button
-                    className="ask-gap-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onOpenAskModal(p.period);
-                    }}
-                  >
-                    + Ask Question
-                  </button>
                 </div>
-              )}
-            </div>
+
+                {/* Stories in Period */}
+                {hasStories ? (
+                  <div className="period-stories-grid">
+                    {p.stories.map((s) => (
+                      <div
+                        key={s.id}
+                        className="lifeline-story-card"
+                        onClick={() => handleOpenStory(s.id)}
+                      >
+                        <div className="card-top-row">
+                          <h4 className="story-card-title">{s.title}</h4>
+                          <span
+                            className={`period-source-badge ${s.period_source === 'family' ? 'verified' : 'ai-estimate'}`}
+                            title={s.period_source === 'family' ? 'Verified by family' : 'Estimated by AI'}
+                          >
+                            {s.period_source === 'family' ? '✓ Family Verified' : 'AI Estimated'}
+                          </span>
+                        </div>
+
+                        <p className="story-card-summary">{s.ai_summary}</p>
+
+                        <div className="story-card-footer">
+                          <span className="duration-tag">
+                            <Clock size={12} /> {Math.round(s.duration_ms / 1000)}s audio
+                          </span>
+                          <span className="view-link">
+                            Open Memory <ChevronRight size={14} />
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  /* Gap Card */
+                  <div className="timeline-gap-card">
+                    <div className="gap-info">
+                      <div className="gap-title">
+                        <AlertCircle size={16} color="var(--accent-gold)" />
+                        <span>Missing Life Chapter</span>
+                      </div>
+                      <p className="gap-desc">
+                        No recordings exist for Grandma's {p.title || p.period}. Ask a question to encourage her morning conversation!
+                      </p>
+                    </div>
+                    <button
+                      className="gap-action-btn"
+                      onClick={() => onOpenAskModal && onOpenAskModal(p.period)}
+                    >
+                      + Ask About This Period
+                    </button>
+                  </div>
+                )}
+              </div>
+            </section>
           );
         })}
       </div>

@@ -5,7 +5,7 @@ import LifelineView from './LifelineView';
 import StoryView from './StoryView';
 import AskQuestionModal from './AskQuestionModal';
 import RecordMemoryModal from './RecordMemoryModal';
-import { Newspaper, Hourglass, BookOpen, MessageSquarePlus, Mic, Wifi, Battery, Signal } from 'lucide-react';
+import { Newspaper, Hourglass, BookOpen, MessageSquarePlus, Mic, Sparkles, Clock, Users } from 'lucide-react';
 
 export default function FamilyPanel() {
   const { panelSubTab, setPanelSubTab, circleData, currentViewerId } = useApp();
@@ -14,7 +14,7 @@ export default function FamilyPanel() {
   const [targetPeriod, setTargetPeriod] = useState(null);
 
   const me = circleData?.me || { name: 'Elif Yilmaz', role: 'member', relation_to_center: 'granddaughter' };
-  const circle = circleData?.circle || { name: 'The Yilmaz Family' };
+  const circle = circleData?.circle || { name: 'The Yilmaz Family', chat_time: '10:00' };
 
   const handleOpenAskModal = (period = null) => {
     setTargetPeriod(period);
@@ -22,83 +22,124 @@ export default function FamilyPanel() {
   };
 
   return (
-    <div className="phone-viewport-container">
-      {/* Mobile Top Status Bar & Notch */}
-      <div className="phone-notch-bar">
-        <span>9:41</span>
-        <div className="phone-notch-pill" />
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Signal size={12} />
-          <Wifi size={12} />
-          <Battery size={14} />
-        </div>
-      </div>
-
-      {/* Header */}
-      <header className="panel-header">
-        <div className="circle-info-group">
-          <span className="circle-name">{circle.name}</span>
-          <span className="circle-meta">
-            <span>● Active Archive</span> · <span>Chat 10:00 AM</span>
-          </span>
+    <div className="family-panel-container">
+      {/* Responsive Web & Mobile Header */}
+      <header className="panel-web-header">
+        <div className="header-left-brand">
+          <div className="circle-identity">
+            <h1 className="circle-title-text">{circle.name}</h1>
+            <div className="circle-status-row">
+              <span className="live-status-dot" />
+              <span className="status-label">Active Family Archive</span>
+              <span className="bullet-sep">·</span>
+              <span className="chat-time-tag">
+                <Clock size={12} style={{ display: 'inline', marginRight: '4px' }} />
+                Daily Chat {circle.chat_time || '10:00 AM'}
+              </span>
+            </div>
+          </div>
         </div>
 
-        <div className="viewer-pill">
-          <span className="viewer-avatar">
-            {currentViewerId === 'person_fatma' ? '👵' : currentViewerId === 'person_ayse' ? '👩' : '👧'}
-          </span>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span className="viewer-role-name">{me.name.split(' ')[0]}</span>
-            <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-              {me.relation_to_center ? me.relation_to_center : me.role}
+        {/* Desktop Web Sub-Navigation */}
+        <nav className="panel-web-nav">
+          <button
+            className={`web-nav-btn ${panelSubTab === 'feed' ? 'active' : ''}`}
+            onClick={() => setPanelSubTab('feed')}
+          >
+            <Newspaper size={17} />
+            <span>Feed</span>
+          </button>
+          <button
+            className={`web-nav-btn ${panelSubTab === 'lifeline' ? 'active' : ''}`}
+            onClick={() => setPanelSubTab('lifeline')}
+          >
+            <Hourglass size={17} />
+            <span>Lifeline</span>
+          </button>
+          <button
+            className={`web-nav-btn ${panelSubTab === 'story' ? 'active' : ''}`}
+            onClick={() => setPanelSubTab('story')}
+          >
+            <BookOpen size={17} />
+            <span>Story Detail</span>
+          </button>
+        </nav>
+
+        {/* Web Actions & Viewer Profile */}
+        <div className="header-right-actions">
+          <button
+            className="panel-action-btn ask-btn"
+            onClick={() => handleOpenAskModal(null)}
+          >
+            <MessageSquarePlus size={16} />
+            <span>Ask Question</span>
+          </button>
+
+          <button
+            className="panel-action-btn record-btn"
+            onClick={() => setRecordModalOpen(true)}
+          >
+            <Mic size={16} />
+            <span>Record Memory</span>
+          </button>
+
+          <div className="panel-viewer-badge">
+            <span className="viewer-avatar-icon">
+              {currentViewerId === 'person_fatma' ? '👵' : currentViewerId === 'person_ayse' ? '👩' : '👧'}
             </span>
+            <div className="viewer-text-details">
+              <span className="viewer-display-name">{me.name.split(' ')[0]}</span>
+              <span className="viewer-relation-badge">
+                {me.relation_to_center || me.role}
+              </span>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Main Scrollable View */}
-      <main className="panel-body">
-        {panelSubTab === 'feed' && <FeedView />}
+      {/* Main Content Area (Naturally scrolling responsive canvas) */}
+      <main className="panel-main-content">
+        {panelSubTab === 'feed' && <FeedView onOpenAskModal={handleOpenAskModal} />}
         {panelSubTab === 'lifeline' && <LifelineView onOpenAskModal={handleOpenAskModal} />}
         {panelSubTab === 'story' && <StoryView />}
       </main>
 
-      {/* Floating Action Buttons */}
-      <div className="panel-fab-row">
+      {/* Mobile Floating Action Buttons (Shown on small screens) */}
+      <div className="mobile-fab-group">
         <button
-          className="fab-btn"
+          className="mobile-fab-btn ask-fab"
           onClick={() => handleOpenAskModal(null)}
           title="Ask Grandma a question"
         >
           <MessageSquarePlus size={22} />
         </button>
         <button
-          className="fab-btn record-fab"
+          className="mobile-fab-btn record-fab"
           onClick={() => setRecordModalOpen(true)}
-          title="Record your memory"
+          title="Record memory"
         >
           <Mic size={22} />
         </button>
       </div>
 
-      {/* Bottom Navigation */}
-      <nav className="panel-bottom-nav">
+      {/* Mobile Bottom Navigation (Shown on mobile devices) */}
+      <nav className="mobile-bottom-nav">
         <button
-          className={`nav-tab-btn ${panelSubTab === 'feed' ? 'active' : ''}`}
+          className={`mobile-nav-item ${panelSubTab === 'feed' ? 'active' : ''}`}
           onClick={() => setPanelSubTab('feed')}
         >
           <Newspaper size={18} />
           <span>Feed</span>
         </button>
         <button
-          className={`nav-tab-btn ${panelSubTab === 'lifeline' ? 'active' : ''}`}
+          className={`mobile-nav-item ${panelSubTab === 'lifeline' ? 'active' : ''}`}
           onClick={() => setPanelSubTab('lifeline')}
         >
           <Hourglass size={18} />
           <span>Lifeline</span>
         </button>
         <button
-          className={`nav-tab-btn ${panelSubTab === 'story' ? 'active' : ''}`}
+          className={`mobile-nav-item ${panelSubTab === 'story' ? 'active' : ''}`}
           onClick={() => setPanelSubTab('story')}
         >
           <BookOpen size={18} />

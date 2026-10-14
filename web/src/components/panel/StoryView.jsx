@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { apiClient } from '../../api/client';
-import { Play, Pause, RotateCcw, ListMusic, MapPin, Sparkles, ArrowLeft, Heart, MessageSquare, Share2, ShieldCheck, Check } from 'lucide-react';
+import { Play, Pause, RotateCcw, ListMusic, MapPin, Sparkles, ArrowLeft, Heart, MessageSquare, Share2, ShieldCheck, Check, Headphones } from 'lucide-react';
 
 export default function StoryView() {
   const { selectedStoryId, setPanelSubTab, showToast } = useApp();
   const [story, setStory] = useState(null);
   const [playlist, setPlaylist] = useState(null);
-  const [showPlaylist, setShowPlaylist] = useState(false);
+  const [showPlaylist, setShowPlaylist] = useState(true);
 
   // Audio simulation state
   const [isPlaying, setIsPlaying] = useState(false);
@@ -91,213 +91,206 @@ export default function StoryView() {
   };
 
   if (!story) {
-    return <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '40px' }}>Loading memory...</div>;
+    return <div className="loading-state">Loading memory details...</div>;
   }
 
   const segment = story.transcript?.[0];
   const words = segment?.words || [];
 
   return (
-    <div className="story-detail-container">
-      {/* Back button */}
-      <div className="story-back-nav" onClick={() => setPanelSubTab('lifeline')}>
-        <ArrowLeft size={16} /> Back to Lifeline
-      </div>
-
-      <h1 className="story-full-title">{story.title}</h1>
-
-      <div className="story-metadata-pills">
-        <span className="meta-pill" style={{ color: 'var(--accent-gold)' }}>
-          <MapPin size={11} style={{ display: 'inline', marginRight: '3px' }} />
-          {story.place}
-        </span>
-        <span className="meta-pill">Childhood</span>
-        <span className="meta-pill" style={{ color: 'var(--accent-emerald)' }}>
-          <ShieldCheck size={11} style={{ display: 'inline', marginRight: '3px' }} />
-          Shared with Family Circle
-        </span>
-      </div>
-
-      {/* AI Structured Summary */}
-      <div className="feed-ai-summary">
-        <span className="ai-tag-inline">
-          <Sparkles size={11} style={{ display: 'inline', marginRight: '3px' }} />
-          AI Summary
-        </span>
-        {story.ai_summary}
-      </div>
-
-      {/* Audio Player Panel */}
-      <div className="story-audio-panel">
-        <div className="audio-controls-row">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button className="play-toggle-btn" onClick={togglePlay}>
-              {isPlaying ? <Pause size={18} /> : <Play size={18} style={{ marginLeft: '2px' }} />}
-            </button>
-            <div>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>
-                {story.teller.name} (Original Audio)
-              </div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                {(currentMs / 1000).toFixed(1)}s / {(durationMs / 1000).toFixed(1)}s
-              </div>
-            </div>
-          </div>
-
-          <button
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              fontSize: '12px'
-            }}
-            onClick={() => { setCurrentMs(0); setIsPlaying(false); }}
-          >
-            <RotateCcw size={14} /> Restart
-          </button>
+    <div className="story-web-layout">
+      {/* Left Column: Player & Interactive Transcript */}
+      <div className="story-main-column">
+        {/* Navigation Breadcrumb */}
+        <div className="story-back-nav" onClick={() => setPanelSubTab('lifeline')}>
+          <ArrowLeft size={16} /> Back to Lifeline Timeline
         </div>
 
-        {/* Scrubber Progress Bar */}
-        <div
-          className="audio-scrubber-track"
-          onClick={(e) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            const clickX = e.clientX - rect.left;
-            const pct = Math.max(0, Math.min(1, clickX / rect.width));
-            setCurrentMs(Math.round(pct * durationMs));
-          }}
-        >
-          <div
-            className="audio-scrubber-progress"
-            style={{ width: `${(currentMs / durationMs) * 100}%` }}
-          >
-            <div className="audio-scrubber-handle" />
+        <div className="story-header-area">
+          <h1 className="story-full-title">{story.title}</h1>
+          <div className="story-metadata-pills">
+            <span className="meta-pill location-pill">
+              <MapPin size={12} style={{ display: 'inline', marginRight: '4px' }} />
+              {story.place}
+            </span>
+            <span className="meta-pill period-pill">Childhood Chapter</span>
+            <span className="meta-pill access-pill">
+              <ShieldCheck size={12} style={{ display: 'inline', marginRight: '4px' }} />
+              Shared with Family Circle
+            </span>
           </div>
         </div>
-      </div>
 
-      {/* Interactive Word-Timed Clickable Transcript */}
-      <div className="transcript-card">
-        <div className="transcript-header">
-          <span>Clickable Transcript</span>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'none' }}>
-            Click any word to jump audio
-          </span>
-        </div>
-
-        <div className="transcript-body">
-          {words.map((item, idx) => {
-            const isActive = currentMs >= item.start_ms && currentMs <= item.end_ms;
-            return (
-              <span
-                key={idx}
-                className={`transcript-word ${isActive ? 'active' : ''}`}
-                onClick={() => handleWordClick(item.start_ms)}
-                title={`Jump to ${item.start_ms}ms`}
-              >
-                {item.w}{' '}
-              </span>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Emoji Reactions Bar */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-        <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
-          Reactions (Delivered verbally to Grandma during morning invitation)
-        </div>
-        <div className="reactions-bar">
-          {[
-            { key: 'heart', emoji: '❤️' },
-            { key: 'laugh', emoji: '😂' },
-            { key: 'sad', emoji: '😢' },
-            { key: 'pray', emoji: '🙏' }
-          ].map(r => {
-            const count = story.reactions.counts[r.key] || 0;
-            const hasReacted = story.reactions.mine.includes(r.key);
-            return (
-              <button
-                key={r.key}
-                className={`reaction-btn ${hasReacted ? 'reacted' : ''}`}
-                onClick={() => handleToggleReaction(r.key)}
-              >
-                <span>{r.emoji}</span>
-                <span>{count}</span>
+        {/* Big Audio Player Panel */}
+        <div className="story-audio-panel">
+          <div className="audio-controls-row">
+            <div className="audio-left-meta">
+              <button className="play-toggle-btn" onClick={togglePlay}>
+                {isPlaying ? <Pause size={20} /> : <Play size={20} style={{ marginLeft: '2px' }} />}
               </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* "Listen from Start" (Baştan Dinle) Playlist */}
-      <div className="listen-start-banner">
-        <div>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>
-            🎧 Listen Connected Storyline
-          </div>
-          <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-            Sequential audio playlist in chronological order
-          </div>
-        </div>
-        <button
-          style={{
-            background: 'var(--accent-cyan)',
-            color: '#000',
-            border: 'none',
-            padding: '6px 14px',
-            borderRadius: 'var(--radius-full)',
-            fontSize: '12px',
-            fontWeight: 700,
-            cursor: 'pointer'
-          }}
-          onClick={() => setShowPlaylist(!showPlaylist)}
-        >
-          {showPlaylist ? "Hide Playlist" : "Baştan Dinle"}
-        </button>
-      </div>
-
-      {showPlaylist && playlist && (
-        <div style={{ background: 'rgba(0, 0, 0, 0.4)', borderRadius: 'var(--radius-md)', padding: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {playlist.items.map((item, idx) => (
-            <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '13px' }}>
-              <span>{idx + 1}. {item.title}</span>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{Math.round(item.end_ms / 1000)}s</span>
+              <div>
+                <div className="audio-teller-name">
+                  {story.teller.name} (Original Voice Recording)
+                </div>
+                <div className="audio-time-counter">
+                  {(currentMs / 1000).toFixed(1)}s / {(durationMs / 1000).toFixed(1)}s
+                </div>
+              </div>
             </div>
-          ))}
-          {playlist.skipped_count > 0 && (
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic', borderTop: '1px solid var(--border-subtle)', paddingTop: '6px' }}>
-              🔒 {playlist.skipped_count} private memory smoothly skipped for your privacy access level.
+
+            <button
+              className="audio-restart-btn"
+              onClick={() => { setCurrentMs(0); setIsPlaying(false); }}
+            >
+              <RotateCcw size={14} /> Restart Audio
+            </button>
+          </div>
+
+          {/* Interactive Scrubber Track */}
+          <div
+            className="audio-scrubber-track"
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const clickX = e.clientX - rect.left;
+              const pct = Math.max(0, Math.min(1, clickX / rect.width));
+              setCurrentMs(Math.round(pct * durationMs));
+            }}
+          >
+            <div
+              className="audio-scrubber-progress"
+              style={{ width: `${(currentMs / durationMs) * 100}%` }}
+            >
+              <div className="audio-scrubber-handle" />
+            </div>
+          </div>
+        </div>
+
+        {/* Word-Timed Interactive Clickable Transcript */}
+        <div className="transcript-card">
+          <div className="transcript-header">
+            <span>Timed Speech-to-Text Transcript</span>
+            <span className="transcript-hint">
+              💡 Click any word to jump audio
+            </span>
+          </div>
+
+          <div className="transcript-body">
+            {words.map((item, idx) => {
+              const isActive = currentMs >= item.start_ms && currentMs <= item.end_ms;
+              return (
+                <span
+                  key={idx}
+                  className={`transcript-word ${isActive ? 'active' : ''}`}
+                  onClick={() => handleWordClick(item.start_ms)}
+                  title={`Jump to ${item.start_ms}ms`}
+                >
+                  {item.w}{' '}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Right Column: AI Summary, Reactions, Playlist & Retellings */}
+      <aside className="story-side-column">
+        {/* AI Summary Card */}
+        <div className="story-side-card ai-summary-card">
+          <div className="side-card-title">
+            <Sparkles size={16} color="var(--accent-gold)" />
+            <span>AI Structured Summary</span>
+          </div>
+          <p className="side-summary-text">{story.ai_summary}</p>
+        </div>
+
+        {/* Emoji Reactions Bar */}
+        <div className="story-side-card reactions-card">
+          <div className="side-card-title">
+            <Heart size={16} color="var(--accent-rose)" />
+            <span>Family Reactions</span>
+          </div>
+          <p className="reactions-subtext">
+            Reactions are spoken aloud to Grandma during her morning conversation!
+          </p>
+          <div className="reactions-bar">
+            {[
+              { key: 'heart', emoji: '❤️' },
+              { key: 'laugh', emoji: '😂' },
+              { key: 'sad', emoji: '😢' },
+              { key: 'pray', emoji: '🙏' }
+            ].map(r => {
+              const count = story.reactions.counts[r.key] || 0;
+              const hasReacted = story.reactions.mine.includes(r.key);
+              return (
+                <button
+                  key={r.key}
+                  className={`reaction-btn ${hasReacted ? 'reacted' : ''}`}
+                  onClick={() => handleToggleReaction(r.key)}
+                >
+                  <span>{r.emoji}</span>
+                  <span>{count}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* "Listen from Start" (Baştan Dinle) Sequential Playlist */}
+        <div className="story-side-card playlist-card">
+          <div className="playlist-card-top">
+            <div className="side-card-title">
+              <Headphones size={16} color="var(--accent-cyan)" />
+              <span>Baştan Dinle (Sequential Storyline)</span>
+            </div>
+            <button
+              className="toggle-playlist-btn"
+              onClick={() => setShowPlaylist(!showPlaylist)}
+            >
+              {showPlaylist ? "Collapse" : "Expand"}
+            </button>
+          </div>
+
+          <p className="playlist-desc">
+            Plays connected stories chronologically like an intimate family podcast.
+          </p>
+
+          {showPlaylist && playlist && (
+            <div className="playlist-items-list">
+              {playlist.items.map((item, idx) => (
+                <div key={idx} className="playlist-item-row">
+                  <span className="p-num">{idx + 1}.</span>
+                  <span className="p-title">{item.title}</span>
+                  <span className="p-dur">{Math.round(item.end_ms / 1000)}s</span>
+                </div>
+              ))}
+              {playlist.skipped_count > 0 && (
+                <div className="playlist-privacy-skip">
+                  🔒 {playlist.skipped_count} private recording skipped for your access tier.
+                </div>
+              )}
             </div>
           )}
         </div>
-      )}
 
-      {/* Retellings & Connected Memories */}
-      {story.retellings && story.retellings.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>
-            Retellings by Family
-          </div>
-          {story.retellings.map(ret => (
-            <div key={ret.id} className="feed-card" style={{ padding: '12px' }}>
-              <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--accent-gold)' }}>
-                "{ret.title}"
-              </div>
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                Told by {ret.teller.name} ({ret.teller.relation_to_center})
-              </div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                {ret.relation_note}
-              </div>
+        {/* Retellings by Family Members */}
+        {story.retellings && story.retellings.length > 0 && (
+          <div className="story-side-card retellings-card">
+            <div className="side-card-title">
+              <MessageSquare size={16} color="var(--accent-purple)" />
+              <span>Family Retellings & Perspectives</span>
             </div>
-          ))}
-        </div>
-      )}
+            {story.retellings.map(ret => (
+              <div key={ret.id} className="retelling-item">
+                <div className="ret-title">"{ret.title}"</div>
+                <div className="ret-author">
+                  Told by {ret.teller.name} ({ret.teller.relation_to_center})
+                </div>
+                <div className="ret-note">{ret.relation_note}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </aside>
     </div>
   );
 }
