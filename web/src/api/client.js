@@ -5,6 +5,7 @@ import {
   initialFeed,
   initialLifeline,
   initialStoryMulberry,
+  initialFeaturedStory,
   initialStoryMulberryPlaylist,
   SENSITIVE_TOPIC_KEYWORDS
 } from './mockData';
@@ -22,6 +23,7 @@ class EvocaApiClient {
     this.feed = JSON.parse(JSON.stringify(initialFeed));
     this.lifeline = JSON.parse(JSON.stringify(initialLifeline));
     this.story = JSON.parse(JSON.stringify(initialStoryMulberry));
+    this.featuredStory = JSON.parse(JSON.stringify(initialFeaturedStory));
     this.playlist = JSON.parse(JSON.stringify(initialStoryMulberryPlaylist));
     this.deviceTurns = [];
   }
@@ -130,6 +132,13 @@ class EvocaApiClient {
     }
     const res = await fetch(`${API_BASE_URL}/api/lifeline/${personId}`, { headers: this.getHeaders() });
     return res.json();
+  }
+
+  async getFeaturedStory() {
+    if (this.useMock) {
+      return { ...this.featuredStory };
+    }
+    return { ...this.featuredStory };
   }
 
   async getStory(storyId = 'story_mulberry') {

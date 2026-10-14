@@ -40,7 +40,7 @@ export const initialDeviceTurn = {
   session_open: true,
   heard_text: "Alexa, what's new?",
   reply_text: "Good morning, Fatma! Elif laughed a lot at your mulberry tree story. And your granddaughter Elif would love to know: what was school like when you were young?",
-  reply_audio_url: null, // synthesized on the fly via browser SpeechSynthesis / AudioContext
+  reply_audio_url: null,
   cards: [
     {
       type: "reaction",
@@ -58,6 +58,23 @@ export const initialDeviceTurn = {
   ]
 };
 
+export const initialFeaturedStory = {
+  id: "story_coast",
+  circle_id: "circle_yilmaz",
+  title: "The Summer We Moved to the Coast",
+  storyteller: "Grandma Fatma",
+  teller: { id: "person_fatma", name: "Fatma Yilmaz", relation_to_center: null },
+  period: "marriage_early_years",
+  period_label: "Early adulthood",
+  year: 1968,
+  place: "Black Sea Coast, Akçaabat",
+  photo_url: "/coast_memory.jpg",
+  excerpt: "We packed two wooden trunks with olive oil tins, dried figs, and my mother's hand-embroidered curtains. The air smelled of salt and wild pine as the truck rounded the coastal bend toward our new stone cottage.",
+  duration_ms: 64000,
+  audio_url: "/api/audio/session_coast?start=0&end=64000",
+  ai_summary: "Fatma recounts leaving her inland childhood village at age twenty to settle on the coastal cliffs of Akçaabat, describing the arrival by truck and setting up their stone cottage by the sea."
+};
+
 export const initialFeed = {
   items: [
     {
@@ -72,10 +89,14 @@ export const initialFeed = {
         story_id: "story_school",
         story_title: "Walking to School in the Snow",
         teller: { id: "person_fatma", name: "Fatma Yilmaz", relation_to_center: null },
+        period: "childhood",
+        period_label: "Childhood",
+        photo_url: "/school_winter.jpg",
         session_id: "session_demo2",
         start_ms: 61000,
         end_ms: 118500,
         duration_ms: 57500,
+        excerpt: "Four kilometers in knee-deep snow. Mother would slip two hot baked potatoes straight from the wood stove into our coat pockets so our fingers wouldn't freeze on the walk.",
         ai_summary: "Fatma describes how they used to walk 4 kilometers in deep snow to reach the village primary school, carrying hot potatoes in their pockets to keep their hands warm.",
         audio_url: "/api/audio/session_demo2?start=61000&end=118500"
       }
@@ -86,8 +107,12 @@ export const initialFeed = {
       story: {
         id: "story_mulberry",
         title: "The Mulberry Tree",
-        ai_summary: "Fatma recalls climbing the mulberry tree with her sister every summer as a child in their village garden.",
         teller: { id: "person_fatma", name: "Fatma Yilmaz", relation_to_center: null },
+        period: "childhood",
+        period_label: "Childhood",
+        photo_url: "/mulberry_memory.jpg",
+        excerpt: "When I was a little girl in the village, we had a big mulberry tree in the garden. Every summer we would climb it and eat until our hands turned purple.",
+        ai_summary: "Fatma recalls climbing the mulberry tree with her sister every summer as a child in their village garden.",
         subjects: [ { person_id: "person_fatma", period: "childhood", period_source: "ai" } ],
         duration_ms: 22000
       }
@@ -101,11 +126,14 @@ export const initialLifeline = {
     {
       period: "childhood",
       title: "Childhood (0-12)",
+      invitationPrompt: "What was your childhood home like?",
       stories: [
         {
           id: "story_mulberry",
           title: "The Mulberry Tree",
+          photo_url: "/mulberry_memory.jpg",
           ai_summary: "Fatma recalls climbing the mulberry tree with her sister every summer as a child in their village garden.",
+          excerpt: "Every summer my sister and I would climb to the topmost branches until our hands turned purple.",
           teller: { id: "person_fatma", name: "Fatma Yilmaz", relation_to_center: null },
           period_source: "ai",
           status: "published",
@@ -114,7 +142,9 @@ export const initialLifeline = {
         {
           id: "story_school",
           title: "Walking to School in the Snow",
+          photo_url: "/school_winter.jpg",
           ai_summary: "Carrying hot baked potatoes in pockets during harsh winter treks to the one-room schoolhouse.",
+          excerpt: "Four kilometers in knee-deep snow, with hot potatoes keeping our fingers warm.",
           teller: { id: "person_fatma", name: "Fatma Yilmaz", relation_to_center: null },
           period_source: "family",
           status: "published",
@@ -122,19 +152,57 @@ export const initialLifeline = {
         }
       ]
     },
-    { period: "youth", title: "Youth (13-20)", stories: [] },
-    { period: "marriage_early_years", title: "Early Marriage", stories: [] },
-    { period: "raising_children", title: "Raising Children", stories: [] },
-    { period: "midlife", title: "Midlife", stories: [] },
-    { period: "retirement", title: "Retirement", stories: [] }
+    {
+      period: "youth",
+      title: "Youth (13-20)",
+      invitationPrompt: "What did you dream of becoming when you were sixteen?",
+      stories: []
+    },
+    {
+      period: "marriage_early_years",
+      title: "Early Adulthood & Marriage",
+      invitationPrompt: "How did you and Grandpa first meet?",
+      stories: [
+        {
+          id: "story_coast",
+          title: "The Summer We Moved to the Coast",
+          photo_url: "/coast_memory.jpg",
+          ai_summary: "Fatma recounts moving to the Black Sea coast after marriage, settling into their stone cottage by the shore.",
+          excerpt: "We packed two wooden trunks and left for the sea. The salt air felt like a brand new life.",
+          teller: { id: "person_fatma", name: "Fatma Yilmaz", relation_to_center: null },
+          period_source: "family",
+          status: "published",
+          duration_ms: 64000
+        }
+      ]
+    },
+    {
+      period: "raising_children",
+      title: "Raising a Family",
+      invitationPrompt: "What family tradition do you remember most when the children were small?",
+      stories: []
+    },
+    {
+      period: "midlife",
+      title: "Midlife",
+      invitationPrompt: "What was the biggest journey you ever took?",
+      stories: []
+    },
+    {
+      period: "retirement",
+      title: "Retirement",
+      invitationPrompt: "What brings you the quietest joy these days?",
+      stories: []
+    }
   ],
-  gaps: ["youth", "marriage_early_years", "raising_children", "midlife", "retirement"]
+  gaps: ["youth", "raising_children", "midlife", "retirement"]
 };
 
 export const initialStoryMulberry = {
   id: "story_mulberry",
   circle_id: "circle_yilmaz",
   title: "The Mulberry Tree",
+  photo_url: "/mulberry_memory.jpg",
   ai_summary: "Fatma recalls climbing the mulberry tree with her sister every summer as a child in their village garden.",
   kind: "original",
   original_story_id: null,
@@ -250,7 +318,7 @@ export const initialStoryMulberryPlaylist = {
       url: "/api/audio/session_demo3?start=0&end=38000"
     }
   ],
-  skipped_count: 1 // One private story ("Hatice Goes to Germany") skipped automatically
+  skipped_count: 1
 };
 
 export const SENSITIVE_TOPIC_KEYWORDS = [
