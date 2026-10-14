@@ -211,7 +211,7 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
 
         <div className="editorial-stories-grid">
           {/* Story Card 1: The Mulberry Tree */}
-          <article className="story-editorial-card">
+          <article className="story-editorial-card split-layout">
             <figure className="photo-matte-frame card-frame">
               <img
                 src="/mulberry_memory.jpg"
@@ -246,7 +246,7 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
                     "The Mulberry Tree"
                   )}
                 >
-                  {playingId === 'story_mulberry' ? <Pause size={15} /> : <Play size={15} />}
+                  {playingId === 'story_mulberry' ? <Pause size={17} /> : <Play size={17} />}
                   <span>{playingId === 'story_mulberry' ? 'Pause (0:22)' : 'Listen (0:22)'}</span>
                 </button>
 
@@ -261,7 +261,7 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
           </article>
 
           {/* Story Card 2: Walking to School in the Snow */}
-          <article className="story-editorial-card">
+          <article className="story-editorial-card split-layout">
             <figure className="photo-matte-frame card-frame">
               <img
                 src="/school_winter.jpg"
