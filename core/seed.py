@@ -11,17 +11,20 @@ from __future__ import annotations
 
 import os
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 # Allow running as __main__ from the repo root without installing the package.
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from core.clock import now_utc
 from core.db import SessionLocal, engine, init_db
 from core.enums import (
     AccessType,
     CircleStatus,
     Emoji,
+    InvitationStatus,
     LifePeriod,
     LinkReason,
     LinkSource,
@@ -51,13 +54,7 @@ from core.models import (
     StorySubject,
 )
 
-
-def _iso(dt: datetime) -> str:
-    return dt.isoformat()
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
+_CIRCLE_TZ = ZoneInfo("Europe/Istanbul")
 
 
 def reset_and_seed() -> None:
@@ -65,7 +62,8 @@ def reset_and_seed() -> None:
     Base.metadata.drop_all(bind=engine)
     init_db()
 
-    now = _now()
+    now = now_utc()
+    today_str = now.astimezone(_CIRCLE_TZ).strftime("%Y-%m-%d")
 
     with SessionLocal() as db:
         # ------------------------------------------------------------------
@@ -75,28 +73,28 @@ def reset_and_seed() -> None:
             name="Fatma Yilmaz",
             birth_year=1948,
             language="en",
-            created_at=_iso(now),
+            created_at=now.isoformat(),
         )
         ayse = Person(
             name="Ayşe Yilmaz",
             birth_year=1975,
             language="en",
-            created_at=_iso(now),
+            created_at=now.isoformat(),
         )
         elif_ = Person(
             name="Elif Yilmaz",
             birth_year=2003,
             language="en",
-            created_at=_iso(now),
+            created_at=now.isoformat(),
         )
         can = Person(
             name="Can Yilmaz",
             birth_year=2006,
             language="en",
-            created_at=_iso(now),
+            created_at=now.isoformat(),
         )
         db.add_all([fatma, ayse, elif_, can])
-        db.flush()  # assign IDs
+        db.flush()
 
         # ------------------------------------------------------------------
         # Circle
@@ -115,15 +113,27 @@ def reset_and_seed() -> None:
         # Memberships
         # ------------------------------------------------------------------
         db.add_all([
-            Membership(person_id=fatma.id, circle_id=circle.id, role=Role.center, relation_to_center=None),
-            Membership(person_id=ayse.id,  circle_id=circle.id, role=Role.admin,  relation_to_center="daughter"),
-            Membership(person_id=elif_.id, circle_id=circle.id, role=Role.member, relation_to_center="granddaughter"),
-            Membership(person_id=can.id,   circle_id=circle.id, role=Role.member, relation_to_center="grandson"),
+            Membership(
+                person_id=fatma.id, circle_id=circle.id,
+                role=Role.center, relation_to_center=None,
+            ),
+            Membership(
+                person_id=ayse.id, circle_id=circle.id,
+                role=Role.admin, relation_to_center="daughter",
+            ),
+            Membership(
+                person_id=elif_.id, circle_id=circle.id,
+                role=Role.member, relation_to_center="granddaughter",
+            ),
+            Membership(
+                person_id=can.id, circle_id=circle.id,
+                role=Role.member, relation_to_center="grandson",
+            ),
         ])
         db.flush()
 
         # ------------------------------------------------------------------
-        # Session  (finished)
+        # Session  (finished, from ~2 hours ago)
         # ------------------------------------------------------------------
         session_start = now - timedelta(hours=2)
         session_end   = now - timedelta(hours=1, minutes=30)
@@ -134,8 +144,8 @@ def reset_and_seed() -> None:
             started_by=SessionStart.spontaneous,
             participant_ids=[fatma.id],
             audio_path="data/audio/session_demo.m4a",
-            started_at=_iso(session_start),
-            ended_at=_iso(session_end),
+            started_at=session_start.isoformat(),
+            ended_at=session_end.isoformat(),
         )
         db.add(session)
         db.flush()
@@ -147,49 +157,50 @@ def reset_and_seed() -> None:
             session_id=session.id,
             speaker_id=fatma.id,
             start_ms=0,
-            end_ms=45000,
+            end_ms=45_000,
             transcript=(
                 "When I was a little girl in the village, we had a big mulberry tree "
                 "in the garden. Every summer we would climb it and eat until our hands "
                 "turned purple."
             ),
             words=[
-                {"w": "When", "start_ms": 0, "end_ms": 400},
-                {"w": "I", "start_ms": 410, "end_ms": 500},
+                {"w": "When", "start_ms": 0,   "end_ms": 400},
+                {"w": "I",    "start_ms": 410,  "end_ms": 500},
             ],
             is_private=False,
         )
         seg2 = Segment(
             session_id=session.id,
             speaker_id=None,  # agent
-            start_ms=45500,
-            end_ms=52000,
+            start_ms=45_500,
+            end_ms=52_000,
             transcript="That sounds wonderful. Did you have siblings to climb with?",
             words=[],
             is_private=False,
         )
+        # This segment is private — it never reaches any story's sources or summary.
         seg3 = Segment(
             session_id=session.id,
             speaker_id=fatma.id,
-            start_ms=52500,
-            end_ms=95000,
+            start_ms=52_500,
+            end_ms=95_000,
             transcript=(
                 "Yes, my sister Hatice and I. We were inseparable. "
                 "She moved to Germany in 1972 — I did not see her for three years. "
                 "Those were hard times, but let us not talk about that today."
             ),
-            words=[
-                {"w": "Yes", "start_ms": 52500, "end_ms": 52900},
-            ],
-            is_private=True,  # Fatma said "let's not talk about that"
+            words=[{"w": "Yes", "start_ms": 52_500, "end_ms": 52_900}],
+            is_private=True,
         )
         db.add_all([seg1, seg2, seg3])
         db.flush()
 
         # ------------------------------------------------------------------
         # Stories
+        # Note: seg3 is private; no story is derived from it.
         # ------------------------------------------------------------------
-        # 1. Published, access = circle
+
+        # 1. Published, access = circle — childhood memory
         story_mulberry = Story(
             circle_id=circle.id,
             teller_id=fatma.id,
@@ -200,36 +211,39 @@ def reset_and_seed() -> None:
                 "Fatma recalls climbing the mulberry tree with her sister every summer "
                 "as a child in their village garden."
             ),
-            sources=[{"session_id": session.id, "start_ms": 0, "end_ms": 45000}],
+            sources=[{"session_id": session.id, "start_ms": 0, "end_ms": 45_000}],
             place="Village of Akcaabat",
             stated_year=None,
             access={"type": AccessType.circle, "person_ids": []},
             status=StoryStatus.published,
-            publish_at=_iso(now - timedelta(hours=1)),
-            created_at=_iso(now - timedelta(hours=1, minutes=55)),
+            publish_at=(now - timedelta(hours=1)).isoformat(),
+            created_at=(now - timedelta(hours=1, minutes=55)).isoformat(),
         )
 
-        # 2. Published, access = private
-        story_sister = Story(
+        # 2. Published, access = circle — youth memory (tailor's shop)
+        #    Sources point to seg1's session but a later time range to keep
+        #    it cleanly separate from the mulberry extract.
+        story_tailor = Story(
             circle_id=circle.id,
             teller_id=fatma.id,
             kind=StoryKind.original,
             original_story_id=None,
-            title="Hatice Goes to Germany",
+            title="The Tailor's Shop",
             ai_summary=(
-                "Fatma briefly mentions her sister Hatice leaving for Germany in 1972 "
-                "and a difficult three-year separation."
+                "As a young woman Fatma worked at the neighbourhood tailor's shop. "
+                "She learned to sew by hand and remembers the hum of the old Singer "
+                "machine and the smell of fresh cotton on warm afternoons."
             ),
-            sources=[],  # segment was marked private, excluded from sources
-            place=None,
-            stated_year=1972,
-            access={"type": AccessType.private, "person_ids": []},
+            sources=[{"session_id": session.id, "start_ms": 45_500, "end_ms": 52_000}],
+            place="Village of Akcaabat",
+            stated_year=None,
+            access={"type": AccessType.circle, "person_ids": []},
             status=StoryStatus.published,
-            publish_at=_iso(now - timedelta(hours=1)),
-            created_at=_iso(now - timedelta(hours=1, minutes=50)),
+            publish_at=(now - timedelta(hours=1)).isoformat(),
+            created_at=(now - timedelta(hours=1, minutes=45)).isoformat(),
         )
 
-        # 3. Pending, access = selected (Ayse only)
+        # 3. Pending, access = selected (Ayşe only)
         story_pending = Story(
             circle_id=circle.id,
             teller_id=fatma.id,
@@ -245,11 +259,11 @@ def reset_and_seed() -> None:
             stated_year=None,
             access={"type": AccessType.selected, "person_ids": [ayse.id]},
             status=StoryStatus.pending,
-            publish_at=_iso(now + timedelta(hours=23)),
-            created_at=_iso(now - timedelta(minutes=30)),
+            publish_at=(now + timedelta(hours=23)).isoformat(),
+            created_at=(now - timedelta(minutes=30)).isoformat(),
         )
 
-        db.add_all([story_mulberry, story_sister, story_pending])
+        db.add_all([story_mulberry, story_tailor, story_pending])
         db.flush()
 
         # ------------------------------------------------------------------
@@ -264,7 +278,7 @@ def reset_and_seed() -> None:
                 corrected_by=None,
             ),
             StorySubject(
-                story_id=story_sister.id,
+                story_id=story_tailor.id,
                 person_id=fatma.id,
                 period=LifePeriod.youth,
                 period_source=PeriodSource.ai,
@@ -281,11 +295,11 @@ def reset_and_seed() -> None:
         db.flush()
 
         # ------------------------------------------------------------------
-        # StoryLink
+        # StoryLink  (tailor → mulberry, same place)
         # ------------------------------------------------------------------
         link = StoryLink(
-            from_story_id=story_mulberry.id,
-            to_story_id=story_sister.id,
+            from_story_id=story_tailor.id,
+            to_story_id=story_mulberry.id,
             reason=LinkReason.same_place,
             source=LinkSource.ai,
             status=LinkStatus.suggested,
@@ -305,7 +319,7 @@ def reset_and_seed() -> None:
             period=LifePeriod.childhood,
             status=QuestionStatus.waiting,
             answer=None,
-            created_at=_iso(now - timedelta(days=1)),
+            created_at=(now - timedelta(days=1)).isoformat(),
         )
         q2 = Question(
             circle_id=circle.id,
@@ -316,7 +330,7 @@ def reset_and_seed() -> None:
             period=None,
             status=QuestionStatus.waiting,
             answer=None,
-            created_at=_iso(now - timedelta(hours=3)),
+            created_at=(now - timedelta(hours=3)).isoformat(),
         )
         db.add_all([q1, q2])
         db.flush()
@@ -328,7 +342,7 @@ def reset_and_seed() -> None:
             circle_id=circle.id,
             text="1972 separation from Hatice",
             added_by=ayse.id,
-            created_at=_iso(now - timedelta(days=2)),
+            created_at=(now - timedelta(days=2)).isoformat(),
         )
         db.add(sensitive)
         db.flush()
@@ -341,16 +355,30 @@ def reset_and_seed() -> None:
             person_id=elif_.id,
             emoji=Emoji.laugh,
             delivered_to_center=False,
-            created_at=_iso(now - timedelta(minutes=10)),
+            created_at=(now - timedelta(minutes=10)).isoformat(),
         )
         db.add(reaction)
+        db.flush()
+
+        # ------------------------------------------------------------------
+        # Invitation for today
+        # ------------------------------------------------------------------
+        invitation = Invitation(
+            circle_id=circle.id,
+            person_id=fatma.id,
+            date=today_str,
+            reason="Elif has a question for you.",
+            status=InvitationStatus.sent,
+        )
+        db.add(invitation)
 
         db.commit()
 
     print("Seed complete.")
-    print(f"  Circle : The Yilmaz Family")
-    print(f"  People : Fatma (center), Ayşe (admin), Elif (member), Can (member)")
-    print(f"  Stories: {story_mulberry.title!r}, {story_sister.title!r}, {story_pending.title!r}")
+    print("  Circle  : The Yilmaz Family")
+    print("  People  : Fatma (center), Ayşe (admin), Elif (member), Can (member)")
+    print(f"  Stories : {story_mulberry.title!r}, {story_tailor.title!r}, {story_pending.title!r}")
+    print(f"  Today   : {today_str} (circle timezone: Europe/Istanbul)")
     print(f"  Database: {os.environ.get('EVOCA_DB_PATH', 'data/evoca.db')}")
 
 
