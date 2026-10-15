@@ -13,6 +13,10 @@ Coverage
 - Segments are stored for both the user turn and the agent reply.
 - <thinking> blocks are stripped from reply_text.
 - max-rounds guard: loop exits after _MAX_TOOL_ROUNDS even without text reply.
+- Tool allowlist: archivist tools are not offered, and a call to one is
+  rejected without reaching the bridge.
+- chat_llm / archivist_llm read model and temperature from the environment;
+  BedrockLLM sends temperature only when set.
 """
 
 from __future__ import annotations
@@ -43,8 +47,9 @@ from core.services.session_tools import (
     get_session_context_data,
     mark_question_asked_data,
 )
-from server.agents.chat_agent import ChatAgent, _MAX_TOOL_ROUNDS
-from server.llm import RecordingLLM, strip_thinking
+from server.agents.archivist_agent import archivist_llm
+from server.agents.chat_agent import CHAT_TOOLS, ChatAgent, _MAX_TOOL_ROUNDS, chat_llm
+from server.llm import BedrockLLM, RecordingLLM, strip_thinking
 
 
 # ---------------------------------------------------------------------------
@@ -394,3 +399,115 @@ def test_recording_llm_captures_requests():
     recorder.converse([{"text": "sys"}], [{"role": "user", "content": [{"text": "hi"}]}])
     assert len(recorder.requests) == 1
     assert recorder.requests[0]["messages"][0]["role"] == "user"
+
+
+# ---------------------------------------------------------------------------
+# Tool allowlist
+# ---------------------------------------------------------------------------
+
+class BridgeWithArchivistTools(FakeMCPBridge):
+    """A bridge whose server also offers archivist tools, like the real one."""
+
+    async def bedrock_tool_config(self) -> dict:
+        config = await super().bedrock_tool_config()
+        for name in ("save_story", "record_answer", "add_question", "get_session_transcript"):
+            config["tools"].append({"toolSpec": {
+                "name": name, "description": name,
+                "inputSchema": {"json": {"type": "object"}},
+            }})
+        return config
+
+
+@pytest.mark.anyio
+async def test_archivist_tools_not_offered_to_chat_model(world):
+    llm = ScriptedLLM(["Hello."])
+    bridge = BridgeWithArchivistTools(world.db, world.fatma.id, world.circle.id)
+    agent = ChatAgent(llm=llm, person_id=world.fatma.id, circle_id=world.circle.id,
+                      db_session=world.db, bridge=bridge)
+    await agent.turn("hello")
+
+    offered = {t["toolSpec"]["name"] for t in llm.calls[0]["tools"]["tools"]}
+    assert offered == {"get_session_context", "get_pending_questions", "mark_question_asked"}
+    assert offered <= CHAT_TOOLS
+
+
+@pytest.mark.anyio
+async def test_tool_outside_allowlist_rejected_without_bridge_call(world):
+    llm = ScriptedLLM([
+        [_tool_use("save_story", {"title": "x", "teller_id": "invented-id"})],
+        "Let us talk about something else.",
+    ])
+    bridge = BridgeWithArchivistTools(world.db, world.fatma.id, world.circle.id)
+    agent = ChatAgent(llm=llm, person_id=world.fatma.id, circle_id=world.circle.id,
+                      db_session=world.db, bridge=bridge)
+    result = await agent.turn("hello")
+
+    assert bridge.tool_calls == []
+    assert result.trace[0].tool == "save_story"
+    assert result.trace[0].is_error
+    assert "not available to the chat agent" in result.trace[0].result_preview
+    assert world.db.query(Story).count() == 0
+    # The model got the error back as a tool result and could continue.
+    assert result.reply_text == "Let us talk about something else."
+
+
+# ---------------------------------------------------------------------------
+# LLM factories and temperature
+# ---------------------------------------------------------------------------
+
+class _FakeBedrockClient:
+    def __init__(self) -> None:
+        self.kwargs: dict = {}
+
+    def converse(self, **kwargs) -> dict:
+        self.kwargs = kwargs
+        return {"stopReason": "end_turn",
+                "output": {"message": {"role": "assistant", "content": [{"text": "ok"}]}}}
+
+
+def _with_fake_client(llm: BedrockLLM) -> _FakeBedrockClient:
+    fake = _FakeBedrockClient()
+    llm._client = fake
+    return fake
+
+
+def test_temperature_sent_only_when_set():
+    llm = BedrockLLM(model_id="m")
+    fake = _with_fake_client(llm)
+    llm.converse([{"text": "s"}], [])
+    assert "temperature" not in fake.kwargs["inferenceConfig"]
+
+    llm = BedrockLLM(model_id="m", temperature=0.0)
+    fake = _with_fake_client(llm)
+    llm.converse([{"text": "s"}], [])
+    assert fake.kwargs["inferenceConfig"]["temperature"] == 0.0
+
+
+def test_chat_llm_defaults_and_env(monkeypatch):
+    monkeypatch.delenv("EVOCA_CHAT_MODEL", raising=False)
+    monkeypatch.delenv("EVOCA_CHAT_TEMPERATURE", raising=False)
+    llm = chat_llm()
+    assert llm.model_id == "us.amazon.nova-2-lite-v1:0"
+    assert llm.temperature == 0.3
+
+    monkeypatch.setenv("EVOCA_CHAT_TEMPERATURE", "0.7")
+    assert chat_llm().temperature == 0.7
+
+
+def test_archivist_llm_defaults_and_env(monkeypatch):
+    monkeypatch.delenv("EVOCA_ARCHIVIST_MODEL", raising=False)
+    monkeypatch.delenv("EVOCA_ARCHIVIST_TEMPERATURE", raising=False)
+    llm = archivist_llm()
+    assert llm.model_id == "us.amazon.nova-2-lite-v1:0"
+    assert llm.temperature == 0.2
+    assert llm.max_tokens == 4096
+
+    monkeypatch.setenv("EVOCA_ARCHIVIST_TEMPERATURE", "0")
+    assert archivist_llm().temperature == 0.0
+
+
+def test_bedrock_client_uses_adaptive_retry():
+    retries = BedrockLLM(model_id="m")._client.meta.config.retries
+    assert retries["mode"] == "adaptive"
+    # botocore's max_attempts=10 counts retries: 1 call + 10 retries.
+    assert retries["total_max_attempts"] == 11

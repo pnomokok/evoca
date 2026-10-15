@@ -19,6 +19,7 @@ import re
 from typing import Any, Protocol
 
 import boto3
+from botocore.config import Config
 
 # ---------------------------------------------------------------------------
 # Utility
@@ -57,14 +58,30 @@ class BedrockLLM:
     Configuration via environment variables:
       BEDROCK_REGION    — AWS region (default: us-east-1)
       EVOCA_CHAT_MODEL  — model ID  (default: us.amazon.nova-2-lite-v1:0)
+
+    model_id overrides EVOCA_CHAT_MODEL (the archivist passes its own model).
+    temperature is sent only when set; None keeps the model's default.
+
+    Throttling is retried with botocore's adaptive mode (up to 10 attempts),
+    which slows the client down instead of failing on a burst of calls.
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        model_id: str | None = None,
+        max_tokens: int = 1024,
+        temperature: float | None = None,
+    ) -> None:
         region = os.environ.get("BEDROCK_REGION", "us-east-1")
-        self.model_id = os.environ.get(
+        self.model_id = model_id or os.environ.get(
             "EVOCA_CHAT_MODEL", "us.amazon.nova-2-lite-v1:0"
         )
-        self._client = boto3.Session(region_name=region).client("bedrock-runtime")
+        self.max_tokens = max_tokens
+        self.temperature = temperature
+        self._client = boto3.Session(region_name=region).client(
+            "bedrock-runtime",
+            config=Config(retries={"mode": "adaptive", "max_attempts": 10}),
+        )
 
     def converse(
         self,
@@ -76,8 +93,10 @@ class BedrockLLM:
             "modelId": self.model_id,
             "system": system,
             "messages": messages,
-            "inferenceConfig": {"maxTokens": 1024},
+            "inferenceConfig": {"maxTokens": self.max_tokens},
         }
+        if self.temperature is not None:
+            kwargs["inferenceConfig"]["temperature"] = self.temperature
         if tools:
             kwargs["toolConfig"] = tools
         response = self._client.converse(**kwargs)

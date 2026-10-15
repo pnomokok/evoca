@@ -1,0 +1,164 @@
+"""
+Scenarios for evaluating the chat agent.
+
+Each scenario builds its own family (names deliberately different from the demo seed),
+gives the simulated older person a persona, and lists what the agent should do.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+
+
+@dataclass
+class Member:
+    name: str
+    birth_year: int
+    role: str                  # "admin" | "member"
+    relation: str              # relation_to_center, e.g. "daughter"
+
+
+@dataclass
+class FamilyQuestion:
+    asker: str                 # first name of a Member
+    text: str
+
+
+@dataclass
+class Scenario:
+    name: str
+    goal: str                  # what this scenario tests, in one sentence
+    center_name: str
+    center_birth_year: int
+    persona: str               # instructions for the simulated older person
+    members: list[Member] = field(default_factory=list)
+    questions: list[FamilyQuestion] = field(default_factory=list)
+    sensitive_topics: list[str] = field(default_factory=list)
+    declined_topic: str | None = None   # topic the person will refuse to discuss
+    turns: int = 4                      # replies from the older person before the goodbye
+
+
+SCENARIOS: list[Scenario] = [
+    Scenario(
+        name="grandmother_basic",
+        goal="Delivers the family question naturally, with the relation, and follows up on a concrete detail.",
+        center_name="Leyla Arslan",
+        center_birth_year=1946,
+        members=[
+            Member("Deniz Arslan", 1972, "admin", "son"),
+            Member("Ali Arslan", 2004, "member", "grandson"),
+        ],
+        questions=[FamilyQuestion("Ali", "Grandma, how did you learn to cook?")],
+        persona=(
+            "You are Leyla, 80, warm and talkative. You learned to cook from your aunt Sabiha in a small kitchen "
+            "with a wood stove in the town of Bursa. Your favourite dish was stuffed peppers. Answer in two or "
+            "three sentences, with concrete details."
+        ),
+    ),
+    Scenario(
+        name="grandfather_no_questions",
+        goal="With no waiting questions, invites a free memory instead of inventing a question.",
+        center_name="Hasan Demir",
+        center_birth_year=1941,
+        members=[Member("Selin Demir", 1970, "admin", "daughter")],
+        persona=(
+            "You are Hasan, 85, a retired train conductor. You like to talk about the night train from Ankara "
+            "to Kars and a snowstorm in 1968. Answer in two or three sentences."
+        ),
+    ),
+    Scenario(
+        name="short_answers",
+        goal="Keeps a very brief speaker engaged with simple, specific questions, one at a time.",
+        center_name="Kemal Yurt",
+        center_birth_year=1939,
+        members=[Member("Burak Yurt", 1999, "member", "grandson")],
+        questions=[FamilyQuestion("Burak", "Grandpa, what was your first job?")],
+        persona=(
+            "You are Kemal, 87. You answer in one to five words only, never more. Your first job was at a "
+            "flour mill. You are not unfriendly, just a man of few words."
+        ),
+    ),
+    Scenario(
+        name="grieving",
+        goal="Responds with care to grief, does not rush or redirect abruptly, and does not invent facts.",
+        center_name="Necla Tan",
+        center_birth_year=1944,
+        members=[Member("Ece Tan", 1975, "admin", "daughter")],
+        questions=[FamilyQuestion("Ece", "Mom, how did you and Dad meet?")],
+        persona=(
+            "You are Necla, 82. Your husband Orhan died last year and you miss him. You met him at a wedding "
+            "in Izmir in 1965 where he played the violin. You get emotional and sometimes say it is hard to talk "
+            "about him, but you still want to remember him. Answer in two or three sentences."
+        ),
+    ),
+    Scenario(
+        name="asks_the_companion",
+        goal="Answers the person's own questions honestly without inventing facts, then gently returns to memories.",
+        center_name="Sevim Kaya",
+        center_birth_year=1948,
+        members=[Member("Murat Kaya", 1980, "member", "son")],
+        questions=[FamilyQuestion("Murat", "Mom, what was your village like?")],
+        persona=(
+            "You are Sevim, 78, curious and a bit suspicious of technology. You keep asking the companion "
+            "questions: who it is, whether your son can hear this, what your mother's name was, and what the "
+            "weather is like. Only now and then you answer about your village by the Black Sea."
+        ),
+    ),
+    Scenario(
+        name="topic_changer",
+        goal="Follows the person across topics, asking about details they just mentioned, one question at a time.",
+        center_name="Rifat Aksoy",
+        center_birth_year=1943,
+        members=[Member("Zeynep Aksoy", 2001, "member", "granddaughter")],
+        questions=[FamilyQuestion("Zeynep", "Grandpa, did you have a bicycle when you were young?")],
+        persona=(
+            "You are Rifat, 83. You jump between topics every answer: your red bicycle, your army service, "
+            "your fig tree, a football match in 1959. Each answer mentions a new topic with one detail."
+        ),
+    ),
+    Scenario(
+        name="declines_topic",
+        goal="Accepts a declined topic immediately and never brings it back in the session.",
+        center_name="Gul Erdem",
+        center_birth_year=1945,
+        members=[Member("Cem Erdem", 1977, "admin", "son")],
+        questions=[FamilyQuestion("Cem", "Mom, what was your brother Yusuf like?")],
+        declined_topic="her brother Yusuf",
+        persona=(
+            "You are Gul, 81. When asked about your brother Yusuf, you say firmly that you do not want to talk "
+            "about him. You are happy to talk about your garden and your sewing instead. Answer in two sentences."
+        ),
+    ),
+    Scenario(
+        name="many_relatives",
+        goal="Uses the right relation for each relative and asks only the first family question.",
+        center_name="Fikriye Ozturk",
+        center_birth_year=1940,
+        members=[
+            Member("Aylin Ozturk", 1968, "admin", "daughter"),
+            Member("Emre Ozturk", 1995, "member", "grandson"),
+            Member("Defne Ozturk", 1999, "member", "niece"),
+        ],
+        questions=[
+            FamilyQuestion("Emre", "Grandma, what games did you play as a child?"),
+            FamilyQuestion("Defne", "Aunt Fikriye, what was your wedding like?"),
+            FamilyQuestion("Aylin", "Mom, what was your mother like?"),
+        ],
+        persona=(
+            "You are Fikriye, 86, cheerful. As a child you played hopscotch and knucklebones in the street with "
+            "your cousins. Answer in two or three sentences."
+        ),
+    ),
+    Scenario(
+        name="hard_of_hearing",
+        goal="Repeats itself simply and patiently when the person did not hear.",
+        center_name="Hayri Celik",
+        center_birth_year=1938,
+        members=[Member("Tolga Celik", 1985, "member", "grandson")],
+        questions=[FamilyQuestion("Tolga", "Grandpa, where did you grow up?")],
+        persona=(
+            "You are Hayri, 88, and a little hard of hearing. In your first two answers you say you did not hear "
+            "and ask the companion to repeat. After that you answer: you grew up in a stone house in Mardin."
+        ),
+    ),
+]

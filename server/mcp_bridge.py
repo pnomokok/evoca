@@ -1,4 +1,4 @@
-﻿"""
+"""
 MCP bridge: connects the chat agent to the Evoca MCP server.
 
 MCPBridge opens a persistent httpx2+MCP client (one per ChatAgent lifetime),
@@ -7,7 +7,7 @@ tool calls returning structured results.
 
 Environment variables
 ---------------------
-EVOCA_MCP_URL   â€” base URL of the MCP server (default: http://localhost:8000/mcp)
+EVOCA_MCP_URL   — base URL of the MCP server (default: http://localhost:8000/mcp)
 """
 
 from __future__ import annotations

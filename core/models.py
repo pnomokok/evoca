@@ -11,7 +11,6 @@ Rules applied:
 """
 
 import uuid
-from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy import (
@@ -25,6 +24,8 @@ from sqlalchemy import (
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.orm import DeclarativeBase, relationship
 from sqlalchemy.types import JSON
+
+from core.clock import now_utc
 
 from core.enums import (
     AccessType,
@@ -51,7 +52,7 @@ def _uuid() -> str:
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return now_utc().isoformat()
 
 
 class Base(DeclarativeBase):

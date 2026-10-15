@@ -28,8 +28,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from core.db import SessionLocal, init_db
 from core.models import Circle, Membership
 from core.enums import Role
-from server.agents.chat_agent import ChatAgent
-from server.llm import BedrockLLM
+from server.agents.chat_agent import ChatAgent, chat_llm
 from server.mcp_bridge import MCPBridge
 
 
@@ -54,7 +53,7 @@ async def main() -> None:
     print(f"MCP server: {__import__('os').environ.get('EVOCA_MCP_URL', 'http://localhost:8000/mcp')}")
     print("Type your message. /end to finish.\n")
 
-    llm = BedrockLLM()
+    llm = chat_llm()
 
     async with MCPBridge(person_id, circle_id) as bridge:
         with SessionLocal() as db:

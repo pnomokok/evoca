@@ -30,3 +30,19 @@
 - Severity: Low to medium (fine once known, but surprising during a time-boxed hackathon).
 - Workaround: Waited, submitted the form, and tested Amazon Nova in the meantime.
 - Suggestion: Mention the verification window in hackathon setup guides.
+
+## 5. MCP SDK v2 hides tool error messages
+- Task: Return clear validation errors from MCP tools so the agent can correct its call.
+- Expected: The message of a raised exception reaches the client.
+- Actual: Any exception other than ToolError is reported only as "Error executing tool <name>". The agent cannot see why a call failed and cannot recover.
+- Severity: Medium (silent; unit tests with a fake bridge cannot catch it).
+- Workaround: Wrap every tool so expected validation errors are raised as ToolError, while unexpected crashes stay hidden.
+- Suggestion: Document this behavior prominently in the v2 migration guide.
+
+## 6. AI coding assistants default to MCP SDK v1 APIs
+- Task: Generate MCP client and server code with AI coding assistants.
+- Expected: Code that matches the installed SDK (mcp 2.3).
+- Actual: Generated code repeatedly used v1 names: FastMCP, httpx, tool.inputSchema, result.isError. Each failed only at runtime.
+- Severity: Medium (three separate runtime failures in one day).
+- Workaround: Added an "MCP Python SDK v2" section to the Kiro steering file with the correct names.
+- Suggestion: Ship an official steering/rules snippet for Kiro with the SDK, or have Kiro detect the installed SDK version.
