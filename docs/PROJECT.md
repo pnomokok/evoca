@@ -204,6 +204,12 @@ Bu kurallar kodda zorunlu kontrollerdir; demo veya zaman baskısı yüzünden at
 - Hikâye sayfası: ana oynatıcı, tıklanabilir döküm, diğer anlatımlar, bağlı hikâyeler
 - Hayat çizgisi görünümü (basit liste/sütun hali yeterli)
 
+**Kalite ekleri** (çekirdeğin parçası; jüriye kanıt olarak gösterilir)
+
+- **Gizlilik sızıntı testi:** LLM'e giden her istek testte yakalanır; gizli (`is_private`) hiçbir parçanın metni içinde olmamalı. README'de iddia değil, kanıt.
+- **Araç çağrısı izi:** Her turda ajanın çağırdığı araç, girdisi, kısa sonucu ve süresi döner; cihaz ekranının yanında panel olarak gösterilir.
+- **Gecikme ölçümü:** Her turda konuşmadan metne, LLM, araçlar ve metinden konuşmaya süreleri ayrı ayrı kaydedilir; README'de gerçek rakamlar.
+
 **Sonra** (çekirdek bitince)
 
 - Buluşma modu: QR ile telefonların mikrofon olması, uzaktan katılım, fotoğrafla soru
@@ -647,6 +653,7 @@ Yeni kararlar tablonun en üstüne eklenir. Bir karar geri alınırsa satır sil
 
 | Tarih | Karar | Gerekçe |
 | --- | --- | --- |
+| 15 Ekim | Kapsamdan kısılmıyor; üç kalite eki eklendi (sızıntı testi, araç izi, gecikme ölçümü); Kiro görevleri büyütüldü (ajan + araçları bir arada) | Kazanmaya oynuyoruz; temel kalıplar oturduğu için büyük görevler güvenli |
 | 13 Ekim | REST cevap şekilleri docs/api-samples/ altında taslak sözleşme; GET /api/circle eklendi; geçici kimlik X-Person-Id başlığı | Aleyna backend'i beklemeden sahte veriyle çalışabilsin; panelin isim ve rol listesine ihtiyacı var |
 | 13 Ekim | Membership'e relation\_to\_center eklendi; uygulamayı kullanmayan kişiler (ör. vefat etmiş dede) sadece hikâye metninde isim olarak geçer | Ajan sıcak hitap eder ("torununuz Elif"), arşivci "kızım"ı doğru kişiye bağlar; değeri yönetici girdiği için soy ağacı riski yok |
 | 13 Ekim | LLM: Amazon Bedrock; iki ajan da şimdilik Nova 2 Lite | Testte en hızlı (1,4 sn), sıcak cevap, krediden düşüyor, Amazon'un modeli |

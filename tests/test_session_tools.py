@@ -347,11 +347,15 @@ class TestGetSessionContext:
         result = get_session_context_data(w.db, w.fatma.id, w.circle.id)
         assert result.invitation_reason is None
 
-    def test_undelivered_reaction_appears(self, world):
+    def test_undelivered_reaction_has_relation_to_center(self, world):
         w = world
         result = get_session_context_data(w.db, w.fatma.id, w.circle.id)
-        titles = [r.story_title for r in result.undelivered_reactions]
-        assert "The Mulberry Tree" in titles
+        reaction_items = [r for r in result.undelivered_reactions
+                          if r.story_title == "The Mulberry Tree"]
+        assert reaction_items, "Expected at least one reaction on The Mulberry Tree"
+        r = reaction_items[0]
+        assert r.person_name == "Elif"
+        assert r.relation_to_center == "granddaughter"
 
     def test_delivered_reaction_excluded(self, world):
         w = world
@@ -515,6 +519,71 @@ class TestGetPendingQuestions:
         items = get_pending_questions_data(w.db, w.fatma.id, w.circle.id, limit=10)
         ids = [i.question_id for i in items]
         assert w.q1.id not in ids
+
+    def test_stop_words_do_not_trigger_filter(self, world):
+        """
+        "What did you learn from your father?" shares only stop words with
+        "1972 separation from Hatice" (from, your, what) — it must NOT be filtered.
+
+        Fix F: the old ASCII-only [a-zA-Z]{4,} regex would flag "from" and "your"
+        (4 letters) but they are now in the stop-word list.
+        """
+        w = world
+        # Replace the existing sensitive topic with one that tests stop-word boundary.
+        for st in w.db.query(SensitiveTopic).all():
+            w.db.delete(st)
+        now = now_utc()
+        w.db.add(SensitiveTopic(
+            circle_id=w.circle.id,
+            text="1972 separation from Hatice",
+            added_by=w.ayse.id,
+            created_at=now.isoformat(),
+        ))
+        # Add the question that should survive.
+        safe_q = Question(
+            circle_id=w.circle.id, target_person_id=w.fatma.id,
+            asker_id=w.elif_.id,
+            text="What did you learn from your father?",
+            source=QuestionSource.family, period=None,
+            status=QuestionStatus.waiting, answer=None,
+            created_at=now.isoformat(),
+        )
+        w.db.add(safe_q)
+        w.db.commit()
+
+        items = get_pending_questions_data(w.db, w.fatma.id, w.circle.id, limit=10)
+        ids = [i.question_id for i in items]
+        assert safe_q.id in ids, "Stop-word-only overlap must not trigger the filter"
+
+    def test_name_overlap_triggers_filter(self, world):
+        """
+        "Why did Hatice leave?" shares the name "Hatice" (not a stop word, 6 letters)
+        with the topic "1972 separation from Hatice" — it MUST be filtered.
+        """
+        w = world
+        for st in w.db.query(SensitiveTopic).all():
+            w.db.delete(st)
+        now = now_utc()
+        w.db.add(SensitiveTopic(
+            circle_id=w.circle.id,
+            text="1972 separation from Hatice",
+            added_by=w.ayse.id,
+            created_at=now.isoformat(),
+        ))
+        sensitive_q = Question(
+            circle_id=w.circle.id, target_person_id=w.fatma.id,
+            asker_id=w.elif_.id,
+            text="Why did Hatice leave?",
+            source=QuestionSource.family, period=None,
+            status=QuestionStatus.waiting, answer=None,
+            created_at=now.isoformat(),
+        )
+        w.db.add(sensitive_q)
+        w.db.commit()
+
+        items = get_pending_questions_data(w.db, w.fatma.id, w.circle.id, limit=10)
+        ids = [i.question_id for i in items]
+        assert sensitive_q.id not in ids, "Name overlap must trigger the filter"
 
 
 # ---------------------------------------------------------------------------

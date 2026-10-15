@@ -82,6 +82,7 @@ def require_member(db: DbSession, person_id: str, circle_id: str) -> Membership:
 @dataclass
 class ReactionItem:
     person_name: str
+    relation_to_center: str | None
     story_title: str
     emoji: str
 
@@ -163,22 +164,32 @@ def get_session_context_data(
         if can_see(db, viewer_id, s):
             visible_story_map[s.id] = s.title
 
-    # Build a person-id → name lookup for reactors
+    # Build a person-id → (name, relation) lookup for reactors
     reactor_ids = {r.person_id for r in raw_reactions}
-    reactor_map: dict[str, str] = {}
+    reactor_map: dict[str, tuple[str, str | None]] = {}
     for pid in reactor_ids:
         p = db.get(Person, pid)
+        m = (
+            db.query(Membership)
+            .filter(
+                Membership.person_id == pid,
+                Membership.circle_id == circle_id,
+            )
+            .first()
+        )
         if p:
-            reactor_map[pid] = p.name
+            reactor_map[pid] = (p.name, m.relation_to_center if m else None)
 
     undelivered: list[ReactionItem] = []
     for r in raw_reactions:
         if r.story_id not in visible_story_map:
             # Viewer can't see this story; skip.
             continue
+        name, relation = reactor_map.get(r.person_id, (r.person_id, None))
         undelivered.append(
             ReactionItem(
-                person_name=reactor_map.get(r.person_id, r.person_id),
+                person_name=name,
+                relation_to_center=relation,
                 story_title=visible_story_map[r.story_id],
                 emoji=r.emoji,
             )
@@ -244,15 +255,33 @@ _SOURCE_ORDER = {
     QuestionSource.gap: 2,
 }
 
+# Common English words that carry no semantic weight for topic matching.
+# Words shorter than 4 letters are already excluded by the length filter,
+# so this list only needs words of 4+ letters.
+_STOP_WORDS: frozenset[str] = frozenset({
+    "from", "with", "that", "this", "what", "when", "where", "your",
+    "have", "were", "about", "they", "them", "there", "their", "into",
+    "like", "been", "also", "just", "some", "more", "than", "then",
+    "very", "will", "would", "could", "should", "does", "grandma",
+    "grandpa",
+    # extras that appeared in test sentences
+    "tell", "learn", "ever", "meet", "anyone",
+})
 
-def _words_4plus(text: str) -> set[str]:
-    """Return the set of lowercase words with 4 or more letters in text."""
-    return {w.lower() for w in re.findall(r"[a-zA-Z]{4,}", text)}
+
+def _meaningful_words(text: str) -> set[str]:
+    """Return lowercase Unicode-letter words of 4+ chars, minus stop words.
+
+    Uses r"\\w+" with re.UNICODE so Turkish letters (ş, ğ, ı, ü, ö, ç)
+    count as word characters and are not split off.
+    """
+    raw = {w.lower() for w in re.findall(r"\w+", text, re.UNICODE) if len(w) >= 4}
+    return raw - _STOP_WORDS
 
 
 def _matches_sensitive_topic(question_text: str, topic_text: str) -> bool:
-    """True if question and topic share at least one word of 4+ letters."""
-    return bool(_words_4plus(question_text) & _words_4plus(topic_text))
+    """True if question and topic share at least one meaningful word of 4+ letters."""
+    return bool(_meaningful_words(question_text) & _meaningful_words(topic_text))
 
 
 @dataclass
