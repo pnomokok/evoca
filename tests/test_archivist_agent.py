@@ -13,6 +13,8 @@ Coverage
 - Full run: transcript → save_story → record_answer → add_question.
 - Summary fields: story_ids, answers_recorded, questions_added, trace, latency.
 - Question limit enforced in the agent (third add_question never reaches the bridge).
+- Duplicate guard: a question the companion already asked in the session, or one
+  equal to a waiting / asked question, is rejected before the bridge.
 - Chat-agent tools are not offered to the model and are rejected if called.
 - Tool errors (e.g. private overlap) are recorded in the trace and fed back.
 - max-rounds guard: loop exits after _MAX_TOOL_ROUNDS.
@@ -30,6 +32,7 @@ import pytest
 
 from core.enums import QuestionStatus, StoryStatus
 from core.models import Question, Story
+from core.services.session_tools import get_pending_questions_data
 from core.services.archive_tools import (
     add_question_data,
     get_session_transcript_data,
@@ -42,6 +45,7 @@ from server.agents.archivist_agent import (
     DEFAULT_ARCHIVIST_MODEL,
     ArchivistAgent,
     archivist_model_id,
+    normalize_question,
 )
 from tests.test_archive_tools import PRIVATE_TEXT, db, w  # noqa: F401  (fixtures)
 from tests.test_chat_agent import ScriptedLLM, _tool_use
@@ -110,6 +114,10 @@ class FakeArchiveBridge:
             r = add_question_data(db, pid, cid, **arguments)
             db.commit()
             return r
+        if name == "get_pending_questions":
+            # Used internally by the duplicate guard; the real server wraps a list.
+            items = get_pending_questions_data(db, pid, cid, arguments.get("limit", 5))
+            return {"result": [asdict(i) for i in items]}
         raise RuntimeError(f"Unknown tool: {name}")
 
 
@@ -269,3 +277,78 @@ def test_archivist_model_from_env(monkeypatch):
     assert archivist_model_id() == DEFAULT_ARCHIVIST_MODEL == "us.amazon.nova-2-lite-v1:0"
     monkeypatch.setenv("EVOCA_ARCHIVIST_MODEL", "us.anthropic.some-model")
     assert archivist_model_id() == "us.anthropic.some-model"
+
+
+# ---------------------------------------------------------------------------
+# Duplicate-question guard
+# ---------------------------------------------------------------------------
+
+def test_normalize_question():
+    assert normalize_question("  What was  Zehra like?! ") == "what was zehra like"
+    assert normalize_question("WHAT, was Zehra like") == "what was zehra like"
+
+
+def _added_questions(w) -> list[str]:
+    return [q.text for q in w.db.query(Question).filter(Question.asker_id.is_(None))]
+
+
+@pytest.mark.anyio
+async def test_question_already_asked_by_companion_rejected(w):
+    # The companion segment says: "What did you do by the river?"
+    llm = DynamicScriptedLLM([
+        [_tool_use("get_session_transcript", {"session_id": w.sess.id})],
+        [_tool_use("add_question", {"text": "what did you do by the RIVER", "source": "follow_up"})],
+        "done",
+    ])
+    agent, bridge = _make_agent(w, llm)
+    result = await agent.run(w.sess.id)
+
+    assert result.trace[-1].tool == "add_question"
+    assert result.trace[-1].is_error
+    assert "already asked" in result.trace[-1].result_preview
+    assert result.questions_added == []
+    assert "add_question" not in [n for n, _ in bridge.tool_calls]
+    assert _added_questions(w) == []
+
+
+@pytest.mark.anyio
+async def test_question_equal_to_waiting_or_asked_rejected(w):
+    llm = DynamicScriptedLLM([
+        [
+            _tool_use("add_question", {"text": "What was your first job", "source": "follow_up"}),
+            _tool_use("add_question", {"text": "Where did you grow up?!", "source": "follow_up"}),
+        ],
+        "done",
+    ])
+    agent, bridge = _make_agent(w, llm)
+    result = await agent.run(w.sess.id)
+
+    # Equal to w.q_waiting and w.q_asked after normalization.
+    assert [t.is_error for t in result.trace] == [True, True]
+    assert all("already waiting or asked" in t.result_preview for t in result.trace)
+    assert _added_questions(w) == []
+    # The guard looked up the transcript and waiting questions itself.
+    assert [n for n, _ in bridge.tool_calls] == ["get_session_transcript", "get_pending_questions"]
+
+
+@pytest.mark.anyio
+async def test_same_new_question_twice_in_one_run_rejected(w):
+    ask = {"text": "What fish did you catch?", "source": "follow_up"}
+    llm = DynamicScriptedLLM([[_tool_use("add_question", ask)], [_tool_use("add_question", ask)], "done"])
+    agent, _ = _make_agent(w, llm)
+    result = await agent.run(w.sess.id)
+
+    assert [t.is_error for t in result.trace] == [False, True]
+    assert _added_questions(w) == ["What fish did you catch?"]
+
+
+@pytest.mark.anyio
+async def test_new_question_passes_guard(w):
+    llm = DynamicScriptedLLM([
+        [_tool_use("add_question", {"text": "What did your father do?", "source": "follow_up"})],
+        "done",
+    ])
+    agent, _ = _make_agent(w, llm)
+    result = await agent.run(w.sess.id)
+    assert not result.trace[0].is_error
+    assert _added_questions(w) == ["What did your father do?"]

@@ -53,6 +53,7 @@ Never make up an id.
   a person, a place, an object or an event. Example: "What was your [relation] [name] like as a child?"
 - Write it as a short, warm question to the speaker, in the second person.
 - Never ask about something the speaker said they do not want to talk about.
+- Never add a question the companion already asked in this session; check the companion's segments in the transcript.
 - Set `period` if it is clear from the detail; otherwise leave it out.
 - If nothing is intriguing, add no questions.
 

@@ -12,11 +12,15 @@ Architecture
   the HTTP headers read by get_viewer in the MCP server — never from tool args.
 - The MCPBridge is kept alive for the entire ChatAgent lifetime (opened on
   first turn, closed on close()).
+- The tool config is restricted to CHAT_TOOLS, so the model never sees
+  archivist tools such as save_story. A call to any other tool gets an error
+  result and never reaches the MCP server.
 """
 
 from __future__ import annotations
 
 import json
+import os
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -28,11 +32,35 @@ from core.clock import now_utc
 from core.db import SessionLocal
 from core.enums import SessionStart
 from core.services.sessions import add_segment, end_session, start_session
-from server.llm import LLM, strip_thinking
+from server.llm import LLM, BedrockLLM, strip_thinking
 from server.mcp_bridge import MCPBridge
 
 _PROMPT_PATH = Path(__file__).parent / "prompts" / "chat_agent.md"
 _MAX_TOOL_ROUNDS = 5
+
+# Tools the chat agent may use; the later ones are picked up automatically
+# once the MCP server provides them.
+CHAT_TOOLS = frozenset({
+    "get_session_context",
+    "get_pending_questions",
+    "mark_question_asked",
+    "mark_private",
+    "set_story_access",
+    "search_archive",
+    "get_linked_playlist",
+    "mark_reactions_delivered",
+})
+
+DEFAULT_CHAT_MODEL = "us.amazon.nova-2-lite-v1:0"
+DEFAULT_CHAT_TEMPERATURE = 0.3
+
+
+def chat_llm() -> BedrockLLM:
+    """Bedrock LLM for the chat agent (EVOCA_CHAT_MODEL, EVOCA_CHAT_TEMPERATURE)."""
+    return BedrockLLM(
+        model_id=os.environ.get("EVOCA_CHAT_MODEL", DEFAULT_CHAT_MODEL),
+        temperature=float(os.environ.get("EVOCA_CHAT_TEMPERATURE", DEFAULT_CHAT_TEMPERATURE)),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -146,9 +174,12 @@ class ChatAgent:
         """Process one user utterance and return reply + diagnostics."""
         total_start = time.monotonic()
 
-        # Lazy-fetch the tool config once per agent lifetime.
+        # Lazy-fetch the tool config once per agent lifetime, limited to CHAT_TOOLS.
         if self._tool_config is None:
-            self._tool_config = await self._bridge.bedrock_tool_config()
+            full = await self._bridge.bedrock_tool_config()
+            self._tool_config = {
+                "tools": [t for t in full["tools"] if t["toolSpec"]["name"] in CHAT_TOOLS]
+            }
 
         # Store the user's segment before we do anything.
         seg_start = self._elapsed_ms()
@@ -202,6 +233,10 @@ class ChatAgent:
                 t0 = time.monotonic()
                 is_error = False
                 try:
+                    if tool_name not in CHAT_TOOLS:
+                        raise RuntimeError(
+                            f"Tool '{tool_name}' is not available to the chat agent."
+                        )
                     result = await self._bridge.call_tool(tool_name, tool_input)
                     result_content = [{"json": result}]
                 except Exception as exc:

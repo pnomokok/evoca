@@ -27,8 +27,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core.db import SessionLocal, init_db
 from core.models import Circle, Question, Session as OrmSession, Story, StorySubject
-from server.agents.archivist_agent import ArchivistAgent, archivist_model_id
-from server.llm import BedrockLLM
+from server.agents.archivist_agent import ArchivistAgent, archivist_llm
 from server.mcp_bridge import MCPBridge
 
 
@@ -63,13 +62,12 @@ async def main(argv: list[str]) -> None:
         sess = _pick_session(db, circle_id, argv[1] if len(argv) > 1 else None)
         session_id = sess.id
 
-    model_id = archivist_model_id()
+    llm = archivist_llm()
     print(f"Circle    : {circle.name}")
     print(f"Session   : {session_id} (started {sess.started_at})")
-    print(f"Model     : {model_id}")
+    print(f"Model     : {llm.model_id} (temperature {llm.temperature})")
     print(f"MCP server: {os.environ.get('EVOCA_MCP_URL', 'http://localhost:8000/mcp')}\n")
 
-    llm = BedrockLLM(model_id=model_id, max_tokens=4096)
     async with MCPBridge(person_id, circle_id) as bridge:
         agent = ArchivistAgent(llm=llm, person_id=person_id, circle_id=circle_id, bridge=bridge)
         result = await agent.run(session_id)

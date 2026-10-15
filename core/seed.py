@@ -1,14 +1,20 @@
 """
 Demo seed data — run with:
 
-    python -m core.seed
+    python -m core.seed            # refuses if the database holds real sessions
+    python -m core.seed --force    # wipe anyway
 
 Resets the database and creates the Yilmaz family demo fixtures described in
 docs/PROJECT.md.  All text is English.
+
+Safety: the seed deletes the whole database. It refuses to run when the
+database contains any Session the seed did not create (recognised by the
+demo audio_path), unless --force is passed.
 """
 
 from __future__ import annotations
 
+import argparse
 import os
 import sys
 from datetime import timedelta
@@ -19,6 +25,8 @@ from zoneinfo import ZoneInfo
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core.clock import now_utc
+from sqlalchemy import func, inspect
+
 from core.db import SessionLocal, engine, init_db
 from core.enums import (
     AccessType,
@@ -56,8 +64,50 @@ from core.models import (
 
 _CIRCLE_TZ = ZoneInfo("Europe/Istanbul")
 
+# Marks the session the seed creates, so it can tell seeded data from real recordings.
+SEED_AUDIO_PATH = "data/audio/session_demo.m4a"
 
-def reset_and_seed() -> None:
+
+class SeedRefused(RuntimeError):
+    """Raised when seeding would delete sessions the seed did not create."""
+
+
+def find_recorded_sessions() -> list[tuple[str, str, int]]:
+    """Return (session_id, started_at, segment_count) for every non-seed Session."""
+    if not inspect(engine).has_table(Session.__tablename__):
+        return []
+    with SessionLocal() as db:
+        rows = (
+            db.query(Session.id, Session.started_at, func.count(Segment.id))
+            .outerjoin(Segment, Segment.session_id == Session.id)
+            .filter((Session.audio_path.is_(None)) | (Session.audio_path != SEED_AUDIO_PATH))
+            .group_by(Session.id)
+            .order_by(Session.started_at)
+            .all()
+        )
+    return [(r[0], r[1], r[2]) for r in rows]
+
+
+def _refusal_message(recorded: list[tuple[str, str, int]]) -> str:
+    lines = [
+        f"Refusing to seed: {engine.url.database} contains {len(recorded)} session(s) "
+        f"that the seed did not create:",
+    ]
+    for session_id, started_at, segments in recorded:
+        lines.append(f"  - {session_id}  started {started_at}  ({segments} segments)")
+    lines += [
+        "Seeding deletes the whole database: these conversations, and every story,",
+        "question, answer and reaction made from them, would be lost.",
+        "Back up the file first, or run with --force to wipe it anyway.",
+    ]
+    return "\n".join(lines)
+
+
+def reset_and_seed(force: bool = False) -> None:
+    recorded = find_recorded_sessions()
+    if recorded and not force:
+        raise SeedRefused(_refusal_message(recorded))
+
     # Drop all tables and recreate them (clean slate).
     Base.metadata.drop_all(bind=engine)
     init_db()
@@ -143,7 +193,7 @@ def reset_and_seed() -> None:
             kind=SessionKind.solo,
             started_by=SessionStart.spontaneous,
             participant_ids=[fatma.id],
-            audio_path="data/audio/session_demo.m4a",
+            audio_path=SEED_AUDIO_PATH,
             started_at=session_start.isoformat(),
             ended_at=session_end.isoformat(),
         )
@@ -382,5 +432,18 @@ def reset_and_seed() -> None:
     print(f"  Database: {os.environ.get('EVOCA_DB_PATH', 'data/evoca.db')}")
 
 
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Reset the database and load the demo family.")
+    parser.add_argument("--force", action="store_true",
+                        help="wipe the database even if it holds recorded sessions")
+    args = parser.parse_args(argv)
+    try:
+        reset_and_seed(force=args.force)
+    except SeedRefused as exc:
+        print(exc)
+        return 1
+    return 0
+
+
 if __name__ == "__main__":
-    reset_and_seed()
+    sys.exit(main())

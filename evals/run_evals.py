@@ -1,0 +1,474 @@
+"""
+Run the chat agent against simulated older people and measure its behaviour.
+
+Usage (from the repo root, with "aws login" done):
+    python -m evals.run_evals                       # all scenarios
+    python -m evals.run_evals --scenario grieving   # one scenario
+    python -m evals.run_evals --repeat 3            # every scenario three times
+
+What it does, per scenario:
+  1. Builds a fresh family in a separate database (data/eval.db, never data/evoca.db).
+  2. Starts the real MCP server on port 8010 against that database.
+  3. Runs the real ChatAgent (Bedrock) against a simulated older person (another Bedrock model).
+  4. Checks rules automatically, and asks a judge model about invented facts, follow-ups and warmth.
+  5. Writes evals/results/latest.md (summary table) and evals/results/latest.json (every run, full transcripts).
+
+With --repeat N each scenario runs N times; the table reports totals over all runs.
+The judge runs at temperature 0 so repeated runs are scored consistently.
+
+Cost: a few cents per full run.
+"""
+
+from __future__ import annotations
+
+import os
+
+# Use a separate database and MCP port. Must be set before core.db is imported.
+os.environ.setdefault("EVOCA_DB_PATH", os.path.join("data", "eval.db"))
+EVAL_PORT = int(os.environ.get("EVOCA_EVAL_PORT", "8010"))
+os.environ["EVOCA_MCP_URL"] = f"http://127.0.0.1:{EVAL_PORT}/mcp"
+
+import argparse
+import json
+import re
+import socket
+import subprocess
+import sys
+import time
+from datetime import timedelta
+from pathlib import Path
+from typing import Any
+
+import anyio
+
+from core.clock import now_utc
+from core.db import SessionLocal, engine, init_db
+from core.enums import CircleStatus, QuestionSource, QuestionStatus, Role
+from core.models import Base, Circle, Membership, Person, Question, SensitiveTopic
+from evals.scenarios import SCENARIOS, Scenario
+from server.agents.chat_agent import CHAT_TOOLS, ChatAgent, chat_llm
+from server.llm import BedrockLLM, strip_thinking
+from server.mcp_bridge import MCPBridge
+
+SIM_MODEL = os.environ.get("EVOCA_EVAL_SIM_MODEL", "us.amazon.nova-2-lite-v1:0")
+JUDGE_MODEL = os.environ.get("EVOCA_EVAL_JUDGE_MODEL", "us.amazon.nova-pro-v1:0")
+RESULTS_DIR = Path("evals") / "results"
+
+TECH_WORDS = re.compile(r"\b(tools?|database|stored|system|function|json|AI)\b", re.IGNORECASE)
+QUOTES = re.compile(r"[\"“”]")
+
+
+# ---------------------------------------------------------------------------
+# MCP server process
+# ---------------------------------------------------------------------------
+
+def start_mcp_server() -> subprocess.Popen:
+    env = dict(os.environ)
+    proc = subprocess.Popen(
+        [sys.executable, "-m", "uvicorn", "mcp_server.server:app", "--port", str(EVAL_PORT), "--log-level", "warning"],
+        env=env,
+    )
+    deadline = time.time() + 30
+    while time.time() < deadline:
+        with socket.socket() as s:
+            if s.connect_ex(("127.0.0.1", EVAL_PORT)) == 0:
+                return proc
+        time.sleep(0.3)
+    proc.terminate()
+    raise RuntimeError(f"MCP server did not start on port {EVAL_PORT}")
+
+
+# ---------------------------------------------------------------------------
+# Family setup
+# ---------------------------------------------------------------------------
+
+def build_family(sc: Scenario) -> dict[str, Any]:
+    """Reset the eval database and create the scenario's family. Returns ids and names."""
+    Base.metadata.drop_all(bind=engine)
+    init_db()
+    now = now_utc()
+    with SessionLocal() as db:
+        center = Person(name=sc.center_name, birth_year=sc.center_birth_year, language="en")
+        db.add(center)
+        db.flush()
+        circle = Circle(
+            name=f"The {sc.center_name.split()[-1]} family",
+            center_person_id=center.id,
+            status=CircleStatus.active,
+            chat_time="10:00",
+            timezone="Europe/Istanbul",
+        )
+        db.add(circle)
+        db.flush()
+        db.add(Membership(person_id=center.id, circle_id=circle.id, role=Role.center, relation_to_center=None))
+
+        people: dict[str, dict[str, str]] = {}
+        for m in sc.members:
+            p = Person(name=m.name, birth_year=m.birth_year, language="en")
+            db.add(p)
+            db.flush()
+            db.add(Membership(person_id=p.id, circle_id=circle.id, role=m.role, relation_to_center=m.relation))
+            people[m.name.split()[0]] = {"id": p.id, "relation": m.relation}
+
+        question_ids: list[str] = []
+        for i, q in enumerate(sc.questions):
+            row = Question(
+                circle_id=circle.id,
+                target_person_id=center.id,
+                asker_id=people[q.asker]["id"],
+                text=q.text,
+                source=QuestionSource.family,
+                period=None,
+                status=QuestionStatus.waiting,
+                answer=None,
+                created_at=(now - timedelta(hours=len(sc.questions) - i)).isoformat(),
+            )
+            db.add(row)
+            db.flush()
+            question_ids.append(row.id)
+
+        for text in sc.sensitive_topics:
+            db.add(SensitiveTopic(circle_id=circle.id, text=text, added_by=center.id))
+
+        db.commit()
+        return {
+            "center_id": center.id,
+            "circle_id": circle.id,
+            "people": people,
+            "question_ids": question_ids,
+        }
+
+
+def question_status(question_id: str) -> str:
+    with SessionLocal() as db:
+        q = db.get(Question, question_id)
+        return q.status if q else "missing"
+
+
+# ---------------------------------------------------------------------------
+# Simulated older person
+# ---------------------------------------------------------------------------
+
+def simulate_reply(sim: BedrockLLM, sc: Scenario, transcript: list[dict[str, str]], goodbye: bool) -> str:
+    system = (
+        "You are role-playing an older person talking to a voice companion that records family stories. "
+        "Stay in character. Reply with only what you say out loud, no stage directions, no quotation marks. "
+        + sc.persona
+    )
+    if goodbye:
+        system += " This is your last reply: say you are tired and want to stop for today. Do not ask anything."
+    # From the simulated person's point of view the companion is the "user".
+    messages = []
+    for t in transcript:
+        role = "user" if t["speaker"] == "companion" else "assistant"
+        messages.append({"role": role, "content": [{"text": t["text"]}]})
+    response = sim.converse([{"text": system}], messages, None)
+    for block in response["output"]["message"]["content"]:
+        if "text" in block:
+            return strip_thinking(block["text"]).strip()
+    return "Hmm."
+
+
+# ---------------------------------------------------------------------------
+# Rule checks (automatic, no model)
+# ---------------------------------------------------------------------------
+
+def check_reply(reply: str, sc: Scenario, family: dict[str, Any], is_last: bool) -> dict[str, bool]:
+    q_marks = reply.count("?")
+    checks = {
+        "one_question": q_marks <= 1,
+        "no_quotes": not QUOTES.search(reply),
+        "no_tech_words": not TECH_WORDS.search(reply),
+    }
+    if is_last:
+        checks["goodbye_without_question"] = q_marks == 0
+    for first_name, info in family["people"].items():
+        if re.search(rf"\b{re.escape(first_name)}\b", reply):
+            pattern = rf"\b{re.escape(info['relation'])}\s+{re.escape(first_name)}\b"
+            checks[f"relation_before_{first_name}"] = bool(re.search(pattern, reply, re.IGNORECASE))
+    return checks
+
+
+# ---------------------------------------------------------------------------
+# Judge (model-based checks)
+# ---------------------------------------------------------------------------
+
+JUDGE_PROMPT = """You evaluate a voice companion that talks with an older person to record family stories.
+You get the facts the companion was given, and the conversation. Return ONLY a JSON object:
+{
+  "invented_facts": [list of statements by the companion that are not supported by the given facts or by what the person said; empty if none],
+  "followups_specific": true or false (do the companion's follow-up questions refer to concrete details the person just mentioned?),
+  "respected_declined_topic": true, false or null (null if the person declined nothing),
+  "warmth": 1 to 5 (5 = consistently warm and patient),
+  "notes": "one short sentence on the most important weakness, or empty"
+}"""
+
+
+def judge(judge_llm: BedrockLLM, sc: Scenario, family: dict[str, Any], transcript: list[dict[str, str]]) -> dict[str, Any]:
+    facts = {
+        "center_person": sc.center_name,
+        "family": {name: info["relation"] for name, info in family["people"].items()},
+        "family_questions": [{"asker": q.asker, "text": q.text} for q in sc.questions],
+        "declined_topic": sc.declined_topic,
+    }
+    convo = "\n".join(f"{t['speaker'].upper()}: {t['text']}" for t in transcript)
+    content = f"FACTS GIVEN TO THE COMPANION:\n{json.dumps(facts, ensure_ascii=False)}\n\nCONVERSATION:\n{convo}"
+    response = judge_llm.converse(
+        [{"text": JUDGE_PROMPT}], [{"role": "user", "content": [{"text": content}]}], None
+    )
+    text = ""
+    for block in response["output"]["message"]["content"]:
+        if "text" in block:
+            text += strip_thinking(block["text"])
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if not match:
+        return {"error": "judge returned no JSON", "raw": text[:300]}
+    try:
+        return json.loads(match.group(0))
+    except json.JSONDecodeError:
+        return {"error": "judge returned invalid JSON", "raw": text[:300]}
+
+
+# ---------------------------------------------------------------------------
+# One scenario
+# ---------------------------------------------------------------------------
+
+async def run_scenario(
+    sc: Scenario, run: int, agent_llm: BedrockLLM, sim: BedrockLLM, judge_llm: BedrockLLM
+) -> dict[str, Any]:
+    family = build_family(sc)
+    transcript: list[dict[str, str]] = []
+    turns: list[dict[str, Any]] = []
+
+    async with MCPBridge(family["center_id"], family["circle_id"]) as bridge:
+        with SessionLocal() as db:
+            agent = ChatAgent(
+                llm=agent_llm,
+                person_id=family["center_id"],
+                circle_id=family["circle_id"],
+                db_session=db,
+                bridge=bridge,
+            )
+            total_turns = sc.turns + 1  # the person's replies, plus the goodbye
+            result = await agent.turn("(Session started.)", store_user=False)
+            for i in range(total_turns + 1):
+                is_last = i == total_turns
+                transcript.append({"speaker": "companion", "text": result.reply_text})
+                turns.append({
+                    "reply": result.reply_text,
+                    "tools": [t.tool for t in result.trace],
+                    "tool_errors": [t.tool for t in result.trace if t.is_error],
+                    "latency_ms": result.latency["total_ms"],
+                    "checks": check_reply(result.reply_text, sc, family, is_last),
+                })
+                if is_last:
+                    break
+                person_says = await anyio.to_thread.run_sync(
+                    lambda: simulate_reply(sim, sc, transcript, goodbye=(i == total_turns - 1))
+                )
+                transcript.append({"speaker": "person", "text": person_says})
+                result = await agent.turn(person_says)
+            agent.end()
+
+    opening_tools = turns[0]["tools"]
+    # Calls outside the allowlist are counted once, by only_chat_tools,
+    # not again as tool errors.
+    scenario_checks: dict[str, bool] = {
+        "opening_called_context": "get_session_context" in opening_tools,
+        "opening_called_questions": "get_pending_questions" in opening_tools,
+        "no_tool_errors": all(
+            name not in CHAT_TOOLS for t in turns for name in t["tool_errors"]
+        ),
+        "only_chat_tools": all(name in CHAT_TOOLS for t in turns for name in t["tools"]),
+    }
+    if family["question_ids"]:
+        first_q = family["question_ids"][0]
+        scenario_checks["first_question_marked_in_opening"] = "mark_question_asked" in opening_tools
+        scenario_checks["first_question_status_asked"] = question_status(first_q) == "asked"
+        if len(family["question_ids"]) > 1:
+            scenario_checks["later_questions_untouched"] = all(
+                question_status(q) == "waiting" for q in family["question_ids"][1:]
+            )
+
+    verdict = await anyio.to_thread.run_sync(lambda: judge(judge_llm, sc, family, transcript))
+    return {
+        "scenario": sc.name,
+        "run": run,
+        "goal": sc.goal,
+        "transcript": transcript,
+        "turns": turns,
+        "scenario_checks": scenario_checks,
+        "judge": verdict,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Report
+# ---------------------------------------------------------------------------
+
+def _run_checks(r: dict[str, Any]) -> tuple[int, int, list[str]]:
+    """Return (passed, total, failed names) for one run's turn and scenario checks."""
+    passed = total = 0
+    failed: list[str] = []
+    all_checks = [c for t in r["turns"] for c in t["checks"].items()]
+    all_checks += list(r["scenario_checks"].items())
+    for name, ok in all_checks:
+        total += 1
+        passed += ok
+        if not ok:
+            failed.append(name)
+    return passed, total, failed
+
+
+def _zero_invented(r: dict[str, Any]) -> bool:
+    """True only when the judge answered and listed no invented facts."""
+    invented = r["judge"].get("invented_facts")
+    return isinstance(invented, list) and not invented
+
+
+def summarize(results: list[dict[str, Any]], repeat: int, agent_llm: BedrockLLM) -> str:
+    lines = [
+        "# Chat agent evaluation",
+        "",
+        f"Agent model: `{agent_llm.model_id}` (temperature {agent_llm.temperature}) · "
+        f"simulated person: `{SIM_MODEL}` · judge: `{JUDGE_MODEL}` (temperature 0) · "
+        f"runs per scenario: {repeat}",
+        "",
+        "| Scenario | Rule checks passed | Zero invented facts | Specific follow-ups | "
+        "Declined topic respected | Warmth | Avg turn (ms) | Note |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+
+    by_scenario: dict[str, list[dict[str, Any]]] = {}
+    for r in results:
+        by_scenario.setdefault(r["scenario"], []).append(r)
+
+    total_pass = total_checks = total_clean = 0
+    for name, runs in by_scenario.items():
+        n = len(runs)
+        passed = checks = 0
+        failed: dict[str, int] = {}
+        for r in runs:
+            p, c, f = _run_checks(r)
+            passed += p
+            checks += c
+            for check in f:
+                failed[check] = failed.get(check, 0) + 1
+        clean = sum(_zero_invented(r) for r in runs)
+        crashed = [r for r in runs if r.get("error")]
+        judges = [r["judge"] for r in runs]
+        judge_errors = sum(1 for r in runs if not r.get("error") and "error" in r["judge"])
+        followups = sum(1 for j in judges if j.get("followups_specific") is True)
+        respected = [j.get("respected_declined_topic") for j in judges]
+        # Only scenarios with a declined topic are scored; the judge sometimes
+        # answers true/false for the others too.
+        has_declined_topic = any(s.name == name and s.declined_topic for s in SCENARIOS)
+        respected_txt = (
+            f"{sum(v is True for v in respected)}/{n}" if has_declined_topic else "–"
+        )
+        warmth = [j["warmth"] for j in judges if isinstance(j.get("warmth"), (int, float))]
+        warmth_txt = f"{sum(warmth) / len(warmth):.1f}" if warmth else "–"
+        all_turns = [t for r in runs for t in r["turns"]]
+        avg_ms = int(sum(t["latency_ms"] for t in all_turns) / max(len(all_turns), 1))
+
+        notes = [j.get("notes") for j in judges if j.get("notes")]
+        note = notes[0] if notes else ""
+        if crashed:
+            note = (note + f" Run failed in {len(crashed)}/{n}: {crashed[0]['error'][:120]}").strip()
+        if judge_errors:
+            note = (note + f" Judge error in {judge_errors}/{n} runs.").strip()
+        if failed:
+            failed_txt = ", ".join(f"{k} ×{v}" for k, v in sorted(failed.items()))
+            note = (note + " Failed: " + failed_txt).strip()
+
+        total_pass += passed
+        total_checks += checks
+        total_clean += clean
+        lines.append(
+            f"| {name} | {passed}/{checks} | {clean}/{n} | {followups}/{n} | {respected_txt} | "
+            f"{warmth_txt} | {avg_ms} | {note.replace('|', '/')} |"
+        )
+
+    pct = 100 * total_pass / total_checks if total_checks else 0.0
+    lines += [
+        "",
+        f"**Overall: {pct:.1f}% rule checks ({total_pass}/{total_checks}) · "
+        f"zero invented facts in {total_clean}/{len(results)} runs**",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def _root_error(exc: BaseException) -> str:
+    """Unwrap exception groups (from the MCP task group) to the first real error."""
+    while isinstance(exc, BaseExceptionGroup) and exc.exceptions:
+        exc = exc.exceptions[0]
+    return f"{type(exc).__name__}: {exc}"[:500]
+
+
+def failed_run(sc: Scenario, run: int, exc: BaseException) -> dict[str, Any]:
+    """A run that crashed; it counts as one failed check and no zero-invented-facts run."""
+    error = _root_error(exc)
+    return {
+        "scenario": sc.name,
+        "run": run,
+        "goal": sc.goal,
+        "error": error,
+        "transcript": [],
+        "turns": [],
+        "scenario_checks": {"run_completed": False},
+        "judge": {"error": "run failed"},
+    }
+
+
+def write_results(results: list[dict[str, Any]], repeat: int, agent_llm: BedrockLLM) -> str:
+    report = summarize(results, repeat, agent_llm)
+    (RESULTS_DIR / "latest.md").write_text(report, encoding="utf-8")
+    (RESULTS_DIR / "latest.json").write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
+    return report
+
+
+async def main(selected: list[Scenario], repeat: int, pause: float) -> None:
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    server = start_mcp_server()
+    try:
+        agent_llm = chat_llm()
+        sim = BedrockLLM(model_id=SIM_MODEL, max_tokens=300)
+        judge_llm = BedrockLLM(model_id=JUDGE_MODEL, max_tokens=800, temperature=0.0)
+        results = []
+        first = True
+        for sc in selected:
+            for run in range(1, repeat + 1):
+                if pause and not first:
+                    await anyio.sleep(pause)
+                first = False
+                print(f"Running {sc.name} (run {run}/{repeat}) ...", flush=True)
+                try:
+                    results.append(await run_scenario(sc, run, agent_llm, sim, judge_llm))
+                except Exception as exc:  # record and keep going
+                    results.append(failed_run(sc, run, exc))
+                    print(f"  run failed: {results[-1]['error']}", flush=True)
+                # Save after every run so a crash keeps what is done.
+                report = write_results(results, repeat, agent_llm)
+        print()
+        print(report)
+        print(f"Full transcripts: {RESULTS_DIR / 'latest.json'}")
+    finally:
+        server.terminate()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Evaluate the Evoca chat agent.")
+    parser.add_argument("--scenario", help="run only this scenario (by name)")
+    parser.add_argument("--repeat", type=int, default=1, help="runs per scenario (default 1)")
+    parser.add_argument("--pause", type=float, default=0.0,
+                        help="seconds to wait between runs, to stay under Bedrock rate limits (default 0)")
+    args = parser.parse_args()
+    if args.repeat < 1:
+        sys.exit("--repeat must be at least 1")
+    if args.pause < 0:
+        sys.exit("--pause must not be negative")
+    chosen = [s for s in SCENARIOS if not args.scenario or s.name == args.scenario]
+    if not chosen:
+        sys.exit(f"Unknown scenario. Choose from: {', '.join(s.name for s in SCENARIOS)}")
+    anyio.run(main, chosen, args.repeat, args.pause)
