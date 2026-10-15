@@ -107,13 +107,21 @@ class MCPBridge:
             )
             raise RuntimeError(f"MCP tool '{name}' returned error: {error_text}")
 
-        # Return the first meaningful content block.
+        # Prefer the structured result: it holds the whole return value
+        # (a list tool comes back as {"result": [...]}).
+        if result.structured_content is not None:
+            return result.structured_content
+
+        # Fallback: parse every text block, not just the first one.
+        parsed: list[Any] = []
         for block in result.content:
             if isinstance(block, TextContent):
-                # Try JSON parse; fall back to raw string.
                 try:
-                    return json.loads(block.text)
+                    parsed.append(json.loads(block.text))
                 except (json.JSONDecodeError, ValueError):
-                    return block.text
-
-        return None
+                    parsed.append(block.text)
+        if not parsed:
+            return None
+        if len(parsed) == 1 and isinstance(parsed[0], dict):
+            return parsed[0]
+        return {"result": parsed}

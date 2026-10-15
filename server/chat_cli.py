@@ -67,7 +67,7 @@ async def main() -> None:
             )
 
             # Kick off with an empty first turn so the agent greets.
-            result = await agent.turn("(Session started.)")
+            result = await agent.turn("(Session started.)", store_user=False)
             print(f"\nEvoca: {result.reply_text}\n")
             _print_diagnostics(result)
 

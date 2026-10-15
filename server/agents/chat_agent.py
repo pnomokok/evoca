@@ -142,7 +142,7 @@ class ChatAgent:
     # Main entry point
     # ------------------------------------------------------------------
 
-    async def turn(self, user_text: str) -> TurnResult:
+    async def turn(self, user_text: str, store_user: bool = True) -> TurnResult:
         """Process one user utterance and return reply + diagnostics."""
         total_start = time.monotonic()
 
@@ -242,7 +242,8 @@ class ChatAgent:
 
         # Store segments.
         seg_end = self._elapsed_ms()
-        self._store_segment(self._person_id, user_text, seg_start, seg_start + 100)
+        if store_user:
+            self._store_segment(self._person_id, user_text, seg_start, seg_start + 100)
         self._store_segment(None, reply_text, seg_end, seg_end + 100)
 
         total_ms = int((time.monotonic() - total_start) * 1000)
