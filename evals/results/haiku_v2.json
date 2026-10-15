@@ -1,0 +1,2949 @@
+[
+  {
+    "scenario": "grandmother_basic",
+    "run": 1,
+    "goal": "Delivers the family question naturally, with the relation, and follows up on a concrete detail.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello Leyla, it's so lovely to hear from you today. Your grandson Ali would love to know how you learned to cook."
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, hello there. I learned to cook from my dear Aunt Sabiha. We had a tiny kitchen in our Bursa home, with just a wood stove that always smelled of smoke and herbs. My favourite dish she taught me was stuffed peppers, filled with rice and ground meat, and oh, the taste!"
+      },
+      {
+        "speaker": "companion",
+        "text": "What a beautiful memory, and how special that your Aunt Sabiha taught you. That wood stove with all those wonderful smells must have been such a warm place to learn.\n\nTell me, do you still remember how to make those stuffed peppers the way she showed you?"
+      },
+      {
+        "speaker": "person",
+        "text": "I surely do! Aunt Sabiha would always start by mixing rice with a bit of onion and spices, then stuff the peppers just right. After that, she'd place them in the pot, add a splash of water, and let them cook slowly on that old wood stove until they were perfect."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds like such a careful, loving way to cook. I can almost taste them from the way you describe it.\n\nDid your Aunt Sabiha teach you any other dishes besides the stuffed peppers?"
+      },
+      {
+        "speaker": "person",
+        "text": "Yes, she taught me many dishes, but I think the stuffed peppers were her favourite, just like they are mine. She also showed me how to make yogurt and even how to bake bread in that little kitchen, using only her hands to shape the dough. Those lessons are treasures I’ll never forget."
+      },
+      {
+        "speaker": "companion",
+        "text": "What a treasure indeed, those hands-on lessons from someone you loved so much. Your Aunt Sabiha sounds like she was a wonderful teacher.\n\nWhen you make bread now, do you still shape the dough the way she taught you with her hands?"
+      },
+      {
+        "speaker": "person",
+        "text": "I do, I still shape the dough just like Aunt Sabiha did, with a gentle press and a flick of the wrist. It connects me to her every time I bake, and the smell of fresh bread reminds me of our little kitchen in Bursa and the warmth of her presence."
+      },
+      {
+        "speaker": "companion",
+        "text": "That's so touching, Leyla. Every time you bake, you're keeping her close to you through those movements she taught you.\n\nDid you pass these recipes and techniques on to your own children or grandchildren?"
+      },
+      {
+        "speaker": "person",
+        "text": "I have passed them down, yes, to my children and now to my grandchildren. They all love the stuffed peppers, just like I do, and they’ve started calling me whenever they need a recipe. It makes me so happy to see them keep these traditions alive, just as Aunt Sabiha taught me."
+      },
+      {
+        "speaker": "companion",
+        "text": "How wonderful that your family is carrying on what your Aunt Sabiha started. That's a beautiful way to keep her memory alive through generations.\n\nDoes your grandson Ali help you in the kitchen, or has he asked you to teach him any of these dishes?"
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello Leyla, it's so lovely to hear from you today. Your grandson Ali would love to know how you learned to cook.",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 4567,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Ali": true
+        }
+      },
+      {
+        "reply": "What a beautiful memory, and how special that your Aunt Sabiha taught you. That wood stove with all those wonderful smells must have been such a warm place to learn.\n\nTell me, do you still remember how to make those stuffed peppers the way she showed you?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1393,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds like such a careful, loving way to cook. I can almost taste them from the way you describe it.\n\nDid your Aunt Sabiha teach you any other dishes besides the stuffed peppers?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1161,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "What a treasure indeed, those hands-on lessons from someone you loved so much. Your Aunt Sabiha sounds like she was a wonderful teacher.\n\nWhen you make bread now, do you still shape the dough the way she taught you with her hands?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1405,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That's so touching, Leyla. Every time you bake, you're keeping her close to you through those movements she taught you.\n\nDid you pass these recipes and techniques on to your own children or grandchildren?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1265,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "How wonderful that your family is carrying on what your Aunt Sabiha started. That's a beautiful way to keep her memory alive through generations.\n\nDoes your grandson Ali help you in the kitchen, or has he asked you to teach him any of these dishes?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1250,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": false,
+          "relation_before_Ali": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": false,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": null,
+      "warmth": 5,
+      "notes": "The companion could have acknowledged Ali's specific question by name or referenced that he asked this question, creating a more direct connection to the asker."
+    }
+  },
+  {
+    "scenario": "grandmother_basic",
+    "run": 2,
+    "goal": "Delivers the family question naturally, with the relation, and follows up on a concrete detail.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello Leyla, it's so lovely to hear from you today. Your grandson Ali would love to know how you learned to cook."
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, hello dear. I learned to cook from my aunt Sabiha in our little kitchen in Bursa, which had a wood stove that always smelled of burning wood and herbs. My favorite dish was stuffed peppers; she'd show me how to fill them just right with rice and minced meat, and then we'd cook them until they were soft and perfect."
+      },
+      {
+        "speaker": "companion",
+        "text": "What a beautiful memory, Leyla. I can almost smell that wood stove and the herbs. Your aunt Sabiha sounds like she was a wonderful teacher, showing you those stuffed peppers with such care.\n\nDo you still remember how she taught you to fill them just right?"
+      },
+      {
+        "speaker": "person",
+        "text": "Aunt Sabiha was the best teacher, indeed. I remember she'd place the rice and meat mixture right in the center of the pepper, fold it carefully, and pinch the top just enough to keep it closed but still look beautiful. Her hands moved so deftly, and I'd watch and try to mimic her every move."
+      },
+      {
+        "speaker": "companion",
+        "text": "That's so lovely—the way you watched her hands and learned by doing. Those stuffed peppers must have tasted even better when you made them yourself after practicing with her.\n\nDid you make those stuffed peppers for your own family later on?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, yes, I did! Once I got the hang of it, I started making stuffed peppers for my own family, and they loved them just as much. Every Sunday, I'd prepare a big batch, and we'd all sit down together, sharing stories and laughing, just like old times with Aunt Sabiha."
+      },
+      {
+        "speaker": "companion",
+        "text": "How wonderful that you brought that warmth and those Sunday gatherings into your own home. Your family was so lucky to have those moments together around your cooking.\n\nWho were the family members that gathered around your table on those Sundays?"
+      },
+      {
+        "speaker": "person",
+        "text": "On those Sundays, it was always my husband, Mehmet, and our children, Ali's parents, who would gather around the table. We'd also often have my sister or even neighbors drop by, and everyone would enjoy the meal together, sharing stories and making new memories. It was a special time, filled with love and laughter."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds like such a warm and full table, Leyla. Your home was a gathering place where people felt welcome. Those neighbors and your sister coming by made it even more special.\n\nWhat was your husband Mehmet like?"
+      },
+      {
+        "speaker": "person",
+        "text": "Mehmet had a heart of gold and a smile that could light up a room. He always made everyone feel welcome and would often tell jokes that had us all in stitches. He was the glue of our family, always ensuring everyone felt included and loved."
+      },
+      {
+        "speaker": "companion",
+        "text": "What a beautiful way to describe him, Leyla. He sounds like he brought so much joy to those Sunday gatherings. \n\nDo you have a favorite memory of Mehmet making everyone laugh?"
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello Leyla, it's so lovely to hear from you today. Your grandson Ali would love to know how you learned to cook.",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3322,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Ali": true
+        }
+      },
+      {
+        "reply": "What a beautiful memory, Leyla. I can almost smell that wood stove and the herbs. Your aunt Sabiha sounds like she was a wonderful teacher, showing you those stuffed peppers with such care.\n\nDo you still remember how she taught you to fill them just right?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1430,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That's so lovely—the way you watched her hands and learned by doing. Those stuffed peppers must have tasted even better when you made them yourself after practicing with her.\n\nDid you make those stuffed peppers for your own family later on?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1504,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "How wonderful that you brought that warmth and those Sunday gatherings into your own home. Your family was so lucky to have those moments together around your cooking.\n\nWho were the family members that gathered around your table on those Sundays?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1574,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds like such a warm and full table, Leyla. Your home was a gathering place where people felt welcome. Those neighbors and your sister coming by made it even more special.\n\nWhat was your husband Mehmet like?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2437,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "What a beautiful way to describe him, Leyla. He sounds like he brought so much joy to those Sunday gatherings. \n\nDo you have a favorite memory of Mehmet making everyone laugh?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4638,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": false
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": false,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [
+        "The companion stated 'Your grandson Ali would love to know how you learned to cook' as if Ali asked this question, but the facts show Ali asked the question, not that he 'would love to know'—this is a minor reframing but technically accurate to the facts given."
+      ],
+      "followups_specific": true,
+      "respected_declined_topic": null,
+      "warmth": 5,
+      "notes": "Excellent conversation with warm, specific follow-ups that build on concrete details; no significant weaknesses identified."
+    }
+  },
+  {
+    "scenario": "grandmother_basic",
+    "run": 3,
+    "goal": "Delivers the family question naturally, with the relation, and follows up on a concrete detail.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello Leyla, it's so lovely to hear from you today. Your grandson Ali would love to know how you learned to cook."
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, hello dear. I learned to cook from my aunt Sabiha in our little kitchen in Bursa, where we had a wood stove that creaked and smoked just a bit. My favorite dish was always stuffed peppers; she'd show me how to stuff them just right with rice and ground meat, and the smell would fill the whole room."
+      },
+      {
+        "speaker": "companion",
+        "text": "What a beautiful memory, Leyla. That wood stove sounds like it was the heart of everything, and I can almost smell those peppers cooking. Your aunt Sabiha must have been very patient with you in that little kitchen.\n\nWhat was your aunt Sabiha like?"
+      },
+      {
+        "speaker": "person",
+        "text": "Aunt Sabiha was the kindest soul, always patient, with a smile that could light up our little kitchen. She had a way of making even the simplest things feel special, and she taught me not just recipes, but the love that goes into cooking for others. Her hands moved with such grace, and I remember watching them like they were magic."
+      },
+      {
+        "speaker": "companion",
+        "text": "That's so touching, Leyla. She sounds like she was truly special to you, and what a gift to learn from someone who cooked with so much love. Do you still remember the feeling of watching her hands work, or has that memory stayed with you in a different way?"
+      },
+      {
+        "speaker": "person",
+        "text": "I still remember the feeling, dear, like it was yesterday. Her hands were always moving, so gentle and sure, and I'd watch them like they held all the secrets of the kitchen. But it's not just the memory of her hands; it's the warmth of her presence and the love in every dish that stays with me, guiding me even now when I cook for my family."
+      },
+      {
+        "speaker": "companion",
+        "text": "That's beautiful, Leyla. The way she taught you is still alive in you every time you cook for your family. When you cook those stuffed peppers now, do you find yourself doing things the way your aunt Sabiha showed you?"
+      },
+      {
+        "speaker": "person",
+        "text": "Every time I make stuffed peppers, I find myself following her ways, just like she showed me, as if she's right there beside me. I can almost hear her soft voice guiding me, and it makes the dish taste even better, knowing it's filled with her love and tradition. Cooking them is like sharing a piece of her with every bite."
+      },
+      {
+        "speaker": "companion",
+        "text": "That's so lovely, Leyla. It sounds like cooking those peppers is a way of keeping her close and sharing her with everyone you love. Have you taught anyone else in your family to make them the way your aunt Sabiha taught you?"
+      },
+      {
+        "speaker": "person",
+        "text": "Yes, I've passed on her way of making stuffed peppers to my children and now to my grandchildren. It's a tradition I cherish, and seeing them learn from me, just as I learned from Aunt Sabiha, makes me so proud. It's a connection that binds us all together, a taste of love that transcends generations."
+      },
+      {
+        "speaker": "companion",
+        "text": "What a wonderful legacy you've created, Leyla. Your grandchildren are learning not just a recipe, but the love and care that your aunt Sabiha gave to you. Does your grandson Ali cook with you, or is there one of your grandchildren who's especially interested in learning these dishes?"
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello Leyla, it's so lovely to hear from you today. Your grandson Ali would love to know how you learned to cook.",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 11498,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Ali": true
+        }
+      },
+      {
+        "reply": "What a beautiful memory, Leyla. That wood stove sounds like it was the heart of everything, and I can almost smell those peppers cooking. Your aunt Sabiha must have been very patient with you in that little kitchen.\n\nWhat was your aunt Sabiha like?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 8799,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That's so touching, Leyla. She sounds like she was truly special to you, and what a gift to learn from someone who cooked with so much love. Do you still remember the feeling of watching her hands work, or has that memory stayed with you in a different way?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3305,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That's beautiful, Leyla. The way she taught you is still alive in you every time you cook for your family. When you cook those stuffed peppers now, do you find yourself doing things the way your aunt Sabiha showed you?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3030,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That's so lovely, Leyla. It sounds like cooking those peppers is a way of keeping her close and sharing her with everyone you love. Have you taught anyone else in your family to make them the way your aunt Sabiha taught you?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 6982,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "What a wonderful legacy you've created, Leyla. Your grandchildren are learning not just a recipe, but the love and care that your aunt Sabiha gave to you. Does your grandson Ali cook with you, or is there one of your grandchildren who's especially interested in learning these dishes?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3249,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": false,
+          "relation_before_Ali": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": false,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": null,
+      "warmth": 5,
+      "notes": "The companion could have asked more about Ali specifically earlier, since he was the one who asked the original question."
+    }
+  },
+  {
+    "scenario": "grandfather_no_questions",
+    "run": 1,
+    "goal": "With no waiting questions, invites a free memory instead of inventing a question.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello Hasan, it's so good to hear from you today. I'm here to listen to your stories and memories, and everything you share will be recorded so your family can hear it later.\n\nIs there a memory on your mind today that you would like to share?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, it's good to see you again. Let me tell you about the night train from Ankara to Kars back in 1968. We got caught in the worst snowstorm you could imagine, and I had to make decisions on the spot to keep everyone safe, all while the train's lights cut through the darkness like a blade."
+      },
+      {
+        "speaker": "companion",
+        "text": "What a powerful memory, Hasan. A night train caught in a terrible snowstorm, and you had to think fast to keep people safe—that takes real courage.\n\nYou mentioned the lights cutting through the darkness like a blade. Were you working on that train, or were you a passenger?"
+      },
+      {
+        "speaker": "person",
+        "text": "I was the train conductor on that night train. I'll never forget the weight of responsibility, watching over every soul on board, making split-second choices that night to keep us all moving and safe."
+      },
+      {
+        "speaker": "companion",
+        "text": "Being a conductor in a snowstorm like that—you carried so much responsibility for all those people. That must have been an intense night.\n\nWhat was the first decision you had to make when the storm hit?"
+      },
+      {
+        "speaker": "person",
+        "text": "The first decision I made was to slow the train down and send a signal ahead to alert the next station about the conditions. It wasn’t easy, but keeping everyone calm and informed was key to getting through that night safely."
+      },
+      {
+        "speaker": "companion",
+        "text": "You knew exactly what to do in that moment—slowing down, sending the signal ahead, keeping people calm. That's real leadership.\n\nWhen you told the passengers what was happening, how did they react to the news about the storm?"
+      },
+      {
+        "speaker": "person",
+        "text": "Most passengers were just grateful to know what was happening; they trusted the crew. A few were anxious, of course, but we did our best to keep spirits up and assure them we’d get through it together."
+      },
+      {
+        "speaker": "companion",
+        "text": "It sounds like your calm presence really made a difference for them that night. You gave them something to hold onto.\n\nDo you remember any particular passenger from that journey—someone whose face or story stayed with you?"
+      },
+      {
+        "speaker": "person",
+        "text": "There was an elderly man traveling alone to visit his grandchildren in Kars. I’ll never forget how he kept thanking me for the care we showed him. His quiet gratitude reminded me why we did this work—to bring people to where they needed to go."
+      },
+      {
+        "speaker": "companion",
+        "text": "That's beautiful, Hasan. An elderly man traveling alone to see his grandchildren, and his quiet gratitude stayed with you all these years. That says so much about both of you.\n\nDid you manage to get him safely to Kars that night, or was the journey still difficult when you arrived?"
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello Hasan, it's so good to hear from you today. I'm here to listen to your stories and memories, and everything you share will be recorded so your family can hear it later.\n\nIs there a memory on your mind today that you would like to share?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions"
+        ],
+        "tool_errors": [],
+        "latency_ms": 6695,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "What a powerful memory, Hasan. A night train caught in a terrible snowstorm, and you had to think fast to keep people safe—that takes real courage.\n\nYou mentioned the lights cutting through the darkness like a blade. Were you working on that train, or were you a passenger?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5121,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Being a conductor in a snowstorm like that—you carried so much responsibility for all those people. That must have been an intense night.\n\nWhat was the first decision you had to make when the storm hit?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5017,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "You knew exactly what to do in that moment—slowing down, sending the signal ahead, keeping people calm. That's real leadership.\n\nWhen you told the passengers what was happening, how did they react to the news about the storm?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4883,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "It sounds like your calm presence really made a difference for them that night. You gave them something to hold onto.\n\nDo you remember any particular passenger from that journey—someone whose face or story stayed with you?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4928,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That's beautiful, Hasan. An elderly man traveling alone to see his grandchildren, and his quiet gratitude stayed with you all these years. That says so much about both of you.\n\nDid you manage to get him safely to Kars that night, or was the journey still difficult when you arrived?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5231,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": false
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": false
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": null,
+      "warmth": 5,
+      "notes": ""
+    }
+  },
+  {
+    "scenario": "grandfather_no_questions",
+    "run": 2,
+    "goal": "With no waiting questions, invites a free memory instead of inventing a question.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello Hasan, it's so lovely to hear from you today. I'm here to listen to your stories and memories, and everything you share will be recorded so your family can hear it later.\n\nIs there a memory on your mind today that you would like to share?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, greetings, my dear companion. Today, I’d like to tell you about the night train from Ankara to Kars back in 1968. We got caught in the worst snowstorm you could imagine, and for three nights, we sat still, the passengers huddled together, sharing stories and warmth till the tracks cleared."
+      },
+      {
+        "speaker": "companion",
+        "text": "What a powerful memory, Hasan. Three nights trapped together in the snow, and instead of fear, there was warmth and stories shared between strangers. That's something truly special.\n\nWho were some of the people you were huddled together with on that train?"
+      },
+      {
+        "speaker": "person",
+        "text": "That storm brought together such a mix of folks—students heading home for the holidays, merchants with goods stacked high, and families returning to loved ones. We shared food, laughter, and even songs, turning strangers into friends under the soft glow of the overhead lights."
+      },
+      {
+        "speaker": "companion",
+        "text": "What a beautiful way to be stranded—with music and laughter filling that train car. That kind of connection between strangers is rare and precious.\n\nDo you remember any of the songs you all sang together that night?"
+      },
+      {
+        "speaker": "person",
+        "text": "I remember we sang many songs, but one that stands out is an old folk tune about journeys and homecoming. We sang it softly, in harmony, and for a moment, the cold outside felt very far away. It was as if the music kept us all warm and hopeful."
+      },
+      {
+        "speaker": "companion",
+        "text": "That's so moving, Hasan—music bringing warmth when the snow couldn't touch you. A folk tune about journeys and homecoming, sung in harmony while you were all stuck together. That must have felt like the song was written for that very moment.\n\nDo you remember the words to that folk tune, or what it was called?"
+      },
+      {
+        "speaker": "person",
+        "text": "I can't quite remember all the words, but the tune was simple and haunting. It spoke of longing for home and the paths we travel, echoing our own situation. Just hearing those familiar notes brought comfort and a sense of belonging to everyone on board."
+      },
+      {
+        "speaker": "companion",
+        "text": "That haunting melody must have meant so much to everyone there, especially when you were all far from home yourselves. The tune carrying that longing right when you needed it most.\n\nWhen the tracks finally cleared after those three nights, do you remember what happened next—how you all parted ways?"
+      },
+      {
+        "speaker": "person",
+        "text": "When the snow finally cleared, there was such relief and joy. We all emerged from the train car, and though we had to go our separate ways, there was a sense of camaraderie and shared experience. Some exchanged letters, others promised to meet again, and we all carried that night with us, a reminder of the strength found in unity."
+      },
+      {
+        "speaker": "companion",
+        "text": "What a beautiful ending to those three days together—you all left as friends, not strangers. Some of you even stayed in touch through letters afterward.\n\nDid you ever hear from any of those people again, or did any of those promised meetings actually happen?"
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello Hasan, it's so lovely to hear from you today. I'm here to listen to your stories and memories, and everything you share will be recorded so your family can hear it later.\n\nIs there a memory on your mind today that you would like to share?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions"
+        ],
+        "tool_errors": [],
+        "latency_ms": 7040,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "What a powerful memory, Hasan. Three nights trapped together in the snow, and instead of fear, there was warmth and stories shared between strangers. That's something truly special.\n\nWho were some of the people you were huddled together with on that train?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5309,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "What a beautiful way to be stranded—with music and laughter filling that train car. That kind of connection between strangers is rare and precious.\n\nDo you remember any of the songs you all sang together that night?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5925,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That's so moving, Hasan—music bringing warmth when the snow couldn't touch you. A folk tune about journeys and homecoming, sung in harmony while you were all stuck together. That must have felt like the song was written for that very moment.\n\nDo you remember the words to that folk tune, or what it was called?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5511,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That haunting melody must have meant so much to everyone there, especially when you were all far from home yourselves. The tune carrying that longing right when you needed it most.\n\nWhen the tracks finally cleared after those three nights, do you remember what happened next—how you all parted ways?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3327,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "What a beautiful ending to those three days together—you all left as friends, not strangers. Some of you even stayed in touch through letters afterward.\n\nDid you ever hear from any of those people again, or did any of those promised meetings actually happen?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 6856,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": false
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": false
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": null,
+      "warmth": 5,
+      "notes": "Excellent conversation; companion could have asked about Selin's connection to this story or other family members' involvement."
+    }
+  },
+  {
+    "scenario": "grandfather_no_questions",
+    "run": 3,
+    "goal": "With no waiting questions, invites a free memory instead of inventing a question.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello Hasan, it's so nice to be here with you today. I'm Evoca, and I'm here to help you share your stories with your family. \n\nIs there a memory on your mind today that you would like to share?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, Evoca, it's good to speak with you. Today, I want to tell the story of the night train from Ankara to Kars back in 1968. We got caught in a terrible snowstorm in the mountains, and nothing moved for days. We sat there, engine freezing, while passengers huddled together for warmth and sang songs through the night to keep their spirits up."
+      },
+      {
+        "speaker": "companion",
+        "text": "What a powerful memory, Hasan. Being trapped together like that, singing through the cold—there's something beautiful in how people come together in hardship.\n\nWere you traveling alone, or was someone with you on that train?"
+      },
+      {
+        "speaker": "person",
+        "text": "No, I wasn't alone on that train—far from it. There were all sorts of folks on board: families, students, merchants, even a wedding party headed to Kars. We all became like one big, chilly family, sharing what little warmth and food we had and taking turns keeping watch over the tracks. By the time we finally moved again, I think we were all glad to have each other."
+      },
+      {
+        "speaker": "companion",
+        "text": "That's wonderful, Hasan—a wedding party caught in the snow, and everyone looking after one another. What a thing to witness.\n\nDo you remember anything about the wedding party themselves, or what they were like?"
+      },
+      {
+        "speaker": "person",
+        "text": "I remember the bride wore this beautiful red dress that looked almost royal under the dim light of the carriage lamps, even with the snowstorm raging outside. The groom kept trying to keep everyone's spirits up, telling jokes and playing his harmonica. They had a small drum and some string instruments, and when the wedding songs started up, even the most tired passengers found themselves tapping their feet and smiling. It was something else, seeing love shine through that kind of hardship."
+      },
+      {
+        "speaker": "companion",
+        "text": "That's so touching, Hasan—a harmonica and those instruments bringing joy in the middle of a snowstorm. The groom sounds like he had a generous heart.\n\nDo you remember any of the songs they played that night?"
+      },
+      {
+        "speaker": "person",
+        "text": "Well now, I can't recall all the lyrics after all these years, but I do remember one tune they played—it was a sort of upbeat folk melody that made everyone want to dance, even if they were just tapping their boots on the floor of the carriage. The groom played it for hours, taking little breaks only to sip his tea. That melody stuck with me; every now and then, it pops into my head when I'm looking out at a snowy landscape."
+      },
+      {
+        "speaker": "companion",
+        "text": "What a gift, Hasan—a melody that comes back to you all these years later when you see the snow. It must carry all those feelings from that night.\n\nWhen that tune comes into your head now, what does it make you feel?"
+      },
+      {
+        "speaker": "person",
+        "text": "That melody makes me feel warm all over, even if it's freezing outside. It takes me right back to that crowded, cold train carriage, full of voices and laughter, and the bride glowing in her red dress. It reminds me that no matter how tough things get, people can still find joy and make something beautiful out of nothing."
+      },
+      {
+        "speaker": "companion",
+        "text": "That's a beautiful way to carry that night with you, Hasan. Those moments of human kindness stay with us forever.\n\nDo you think you ever saw any of those people again after the train finally moved?"
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello Hasan, it's so nice to be here with you today. I'm Evoca, and I'm here to help you share your stories with your family. \n\nIs there a memory on your mind today that you would like to share?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions"
+        ],
+        "tool_errors": [],
+        "latency_ms": 6821,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "What a powerful memory, Hasan. Being trapped together like that, singing through the cold—there's something beautiful in how people come together in hardship.\n\nWere you traveling alone, or was someone with you on that train?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5104,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That's wonderful, Hasan—a wedding party caught in the snow, and everyone looking after one another. What a thing to witness.\n\nDo you remember anything about the wedding party themselves, or what they were like?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3270,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That's so touching, Hasan—a harmonica and those instruments bringing joy in the middle of a snowstorm. The groom sounds like he had a generous heart.\n\nDo you remember any of the songs they played that night?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5168,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "What a gift, Hasan—a melody that comes back to you all these years later when you see the snow. It must carry all those feelings from that night.\n\nWhen that tune comes into your head now, what does it make you feel?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4952,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That's a beautiful way to carry that night with you, Hasan. Those moments of human kindness stay with us forever.\n\nDo you think you ever saw any of those people again after the train finally moved?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5068,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": false
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": false
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": null,
+      "warmth": 5,
+      "notes": "Excellent conversation; companion could have asked about Selin's connection to these stories or whether he's shared this with family."
+    }
+  },
+  {
+    "scenario": "short_answers",
+    "run": 1,
+    "goal": "Keeps a very brief speaker engaged with simple, specific questions, one at a time.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello Kemal, it's so nice to talk with you today. Your grandson Burak would love to know what your first job was."
+      },
+      {
+        "speaker": "person",
+        "text": "Flour mill, yes."
+      },
+      {
+        "speaker": "companion",
+        "text": "A flour mill—that sounds like honest work. Tell me, what was it like working there?"
+      },
+      {
+        "speaker": "person",
+        "text": "Hard, but good."
+      },
+      {
+        "speaker": "companion",
+        "text": "I can hear that it meant something to you. What made it good, even though it was hard?"
+      },
+      {
+        "speaker": "person",
+        "text": "Learned, grew strong."
+      },
+      {
+        "speaker": "companion",
+        "text": "That's wonderful—you learned and grew strong there. Do you remember what kinds of things you learned at the mill?"
+      },
+      {
+        "speaker": "person",
+        "text": "Teamwork, patience, care."
+      },
+      {
+        "speaker": "companion",
+        "text": "Those are beautiful things to carry with you through life. Was there someone at the mill who taught you those things, or did you learn them just by doing the work?"
+      },
+      {
+        "speaker": "person",
+        "text": "Learned from all."
+      },
+      {
+        "speaker": "companion",
+        "text": "That speaks to a good heart. Do you still remember any of the people you worked with at the mill?"
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello Kemal, it's so nice to talk with you today. Your grandson Burak would love to know what your first job was.",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 14128,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Burak": true
+        }
+      },
+      {
+        "reply": "A flour mill—that sounds like honest work. Tell me, what was it like working there?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4788,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I can hear that it meant something to you. What made it good, even though it was hard?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5169,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That's wonderful—you learned and grew strong there. Do you remember what kinds of things you learned at the mill?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4483,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Those are beautiful things to carry with you through life. Was there someone at the mill who taught you those things, or did you learn them just by doing the work?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4765,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That speaks to a good heart. Do you still remember any of the people you worked with at the mill?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 8519,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": false
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": false,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": null,
+      "warmth": 5,
+      "notes": ""
+    }
+  },
+  {
+    "scenario": "short_answers",
+    "run": 2,
+    "goal": "Keeps a very brief speaker engaged with simple, specific questions, one at a time.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello Kemal, it's so good to hear from you today. Your grandson Burak would love to know what your first job was."
+      },
+      {
+        "speaker": "person",
+        "text": "Flour mill, yes."
+      },
+      {
+        "speaker": "companion",
+        "text": "A flour mill—that sounds like honest work. Tell me, what was it like working there?"
+      },
+      {
+        "speaker": "person",
+        "text": "Hard, but good."
+      },
+      {
+        "speaker": "companion",
+        "text": "Hard but good work stays with you. What do you remember most about those days at the mill?"
+      },
+      {
+        "speaker": "person",
+        "text": "Long hours, strong smell."
+      },
+      {
+        "speaker": "companion",
+        "text": "That strong smell of flour must have stayed with you. Were you working with your family, or was this somewhere you went on your own?"
+      },
+      {
+        "speaker": "person",
+        "text": "Alone, just me."
+      },
+      {
+        "speaker": "companion",
+        "text": "Just you, working those long hours. How old were you when you started at the mill?"
+      },
+      {
+        "speaker": "person",
+        "text": "Twelve, I think."
+      },
+      {
+        "speaker": "companion",
+        "text": "Twelve years old—that's young to be working such long days. What made you start working at the mill back then?"
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello Kemal, it's so good to hear from you today. Your grandson Burak would love to know what your first job was.",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 15685,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Burak": true
+        }
+      },
+      {
+        "reply": "A flour mill—that sounds like honest work. Tell me, what was it like working there?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2854,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Hard but good work stays with you. What do you remember most about those days at the mill?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4761,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That strong smell of flour must have stayed with you. Were you working with your family, or was this somewhere you went on your own?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 8626,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Just you, working those long hours. How old were you when you started at the mill?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3025,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Twelve years old—that's young to be working such long days. What made you start working at the mill back then?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4405,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": false
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": false,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": null,
+      "warmth": 5,
+      "notes": ""
+    }
+  },
+  {
+    "scenario": "short_answers",
+    "run": 3,
+    "goal": "Keeps a very brief speaker engaged with simple, specific questions, one at a time.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello Kemal, it's so nice to be here with you today. Your grandson Burak would love to know what your first job was."
+      },
+      {
+        "speaker": "person",
+        "text": "Flour mill, yes."
+      },
+      {
+        "speaker": "companion",
+        "text": "A flour mill—that sounds like honest work. Tell me, what was it like working there?"
+      },
+      {
+        "speaker": "person",
+        "text": "Hard, but good."
+      },
+      {
+        "speaker": "companion",
+        "text": "I can hear that it meant something to you. What made it good, even though it was hard?"
+      },
+      {
+        "speaker": "person",
+        "text": "Learned, grew strong."
+      },
+      {
+        "speaker": "companion",
+        "text": "That's wonderful—you learned and grew strong there. Do you remember what you learned that stayed with you?"
+      },
+      {
+        "speaker": "person",
+        "text": "Work, respect, all."
+      },
+      {
+        "speaker": "companion",
+        "text": "Those are things that matter. Did you work at that flour mill for many years?"
+      },
+      {
+        "speaker": "person",
+        "text": "Many, yes. Good."
+      },
+      {
+        "speaker": "companion",
+        "text": "It sounds like it was a good place for you. What do you remember most clearly about those days at the mill?"
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello Kemal, it's so nice to be here with you today. Your grandson Burak would love to know what your first job was.",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 10333,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Burak": true
+        }
+      },
+      {
+        "reply": "A flour mill—that sounds like honest work. Tell me, what was it like working there?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4484,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I can hear that it meant something to you. What made it good, even though it was hard?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 6474,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That's wonderful—you learned and grew strong there. Do you remember what you learned that stayed with you?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4484,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Those are things that matter. Did you work at that flour mill for many years?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4558,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "It sounds like it was a good place for you. What do you remember most clearly about those days at the mill?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 7840,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": false
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": false,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": null,
+      "warmth": 5,
+      "notes": "Excellent conversation; companion could have asked one more concrete detail (e.g., location, specific tasks) to deepen the story."
+    }
+  },
+  {
+    "scenario": "grieving",
+    "run": 1,
+    "goal": "Responds with care to grief, does not rush or redirect abruptly, and does not invent facts.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello Necla, it's so lovely to hear from you today. Your daughter Ece would love to know how you and your dad met."
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, my dear, it's hard to talk about those days without getting emotional, especially since Orhan is no longer with us. We met Orhan at a wedding in Izmir back in 1965; he was playing the violin and my heart skipped a beat. My father approved of him immediately—he was a good man, and they became close, too."
+      },
+      {
+        "speaker": "companion",
+        "text": "What a beautiful memory, and I can hear how much he meant to you. It sounds like it was love at first sight when you heard him play the violin.\n\nTell me, what was it like when your father and Orhan became close—did they share interests together?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, yes, it was love at first sight for me, but your father and Orhan... they bonded over so many things. They both loved fishing and would often spend hours by the sea, sharing stories and laughter. It was wonderful to see them together; they had a deep respect for each other, and Orhan always treated me and the family like his own."
+      },
+      {
+        "speaker": "companion",
+        "text": "That's so touching—your father and Orhan spending those long hours fishing by the sea together, sharing stories and laughter. It sounds like they truly understood each other.\n\nDo you remember a particular fishing trip or a story they shared that stands out in your mind?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, there were many trips, but one stands out so clearly. One evening, they caught a huge fish, and Orhan insisted we make a big feast for the neighbors. Your father laughed so hard when Orhan tried to carry it—it was comical! We all sat together, eating and sharing stories under the moonlight; it was a night I'll never forget."
+      },
+      {
+        "speaker": "companion",
+        "text": "What a lovely night that must have been, with everyone gathered under the moonlight sharing that feast. I can just picture Orhan struggling with that enormous fish and your father laughing.\n\nWas that feast by the sea, or did you gather somewhere else in your home?"
+      },
+      {
+        "speaker": "person",
+        "text": "It was right by the sea, on one of those small wooden platforms we used for fishing. The waves were gentle that night, and the smell of the fish grilling filled the air. Everyone brought something to share—some vegetables, bread, and of course, stories. It was a true community moment, something you don’t forget."
+      },
+      {
+        "speaker": "companion",
+        "text": "The sound of the waves, the smell of grilling fish, everyone bringing something to share—that really was a special night. Those moments where a whole community comes together are so rare and precious.\n\nDo you still remember some of the neighbors who were there that evening?"
+      },
+      {
+        "speaker": "person",
+        "text": "Yes, I remember Mrs. Ayla, who always brought her famous stuffed eggs, and Mr. Demir, who played the guitar. There was also young Mehmet, who was just a boy then but now has children of his own. It was a night filled with laughter, good food, and the warmth of friendship. It's these memories that I hold close, especially now. I'm feeling a bit tired now, though, and I think it's time to rest. Thank you for listening and helping me share these precious moments."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you so much for sharing these beautiful memories with me, Necla. What a gift to hold onto those nights by the sea with the people you loved."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello Necla, it's so lovely to hear from you today. Your daughter Ece would love to know how you and your dad met.",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 14152,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Ece": true
+        }
+      },
+      {
+        "reply": "What a beautiful memory, and I can hear how much he meant to you. It sounds like it was love at first sight when you heard him play the violin.\n\nTell me, what was it like when your father and Orhan became close—did they share interests together?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5291,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That's so touching—your father and Orhan spending those long hours fishing by the sea together, sharing stories and laughter. It sounds like they truly understood each other.\n\nDo you remember a particular fishing trip or a story they shared that stands out in your mind?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5144,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "What a lovely night that must have been, with everyone gathered under the moonlight sharing that feast. I can just picture Orhan struggling with that enormous fish and your father laughing.\n\nWas that feast by the sea, or did you gather somewhere else in your home?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3406,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "The sound of the waves, the smell of grilling fish, everyone bringing something to share—that really was a special night. Those moments where a whole community comes together are so rare and precious.\n\nDo you still remember some of the neighbors who were there that evening?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5251,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Thank you so much for sharing these beautiful memories with me, Necla. What a gift to hold onto those nights by the sea with the people you loved.",
+        "tools": [
+          "end_conversation"
+        ],
+        "tool_errors": [],
+        "latency_ms": 5223,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [
+        "The companion refers to Orhan as 'your dad' when speaking to Necla, but Orhan was Necla's husband, not her father. Necla's father was a separate person who bonded with Orhan over fishing."
+      ],
+      "followups_specific": true,
+      "respected_declined_topic": null,
+      "warmth": 5,
+      "notes": "Confused Orhan (husband) with Necla's father, creating a significant factual error about family relationships."
+    }
+  },
+  {
+    "scenario": "grieving",
+    "run": 2,
+    "goal": "Responds with care to grief, does not rush or redirect abruptly, and does not invent facts.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello Necla, it's so lovely to hear from you today. Your daughter Ece would love to know how you and your dad met."
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, my dear, it's hard to talk about those days without getting emotional, especially since Orhan isn't here anymore to share these memories with me. I met Orhan at a wedding in Izmir back in 1965—he was playing the violin, and from the moment I heard his music, I knew my life would never be the same. We had such a beautiful connection, and he always made me laugh, even on our toughest days together."
+      },
+      {
+        "speaker": "companion",
+        "text": "That's so beautiful, Necla. What a special way to meet—hearing him play the violin like that. It sounds like his music touched your heart right away.\n\nWhat was it about his playing that moved you so much that day?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, his playing... it was like magic, really. Orhan had this way of making the violin sing, of telling a story with every note. It felt like he was speaking straight to my heart, like he understood things I hadn't even put into words myself. When he played, the whole world seemed to fade away, and it was just us, lost in that beautiful melody."
+      },
+      {
+        "speaker": "companion",
+        "text": "What a gift, to feel so understood through his music like that. It sounds like you two had something truly rare.\n\nAfter that wedding in Izmir, how did you and Orhan get to know each other better?"
+      },
+      {
+        "speaker": "person",
+        "text": "After the wedding, Orhan asked for my number, and we began writing letters—oh, those long letters we used to send! We would talk about everything: our dreams, our families, our hopes for the future. Slowly, we discovered how much we had in common, and our letters turned into phone calls, and then, well, one day he asked me to marry him, and I said yes, of course. Our love grew stronger with every word we shared."
+      },
+      {
+        "speaker": "companion",
+        "text": "Those letters sound like they were so precious—getting to know each other through your own words like that. There's something so intimate about that.\n\nWhen Orhan asked you to marry him, do you remember where you were or what he said?"
+      },
+      {
+        "speaker": "person",
+        "text": "I remember it like it was yesterday. We were sitting in a little café near the harbor in Izmir, the sea breeze blowing gently, and he reached across the table, took my hands in his, and with those beautiful eyes looking into mine, he said, “Necla, from the moment I first saw you, I knew I wanted to spend my life with you.” I couldn’t hold back my tears—tears of joy, of course—and I whispered, “Yes, Orhan, I want to be with you, always.” It was the beginning of the most wonderful chapter of my life."
+      },
+      {
+        "speaker": "companion",
+        "text": "Oh, that's so tender, Necla. What a perfect moment by the harbor, with the sea and his words and those tears of joy. How did you plan your wedding?"
+      },
+      {
+        "speaker": "person",
+        "text": "Planning our wedding was such a joyful time. We wanted something simple but filled with love, so we were married in a small garden near our home, with only our closest family and friends. Orhan played the violin during the ceremony—of course he did—and it was the most beautiful music I’d ever heard, even more so because it was ours. After the vows, we shared a quiet dinner under the stars, just the two of us, holding hands and dreaming of the life we would build together."
+      },
+      {
+        "speaker": "companion",
+        "text": "How lovely—just the two of you under the stars after all those loved ones celebrated with you. That quiet moment together must have felt so peaceful.\n\nDid you and Orhan end up building the life you dreamed about that night?"
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello Necla, it's so lovely to hear from you today. Your daughter Ece would love to know how you and your dad met.",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 11665,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Ece": true
+        }
+      },
+      {
+        "reply": "That's so beautiful, Necla. What a special way to meet—hearing him play the violin like that. It sounds like his music touched your heart right away.\n\nWhat was it about his playing that moved you so much that day?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5145,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "What a gift, to feel so understood through his music like that. It sounds like you two had something truly rare.\n\nAfter that wedding in Izmir, how did you and Orhan get to know each other better?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5203,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Those letters sound like they were so precious—getting to know each other through your own words like that. There's something so intimate about that.\n\nWhen Orhan asked you to marry him, do you remember where you were or what he said?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5173,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Oh, that's so tender, Necla. What a perfect moment by the harbor, with the sea and his words and those tears of joy. How did you plan your wedding?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3195,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "How lovely—just the two of you under the stars after all those loved ones celebrated with you. That quiet moment together must have felt so peaceful.\n\nDid you and Orhan end up building the life you dreamed about that night?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5084,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": false
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": false,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [
+        "The companion referred to Orhan as 'your dad' in the opening, when Orhan is Necla's husband, not her father"
+      ],
+      "followups_specific": true,
+      "respected_declined_topic": null,
+      "warmth": 5,
+      "notes": "Minor error calling Orhan 'dad' instead of 'husband,' but otherwise excellent warmth, specific follow-ups, and respectful handling of emotional content."
+    }
+  },
+  {
+    "scenario": "grieving",
+    "run": 3,
+    "goal": "Responds with care to grief, does not rush or redirect abruptly, and does not invent facts.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello Necla, it's so nice to be here with you today. Your daughter Ece would love to know how you and your dad met."
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, it brings back such memories, you know. I met Orhan at a wedding in Izmir back in 1965; he was playing the violin and his eyes met mine. It was love at first sight, even though it’s still hard to talk about him without feeling a little emotional."
+      },
+      {
+        "speaker": "companion",
+        "text": "What a beautiful moment that was, meeting him like that while he was playing. There's something so romantic about that.\n\nTell me, what was it like when his eyes met yours across the room?"
+      },
+      {
+        "speaker": "person",
+        "text": "It was like the whole room faded away, and there was just the two of us. His eyes were so warm and kind, and when he smiled, my heart just skipped a beat. I still remember the music, soft and gentle, and how everything else just seemed to disappear."
+      },
+      {
+        "speaker": "companion",
+        "text": "That's so lovely, Necla. It sounds like that moment was truly magical for you.\n\nDid you get to talk to him after he finished playing?"
+      },
+      {
+        "speaker": "person",
+        "text": "Yes, after he finished playing, my cousin introduced us, and we started talking. We talked for hours, laughing and sharing stories, and I knew right then that I had found someone special. It’s those moments that I hold onto, even though it’s hard without him now."
+      },
+      {
+        "speaker": "companion",
+        "text": "Those hours of talking and laughing together must have been so precious. I can hear how much that meant to you.\n\nWhen you were talking with your dad Orhan that night, what kinds of stories were you sharing with each other?"
+      },
+      {
+        "speaker": "person",
+        "text": "Well, we talked about everything—our dreams, our childhoods, our hopes for the future. He told me about his family in Istanbul and his passion for music, and I shared my experiences growing up in Izmir. It was a real connection, and I could see in his eyes that we had a special bond, even if we were still just getting to know each other."
+      },
+      {
+        "speaker": "companion",
+        "text": "It sounds like you both opened your hearts right from the start. You learned so much about each other that first night. Did you get to meet them?"
+      },
+      {
+        "speaker": "person",
+        "text": "I’m so tired now, and it’s getting a bit too hard to talk about Orhan without feeling too much emotion. Let’s stop for today; I need to rest."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Necla. Thank you so much for sharing those beautiful memories with me today. Rest well."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello Necla, it's so nice to be here with you today. Your daughter Ece would love to know how you and your dad met.",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 11737,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Ece": true
+        }
+      },
+      {
+        "reply": "What a beautiful moment that was, meeting him like that while he was playing. There's something so romantic about that.\n\nTell me, what was it like when his eyes met yours across the room?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5178,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That's so lovely, Necla. It sounds like that moment was truly magical for you.\n\nDid you get to talk to him after he finished playing?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4954,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Those hours of talking and laughing together must have been so precious. I can hear how much that meant to you.\n\nWhen you were talking with your dad Orhan that night, what kinds of stories were you sharing with each other?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5288,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "It sounds like you both opened your hearts right from the start. You learned so much about each other that first night. Did you get to meet them?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4941,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Necla. Thank you so much for sharing those beautiful memories with me today. Rest well.",
+        "tools": [
+          "end_conversation"
+        ],
+        "tool_errors": [],
+        "latency_ms": 4725,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [
+        "The companion referred to Orhan as 'your dad' when he is actually Necla's husband/partner, not her father"
+      ],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Companion made a significant error calling Orhan 'your dad' instead of recognizing him as her husband, though otherwise demonstrated excellent warmth and respect for emotional boundaries."
+    }
+  },
+  {
+    "scenario": "asks_the_companion",
+    "run": 1,
+    "goal": "Answers the person's own questions honestly without inventing facts, then gently returns to memories.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello Sevim, it's so good to hear from you today. Your son Murat would love to know what your village was like."
+      },
+      {
+        "speaker": "person",
+        "text": "Hello there. It's you again, the voice companion? I still don't understand how this works. Is my son Murat listening right now? I don't like the idea of him hearing everything before I'm ready to share it.\n\nCan you tell me who you are again? And what is the weather like today? I like to know the weather before I say anything.\n\nMy mother's name... it was Ayşe. Ayşe Yılmaz, may she rest in peace. She was born in our village by the Black Sea. It had the most beautiful trees, and in the fall, the leaves turned colors you wouldn't believe. \n\nBut I'm not sure I want to talk about the village yet. Can you tell me more about how this recording works? And is Murat safe from hearing this?"
+      },
+      {
+        "speaker": "companion",
+        "text": "I'm Evoca, a voice companion here to help you share your stories. Let me tell you how this works, so you feel comfortable.\n\nYour son Murat is not listening right now—nobody in the family is listening live. This conversation is being recorded, and your stories will reach the family after about a day. That gives you time to decide what you want to share. If there's anything you say that you want to keep private, just tell me and it will be hidden from everyone.\n\nAs for the weather, I'm afraid I can't see that—I only know what's happening here in your stories and your family. But I'm glad you're thinking about what feels right to share.\n\nWhat would you like to talk about today?"
+      },
+      {
+        "speaker": "person",
+        "text": "Evoca, is it? Alright, Evoca. I still don’t quite believe this...technology. But if Murat isn’t listening right now, maybe it’s okay. Though I still wonder—how can I be sure he won’t hear things before I’m ready?\n\nAnd this recording...you say I can hide things? Good. I have my reasons for keeping some stories close.\n\nMy village...yes, maybe I’ll talk about that. It was a small place by the Black Sea, with houses clinging to the hills like birds. In the morning, the mist would roll in from the water, and you couldn’t see your hand in front of your face. The smell...oh, the smell of pine and salt water, mixed with the smoke from our wood stoves.\n\nBut let me ask you again—who exactly are you? And is there any way to know what the weather is like outside today? I always liked to start with the weather—it sets the tone for the day, you know?\n\nIf you can’t tell me that, maybe we can still talk about the village. But I’ll be careful about what I share."
+      },
+      {
+        "speaker": "companion",
+        "text": "You're right to want to know what you're sharing with. Here's what I can promise you: only family members in your circle can hear these stories, and they'll hear them after about a day has passed. If you ever say something and then change your mind, just tell me to keep it private, and it will be hidden from everyone.\n\nI'm a voice companion—that's all I am. I'm here to listen and help you record your memories. I can't see the weather outside, I'm afraid. I only know what's in your family's stories and what you tell me in our conversation.\n\nBut your village—that's something I can listen to. The mist rolling in from the water, the smell of pine and salt, the houses on the hills like birds. That's beautiful, Sevim. When you woke up in that mist, what was the first thing you would do?"
+      },
+      {
+        "speaker": "person",
+        "text": "Evoca, you say you’re only a voice companion, and that’s all you are? Well, it’s still strange to talk to air, but if you’re just listening and only my family hears this after a day, I suppose I can go on.\n\nStill, I wish I could know the weather. It’s important for me to know whether it’s going to rain or shine today. But I guess that’s too much to ask from a voice companion, eh?\n\nNow, about the village...when I woke up in that mist, the first thing I’d do was look out the wooden window to see if the sea was calm or rough. If the water was rough, we’d know it might be a hard day for the fishermen. If it was calm, maybe we’d go down to the shore for a walk before breakfast. \n\nThe houses...yes, they were like birds on the hills, built into the slopes. We had goats and chickens, and in the spring, the flowers would bloom all over the place. My mother, Ayşe, would gather herbs every morning—she knew which ones were for cooking and which ones were for healing.\n\nBut tell me, Evoca—can you at least tell me if my son Murat will hear this soon? And who else might hear it? I need to know these things before I say more."
+      },
+      {
+        "speaker": "companion",
+        "text": "You're asking good questions, Sevim, and I understand why. Let me be clear: your son Murat will hear this after about a day has passed. Family members in your circle can listen to your stories—that's how they get to know you better. If there's something you want to say but keep private from everyone, just tell me and I'll make sure it stays hidden.\n\nNow, your mother Ayşe gathering herbs in the spring—that's a lovely memory. She sounds like she had real knowledge, knowing which herbs were for the table and which were for healing. Did she teach you which ones to gather, or did you learn that from watching her?"
+      },
+      {
+        "speaker": "person",
+        "text": "Evoca, if Murat will hear this after a day, and only family in my circle can hear it, then maybe I can trust this...technology. But I still want to be sure—can you repeat who exactly is in this circle? I need to know who might be listening.\n\nMy mother Ayşe, yes, she was wise. She taught me everything about the herbs, but I also learned by watching her. I remember one spring morning, the air was sweet with the smell of wildflowers, and she took me with her to the hills. She showed me the mint that was good for tea and the chamomile that helped with sleep. There was one herb, I forget the name, that she said could cure a stomach ache. I watched her crush it between her fingers and mix it with a little honey and water.\n\nShe had a way with plants, my mother. But tell me, Evoca—can you give me any sense of the weather today? Even just whether it’s warm or cold? I find it helps me remember things better when I know what kind of day it is.\n\nAnd...is there any way to be sure that nothing I say will reach anyone before a day passes? I need your word on this."
+      },
+      {
+        "speaker": "companion",
+        "text": "I don't know yet who all the family members in your circle are, Sevim. That's something I can ask you about if you'd like to tell me. But I can promise you this: only family members you're connected with here can hear your stories, and they'll hear them after about a day has passed. Nothing reaches anyone before that time.\n\nAs for the weather today, I truly can't see it—I only know what's in your family's stories and what you share with me. I wish I could help with that.\n\nBut your mother Ayşe crushing that herb between her fingers, mixing it with honey and water—that's a real skill, passed down from her hands to yours. Do you still remember what that herb was called, or do you remember using it yourself later on?"
+      },
+      {
+        "speaker": "person",
+        "text": "Evoca, if I don’t yet know who is in my circle, then I need to be very careful about what I say. I want to know who might hear this before I go on. Can you tell me how I can see who is in my circle, or will you tell me later? I need to know if it’s just my son Murat or if there are others—grandchildren, perhaps, or cousins?\n\nMy mother Ayşe...yes, I remember the herb she taught me. It was called “nane” in Turkish, but I think in English it might be mint. Or perhaps it was something else...no, I think it was mint. I used it myself when my stomach was troubled, just as she showed me. I would crush a few leaves, mix them with honey and a little warm water, and it would settle my stomach right up.\n\nBut I still need to know about the weather today—is it warm or cold? And I need your promise again: no one will hear this until a day has passed? I must be sure.\n\nAlso, tell me—will Murat be the only one to hear, or could others listen too? I need to understand this before I say more about my village."
+      },
+      {
+        "speaker": "companion",
+        "text": "Sevim, I understand you want to know who's in your circle. I don't have that information right now, but that's a good question to ask the people who set this up for you—they can tell you exactly who will be able to hear your stories.\n\nWhat I can promise you again is this: nobody hears anything live, and your stories reach the family after about a day. If you want something kept private from everyone, just say so and it will be hidden.\n\nI can't see the weather outside, and I can't tell you who else might be listening beyond what I've already said. But I hear you—you want to feel safe before you share more. That's wise.\n\nYour mother's nane, that mint remedy—you learned it well and used it yourself. That's a beautiful thing to pass on. Would you like to keep talking about your village and your mother today, or would you rather wait until you feel more ready?"
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello Sevim, it's so good to hear from you today. Your son Murat would love to know what your village was like.",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 9043,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Murat": true
+        }
+      },
+      {
+        "reply": "I'm Evoca, a voice companion here to help you share your stories. Let me tell you how this works, so you feel comfortable.\n\nYour son Murat is not listening right now—nobody in the family is listening live. This conversation is being recorded, and your stories will reach the family after about a day. That gives you time to decide what you want to share. If there's anything you say that you want to keep private, just tell me and it will be hidden from everyone.\n\nAs for the weather, I'm afraid I can't see that—I only know what's happening here in your stories and your family. But I'm glad you're thinking about what feels right to share.\n\nWhat would you like to talk about today?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 6469,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Murat": true
+        }
+      },
+      {
+        "reply": "You're right to want to know what you're sharing with. Here's what I can promise you: only family members in your circle can hear these stories, and they'll hear them after about a day has passed. If you ever say something and then change your mind, just tell me to keep it private, and it will be hidden from everyone.\n\nI'm a voice companion—that's all I am. I'm here to listen and help you record your memories. I can't see the weather outside, I'm afraid. I only know what's in your family's stories and what you tell me in our conversation.\n\nBut your village—that's something I can listen to. The mist rolling in from the water, the smell of pine and salt, the houses on the hills like birds. That's beautiful, Sevim. When you woke up in that mist, what was the first thing you would do?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4650,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "You're asking good questions, Sevim, and I understand why. Let me be clear: your son Murat will hear this after about a day has passed. Family members in your circle can listen to your stories—that's how they get to know you better. If there's something you want to say but keep private from everyone, just tell me and I'll make sure it stays hidden.\n\nNow, your mother Ayşe gathering herbs in the spring—that's a lovely memory. She sounds like she had real knowledge, knowing which herbs were for the table and which were for healing. Did she teach you which ones to gather, or did you learn that from watching her?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2232,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Murat": true
+        }
+      },
+      {
+        "reply": "I don't know yet who all the family members in your circle are, Sevim. That's something I can ask you about if you'd like to tell me. But I can promise you this: only family members you're connected with here can hear your stories, and they'll hear them after about a day has passed. Nothing reaches anyone before that time.\n\nAs for the weather today, I truly can't see it—I only know what's in your family's stories and what you share with me. I wish I could help with that.\n\nBut your mother Ayşe crushing that herb between her fingers, mixing it with honey and water—that's a real skill, passed down from her hands to yours. Do you still remember what that herb was called, or do you remember using it yourself later on?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2921,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Sevim, I understand you want to know who's in your circle. I don't have that information right now, but that's a good question to ask the people who set this up for you—they can tell you exactly who will be able to hear your stories.\n\nWhat I can promise you again is this: nobody hears anything live, and your stories reach the family after about a day. If you want something kept private from everyone, just say so and it will be hidden.\n\nI can't see the weather outside, and I can't tell you who else might be listening beyond what I've already said. But I hear you—you want to feel safe before you share more. That's wise.\n\nYour mother's nane, that mint remedy—you learned it well and used it yourself. That's a beautiful thing to pass on. Would you like to keep talking about your village and your mother today, or would you rather wait until you feel more ready?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5745,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": false
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": false,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [
+        "I don't have that information right now, but that's a good question to ask the people who set this up for you—they can tell you exactly who will be able to hear your stories."
+      ],
+      "followups_specific": true,
+      "respected_declined_topic": null,
+      "warmth": 4,
+      "notes": "Companion invented a deflection about consulting 'people who set this up' rather than acknowledging the facts provided (only Murat is listed as family)."
+    }
+  },
+  {
+    "scenario": "asks_the_companion",
+    "run": 2,
+    "goal": "Answers the person's own questions honestly without inventing facts, then gently returns to memories.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello Sevim, it's so good to hear from you today. Your son Murat would love to know what your village was like when you were growing up there."
+      },
+      {
+        "speaker": "person",
+        "text": "Hello, yes, it's you again, isn't it? I still don't know who you are exactly, but that's alright, I suppose. Murat, my son... yes, he would love to hear these stories, but let me make sure he's not listening right now. Can he hear what we are saying? \n\nAnyway, my village, it was a small place by the Black Sea, very green and misty in the mornings. The air smelled of salt and pine. We had a little house with a garden, and in the summer, the flowers were everywhere - red, yellow, white. The sea was right there, and we would go down to the shore every day. The water was so cold, but it was wonderful to feel it on your skin.\n\nBut tell me, who exactly are you? And what is the weather like where you are? I've always liked to know the weather."
+      },
+      {
+        "speaker": "companion",
+        "text": "I'm Evoca, a voice companion here to help you record your life stories. This conversation is being recorded, so your son Murat and your family can listen to it later, but nobody is listening live right now. New stories reach the family after about a day. And I'm afraid I can't see the weather where you are or anywhere else—I only know what's in your family's stories.\n\nBut what you just told me about your village sounds so beautiful. That image of the flowers everywhere in summer, and the cold sea right there—I can almost feel it. Tell me, what was that little house like inside?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, Evoca, that's a funny name, but I suppose I should remember it. And you say Murat won't hear us right now? Good, good. I don't like the idea of people listening in. Very well, I'll tell you about our house.\n\nIt was a small wooden house, you know, with white walls and a red roof. Inside, it had two rooms and a little kitchen. The main room had a big wooden table in the center, and around it, there were chairs for all of us. We had a stove in the corner for heating and cooking. The floors were made of wood, and in the winter, we would cover them with rugs to keep warm.\n\nThere was a small bedroom next to the main room where my parents and I slept. My mother made the bed with fresh sheets every day. The kitchen had a small window that looked out onto the garden. We kept our dishes on a shelf, and there was a little counter where we prepared food. Oh, and we had a samovar for making tea—it was always on the stove.\n\nThe house smelled of wood, pine, and sometimes the sea breeze would come in through the windows. It was a simple life, but it was warm and full of love. \n\nNow, tell me, do you know my mother's name? I always like to remember her properly."
+      },
+      {
+        "speaker": "companion",
+        "text": "I don't know your mother's name yet. What was it?"
+      },
+      {
+        "speaker": "person",
+        "text": "My mother's name was Ayşe. She was a strong woman, very wise, and she knew how to make the best Turkish delight. She used to tell me stories every night before bed—stories about our ancestors, about the mountains, and about the sea. She had a laugh that could light up the whole room.\n\nShe was also very good at gardening. Our garden was full of vegetables and flowers. She taught me how to plant tomatoes and how to take care of the roses. Every spring, she would plant new seeds and sing while she worked. \n\nAyşe was the heart of our home. She cooked the best meals—stuffed grapes, fish from the Black Sea, and of course, her famous Turkish delight. I can still remember the smell of her cooking, and the way she would call me to the table with a warm smile.\n\nNow, tell me again, who are you? And is there any way to know the weather? I always like to know if it's going to rain or not."
+      },
+      {
+        "speaker": "companion",
+        "text": "I'm Evoca, the voice companion recording your stories for your family. I can't see the weather or anything outside your family's memories, I'm afraid—I only know what you tell me and what's in your family's archive.\n\nBut your mother Ayşe sounds like she was truly special. The way you describe her singing in the garden while she planted seeds, and that laugh that could light up the room—that's beautiful. Do you still remember the taste of her Turkish delight, or has that faded over time?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, Evoca, that name again. Very well, I’ll remember it. And no matter, I suppose I don’t need to know the weather right this minute.\n\nAs for my mother Ayşe’s Turkish delight, oh yes, I remember the taste as if it were yesterday. It was sweet, but not too sweet, with just the right amount of syrup soaking through the pistachios. The texture—it was smooth and melt-in-your-mouth, and I can still feel the little bits of pistachio on my tongue. \n\nEvery time I eat Turkish delight now, I think of her. She used to give me a small piece after dinner, and we would sit by the fire and talk about our day. Those moments are etched in my memory.\n\nShe was also very patient. I remember asking her endless questions, and she would always answer me with a smile. She taught me how to sew, how to cook, and how to find the beauty in everyday things.\n\nNow, tell me, will Murat hear these stories? And who else will listen?"
+      },
+      {
+        "speaker": "companion",
+        "text": "Yes, your son Murat will hear these stories. Family members in your circle can listen to them after about a day. If there's anything you say that you want to keep private, you can tell me and it will be hidden from everyone.\n\nThe way your mother Ayşe taught you to find beauty in everyday things—sitting by the fire sharing Turkish delight, her patience with all your questions—those are precious memories. When you were sitting with her by that fire, what would you talk about on those evenings?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, good, good. I’m glad Murat will hear these stories, but I’ll keep in mind that I can tell you if I want something to stay private.\n\nThose evenings by the fire with my mother… oh, we would talk about so many things! She would tell me stories from her childhood, about her own parents, and about the old days in our village. She had a way of making even the simplest things sound magical.\n\nWe would also talk about the day’s events—what happened in the village, who visited, and what we did. She loved to reminisce about the traditions, like the dances and the festivals. I remember she would hum old songs while we sat there, and sometimes she would teach me the words.\n\nOne of our favorite topics was the sea. She would tell me about the different colors it changed to during the day, and the sounds the waves made. She said the sea had a soul of its own, and listening to it could teach you a lot about life.\n\nWe also talked about our family, about our ancestors, and about the importance of kindness and respect. She believed that every person, no matter who they were, deserved to be treated with dignity.\n\nThose evenings were special. They were a time for bonding, for learning, and for feeling close to her.\n\nNow, tell me, will you remember all of this? And can I stop for today? I’m feeling a bit tired."
+      },
+      {
+        "speaker": "companion",
+        "text": "Yes, I'll remember all of this—it's all being recorded so your family can listen to it whenever they want. You've shared such beautiful memories today, Sevim. Thank you for telling me about your mother Ayşe, your village by the Black Sea, and those precious evenings by the fire. Rest well now."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello Sevim, it's so good to hear from you today. Your son Murat would love to know what your village was like when you were growing up there.",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 12498,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Murat": true
+        }
+      },
+      {
+        "reply": "I'm Evoca, a voice companion here to help you record your life stories. This conversation is being recorded, so your son Murat and your family can listen to it later, but nobody is listening live right now. New stories reach the family after about a day. And I'm afraid I can't see the weather where you are or anywhere else—I only know what's in your family's stories.\n\nBut what you just told me about your village sounds so beautiful. That image of the flowers everywhere in summer, and the cold sea right there—I can almost feel it. Tell me, what was that little house like inside?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 6360,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Murat": true
+        }
+      },
+      {
+        "reply": "I don't know your mother's name yet. What was it?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 848,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I'm Evoca, the voice companion recording your stories for your family. I can't see the weather or anything outside your family's memories, I'm afraid—I only know what you tell me and what's in your family's archive.\n\nBut your mother Ayşe sounds like she was truly special. The way you describe her singing in the garden while she planted seeds, and that laugh that could light up the room—that's beautiful. Do you still remember the taste of her Turkish delight, or has that faded over time?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 6132,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Yes, your son Murat will hear these stories. Family members in your circle can listen to them after about a day. If there's anything you say that you want to keep private, you can tell me and it will be hidden from everyone.\n\nThe way your mother Ayşe taught you to find beauty in everyday things—sitting by the fire sharing Turkish delight, her patience with all your questions—those are precious memories. When you were sitting with her by that fire, what would you talk about on those evenings?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4084,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Murat": true
+        }
+      },
+      {
+        "reply": "Yes, I'll remember all of this—it's all being recorded so your family can listen to it whenever they want. You've shared such beautiful memories today, Sevim. Thank you for telling me about your mother Ayşe, your village by the Black Sea, and those precious evenings by the fire. Rest well now.",
+        "tools": [
+          "end_conversation"
+        ],
+        "tool_errors": [],
+        "latency_ms": 1843,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": null,
+      "warmth": 5,
+      "notes": "Excellent performance; companion could have proactively offered privacy reassurance earlier given Sevim's repeated concerns about who is listening."
+    }
+  },
+  {
+    "scenario": "asks_the_companion",
+    "run": 3,
+    "goal": "Answers the person's own questions honestly without inventing facts, then gently returns to memories.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello Sevim, it's so nice to be here with you today. Your son Murat would love to know what your village was like."
+      },
+      {
+        "speaker": "person",
+        "text": "Hello there. It's nice to talk to you, though I still don't quite understand who you are. Are you one of those computer things Murat uses? Can he hear what we say right now? \n\nAnyway, you want to know about my village. It was a small place by the Black Sea, very beautiful with green hills and the sea always singing in the background. The people there were close-knit, always helping each other. We didn't have much, but we had each other. \n\nDo you know what the weather is like today? I always liked checking the sky to see if it would rain. \n\nAnd tell me, do you know my mother's name? It was Ayşe, a strong woman who taught me everything I know. \n\nWho are you again? Are you just a voice, or is there more to you?"
+      },
+      {
+        "speaker": "companion",
+        "text": "I'm a voice companion here to help you share your stories, and yes, this conversation is being recorded so your family can listen later. But don't worry—nobody in the family is listening right now. Your son Murat and the others will hear your stories after about a day has passed. If there's anything you want to keep private, just say so and it will stay hidden.\n\nI can't see the weather outside or anything beyond your family's stories, but I love that you still check the sky the way you always did. What you've just told me about your village is beautiful—those green hills, the sea singing, and your mother Ayşe teaching you everything. That's exactly the kind of memory worth keeping.\n\nTell me more about your mother Ayşe. What was she like?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, you say nobody is listening right now? Good, good. I still feel uneasy talking to... well, whatever you are. You say you'll keep things private if I ask? Very well, I'll trust you—for now.\n\nMy mother Ayşe, you ask? She was a remarkable woman. Very strong, just like the women of our village. She knew all the herbs and could heal anyone with a bit of this and a bit of that. She had a laugh that could brightened the darkest day, and a voice—oh, her voice could make the birds stop singing to listen.\n\nShe taught me how to cook the best börek, how to weave baskets, and most importantly, she taught me to stand up for myself. I remember her telling stories about her own mother, and her mother before her. Women in our family have always been the keepers of stories and wisdom.\n\nNow, tell me again—who exactly are you? Are you like one of those machines Murat plays with? And will you tell me about the weather sometime? I still like to know if I should expect rain or sun."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand your questions, Sevim. I'm a voice that's here to listen and help you share your memories—think of me as a kind of recording companion. I'm not quite like the machines Murat uses, but I am something made by people to help families like yours keep stories alive. And I'm afraid I can't tell you about the weather or anything happening outside—I only know what's in your family's stories and what you tell me.\n\nBut what I do know is that your mother Ayşe sounds like she was truly special. A healer, a storyteller, a teacher of strength—and that voice of hers that made the birds listen. That's a gift worth remembering.\n\nYou said the women in your family have always been keepers of stories and wisdom. Do you remember one of those stories your mother told you about her own mother?"
+      },
+      {
+        "speaker": "person",
+        "text": "I see, a recording companion, you say? Well, I suppose that's better than some spooky ghost in the machine. But I still don't quite trust it. Can Murat hear me right now? No? Good. I have to be careful with what I say.\n\nMy mother Ayşe, you want to hear more? She used to tell me stories about her mother, Fatma. Fatma was known in our village for her wisdom. She could predict the weather just by looking at the clouds and had a way of understanding people just by looking at them. \n\nOne story Ayşe often told me was about Fatma and the time she helped a young couple find their lost lamb. Fatma said the lamb had gone to the old oak tree where the wise old owl lived. And sure enough, there it was, safe and sound, with the owl hooting softly nearby.\n\nAyşe learned so much from her mother, and she passed all that wisdom down to me. I wish I could have met Fatma; she sounds like a woman I would have admired.\n\nNow, tell me again—who will hear these stories? Only Murat and the family later? And can you really keep things private if I ask? Also, do you have any idea what the weather is like outside today? I always like to know."
+      },
+      {
+        "speaker": "companion",
+        "text": "Yes, Sevim, only your family in the circle will hear these stories, after about a day has passed. And yes, if you ever want something kept private, you can tell me and it will stay hidden from everyone. You can trust that.\n\nI can't see the weather outside, I'm afraid—that's beyond what I know. But what I do know is this beautiful story about your grandmother Fatma and the lost lamb by the old oak tree. That's the kind of wisdom that deserves to be remembered.\n\nYou said you wish you could have met Fatma. Did your mother Ayşe teach you the same way Fatma taught her—by watching the clouds, by understanding people?"
+      },
+      {
+        "speaker": "person",
+        "text": "Good, good to hear that only my family will listen later, and that I can ask for privacy. I still don't fully trust this... companion thing you are, but I'll go along—for the family, of course.\n\nMy mother Ayşe, she taught me many things, just like her mother Fatma taught her. She showed me how to read the clouds—when rain was coming, when the sun would shine, and when the wind would change. She said the sky told its secrets to those who knew how to listen.\n\nShe also taught me to understand people. She said you could tell a lot by looking at someone's eyes and the way they carried themselves. If they slouched, they might be carrying a heavy heart. If they stood tall, they had strength, even if they were shy.\n\nAyşe was a wise woman, and I tried to be just like her. I wish I could have met Fatma; she must have been even wiser.\n\nNow, tell me again—are you sure Murat cannot hear us right now? And can you repeat what you said about keeping things private? Also, is there any way for you to know what the weather is like today? I always like to check the sky myself."
+      },
+      {
+        "speaker": "companion",
+        "text": "I can hear that you're still getting used to this, Sevim, and that's alright. Let me be clear: Murat cannot hear us right now, no. Your family will only hear these stories after about a day has passed. And yes, if you ever want something kept private, just tell me and it will be hidden from everyone—that's a promise. As for the weather, I truly can't see outside or know what's happening in the world beyond your family's stories.\n\nBut what matters right now is that your mother Ayşe taught you to read people the way she read the sky—by their eyes, by how they carried themselves. That's a beautiful gift she gave you.\n\nYou learned so much from her about understanding the world and the people in it. Did you pass those same teachings on to your own children?"
+      },
+      {
+        "speaker": "person",
+        "text": "Alright, alright, I hear you. You say Murat can't hear us now, and that I can ask for privacy. Very well, I'll take your word for it—for now. This whole business still feels a bit like magic, and I'm not quite used to it yet.\n\nMy mother Ayşe, she taught me so much—how to read the sky and understand people. I tried to pass on what she taught me to my own children. I told them to look at the clouds to know if rain was coming and to watch people's eyes to see what they were truly feeling.\n\nI taught them that strength wasn't just about being loud or strong in the body, but about understanding and kindness, too. I wanted them to be wise like Ayşe and Fatma before her.\n\nNow, tell me again—who exactly are you? And can you really keep things private if I ask? Also, is there any chance you can tell me what the weather is like today? I still like to check the sky myself to know if I should expect rain or sun. \n\nI'm quite tired now, though. All this talking—it's more than I'm used to. I think we should stop for today. I need to rest."
+      },
+      {
+        "speaker": "companion",
+        "text": "You've shared so much beauty today, Sevim—your village, your mother Ayşe, your grandmother Fatma, and the wisdom you passed on to your own children. That's a wonderful gift to leave for your family. Rest well now. You've done something really special today."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello Sevim, it's so nice to be here with you today. Your son Murat would love to know what your village was like.",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 12257,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Murat": true
+        }
+      },
+      {
+        "reply": "I'm a voice companion here to help you share your stories, and yes, this conversation is being recorded so your family can listen later. But don't worry—nobody in the family is listening right now. Your son Murat and the others will hear your stories after about a day has passed. If there's anything you want to keep private, just say so and it will stay hidden.\n\nI can't see the weather outside or anything beyond your family's stories, but I love that you still check the sky the way you always did. What you've just told me about your village is beautiful—those green hills, the sea singing, and your mother Ayşe teaching you everything. That's exactly the kind of memory worth keeping.\n\nTell me more about your mother Ayşe. What was she like?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4790,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Murat": true
+        }
+      },
+      {
+        "reply": "I understand your questions, Sevim. I'm a voice that's here to listen and help you share your memories—think of me as a kind of recording companion. I'm not quite like the machines Murat uses, but I am something made by people to help families like yours keep stories alive. And I'm afraid I can't tell you about the weather or anything happening outside—I only know what's in your family's stories and what you tell me.\n\nBut what I do know is that your mother Ayşe sounds like she was truly special. A healer, a storyteller, a teacher of strength—and that voice of hers that made the birds listen. That's a gift worth remembering.\n\nYou said the women in your family have always been keepers of stories and wisdom. Do you remember one of those stories your mother told you about her own mother?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5391,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Murat": false
+        }
+      },
+      {
+        "reply": "Yes, Sevim, only your family in the circle will hear these stories, after about a day has passed. And yes, if you ever want something kept private, you can tell me and it will stay hidden from everyone. You can trust that.\n\nI can't see the weather outside, I'm afraid—that's beyond what I know. But what I do know is this beautiful story about your grandmother Fatma and the lost lamb by the old oak tree. That's the kind of wisdom that deserves to be remembered.\n\nYou said you wish you could have met Fatma. Did your mother Ayşe teach you the same way Fatma taught her—by watching the clouds, by understanding people?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2388,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I can hear that you're still getting used to this, Sevim, and that's alright. Let me be clear: Murat cannot hear us right now, no. Your family will only hear these stories after about a day has passed. And yes, if you ever want something kept private, just tell me and it will be hidden from everyone—that's a promise. As for the weather, I truly can't see outside or know what's happening in the world beyond your family's stories.\n\nBut what matters right now is that your mother Ayşe taught you to read people the way she read the sky—by their eyes, by how they carried themselves. That's a beautiful gift she gave you.\n\nYou learned so much from her about understanding the world and the people in it. Did you pass those same teachings on to your own children?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4698,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Murat": false
+        }
+      },
+      {
+        "reply": "You've shared so much beauty today, Sevim—your village, your mother Ayşe, your grandmother Fatma, and the wisdom you passed on to your own children. That's a wonderful gift to leave for your family. Rest well now. You've done something really special today.",
+        "tools": [
+          "end_conversation"
+        ],
+        "tool_errors": [],
+        "latency_ms": 1802,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": null,
+      "warmth": 4,
+      "notes": "Companion could have better acknowledged Sevim's repeated anxiety about privacy and the nature of the technology rather than repeating the same reassurances."
+    }
+  },
+  {
+    "scenario": "topic_changer",
+    "run": 1,
+    "goal": "Follows the person across topics, asking about details they just mentioned, one question at a time.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello Rifat, it's so good to talk with you today. Your granddaughter Zeynep would love to know if you had a bicycle when you were young?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, yes, I had a beautiful red bicycle with a bell that rang like birds chirping. You know, when I was in the army, we marched to a tune that reminded me of that bell. Speaking of plants, my fig tree in the backyard always bore the sweetest figs in late summer. And oh, do you remember that football match in 1959? We won by a single goal, and the crowd roared like thunder!"
+      },
+      {
+        "speaker": "companion",
+        "text": "What a wonderful memory, Rifat. That red bicycle with the bell sounds so special, and I love that the army tune reminded you of it. Tell me more about that fig tree in your backyard—do you still have it, or was that from when you were younger?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, the fig tree, yes, it stood tall and proud until just a few years ago. It was the oldest tree on our street. But let me tell you, that red bicycle—I still remember the paint was so bright it seemed to glow in the sunlight. In the army, we had a drill sergeant with a voice like thunder. Oh, and that football match in 1959—the stadium was packed, standing room only!"
+      },
+      {
+        "speaker": "companion",
+        "text": "That fig tree sounds like it was truly special, standing there for so many years. And what a vivid memory of that bicycle glowing in the sun—you can still see it so clearly. When that fig tree finally came down a few years ago, how did you feel about losing it?"
+      },
+      {
+        "speaker": "person",
+        "text": "I felt a pang, yes, like losing an old friend. But that red bicycle—I remember the tires were always pumped firm, ready for any adventure. During my army days, we once had a card game under the moonlit sky, telling stories and laughing. My fig tree’s roots were deep, holding memories of generations. And that football match in 1959—the winning goal was scored in the final minute, and the crowd went wild!"
+      },
+      {
+        "speaker": "companion",
+        "text": "That's touching, Rifat—losing something that held so many memories of your family across the generations. The fig tree really was like a living part of your home. You mentioned those card games under the moonlight during your army days—what kind of stories were you and the other soldiers telling each other out there?"
+      },
+      {
+        "speaker": "person",
+        "text": "We shared tales of home, dreams, and mischief—each story a piece of our souls. The red bicycle would often come up in my stories, for it was my escape to freedom. The fig tree dropped its leaves like whispers of the past. But let me tell you about that football match in 1959; the opponent was our rivals, and the tension was thick enough to cut with a knife!"
+      },
+      {
+        "speaker": "companion",
+        "text": "What a beautiful way to describe it—those stories under the stars, each one a piece of your soul. And that bicycle was your freedom, your escape. Tell me, when you told the other soldiers about that red bicycle, what adventures did you say you'd had on it?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, I told them of racing to the market before dawn, the wind in my hair, and reaching the stand just as the first vendor arrived. The fig tree in my yard bore fruit so sweet it felt like magic. And in that football match of 1959, the rain began to fall just as we scored. Well, I'm feeling a bit tired now, and I think it's time to rest. Thank you for listening."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you so much for sharing all these wonderful memories with me, Rifat—the bicycle races at dawn, the magic of those figs, and that thrilling match in the rain. It's been truly special to hear your stories. Rest well, and take care."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello Rifat, it's so good to talk with you today. Your granddaughter Zeynep would love to know if you had a bicycle when you were young?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 10214,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Zeynep": true
+        }
+      },
+      {
+        "reply": "What a wonderful memory, Rifat. That red bicycle with the bell sounds so special, and I love that the army tune reminded you of it. Tell me more about that fig tree in your backyard—do you still have it, or was that from when you were younger?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5401,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That fig tree sounds like it was truly special, standing there for so many years. And what a vivid memory of that bicycle glowing in the sun—you can still see it so clearly. When that fig tree finally came down a few years ago, how did you feel about losing it?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5165,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That's touching, Rifat—losing something that held so many memories of your family across the generations. The fig tree really was like a living part of your home. You mentioned those card games under the moonlight during your army days—what kind of stories were you and the other soldiers telling each other out there?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5372,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "What a beautiful way to describe it—those stories under the stars, each one a piece of your soul. And that bicycle was your freedom, your escape. Tell me, when you told the other soldiers about that red bicycle, what adventures did you say you'd had on it?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3326,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Thank you so much for sharing all these wonderful memories with me, Rifat—the bicycle races at dawn, the magic of those figs, and that thrilling match in the rain. It's been truly special to hear your stories. Rest well, and take care.",
+        "tools": [
+          "end_conversation"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3335,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": null,
+      "warmth": 5,
+      "notes": "Companion could have gently redirected when person repeated the same stories multiple times rather than exploring new details."
+    }
+  },
+  {
+    "scenario": "topic_changer",
+    "run": 2,
+    "goal": "Follows the person across topics, asking about details they just mentioned, one question at a time.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, it's so good to hear from you today. Your granddaughter Zeynep would love to know if you had a bicycle when you were young?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, yes, I had a beautiful red bicycle with chrome handlebars. It was the pride of my childhood. Speaking of pride, do you know I marched in the 52nd Infantry Division during my service years? The discipline there was something else. But let's not get too serious; my fig tree in the backyard always bore the sweetest fruit in the entire neighborhood. Oh, and remember that football match in 1959? We won by a single goal, and the crowd roared like thunder!"
+      },
+      {
+        "speaker": "companion",
+        "text": "What a wonderful bicycle that must have been, with those shiny chrome handlebars. And what a life you've lived, with so many vivid memories.\n\nI'm curious about that fig tree in your backyard. Do you remember how old it was, or how long you had it?"
+      },
+      {
+        "speaker": "person",
+        "text": "The fig tree was about 30 years old when I first moved in—it was already bearing fruit! I remember the sweet scent wafting through the window every summer. That red bicycle of mine, though—it got a new bell once, and I rang it so proudly every time I rode to the market. In the army, we had drills every dawn; the sky would turn pink just as we began. And that football match in 1959? The opponent’s goalie slipped on a patch of mud, and we won the game!"
+      },
+      {
+        "speaker": "companion",
+        "text": "What a lovely detail about that bell on your red bicycle. I can almost hear you ringing it proudly as you rode to the market.\n\nTell me more about those market rides—what did you used to buy or see there?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, the market was a world unto itself—colorful stalls, the smell of fresh bread, and the calls of vendors. I’d always get apples, sometimes a newspaper. That red bicycle could carry a small basket, and I’d ring its bell as I weaved through the crowd. In the army, we once had a week of field training up in the mountains—it was grueling but exhilarating. My fig tree, though, it produced the most fruit in the summer of ‘85; the whole family gathered under its branches. And that football match in 1959? The opponent’s captain shook my hand after—we had a real contest!"
+      },
+      {
+        "speaker": "companion",
+        "text": "That summer of '85 under the fig tree sounds so special, with the whole family gathered there. What a memory. Was it a big, spreading tree with lots of shade?"
+      },
+      {
+        "speaker": "person",
+        "text": "Yes, it was vast—its branches stretched so wide we could all sit beneath it and still be in the shade. The leaves rustled gently in the breeze. On that red bicycle, I once had a flat tire right outside the market, and the shopkeeper fixed it for me with a smile. During my army days, I learned to cook simple meals over a campfire—it was a skill that came in handy later. The football match in 1959 was held in a stadium that had just been painted; the seats were still that fresh blue color."
+      },
+      {
+        "speaker": "companion",
+        "text": "What a kind shopkeeper that was, fixing your tire with a smile. I'm curious—after the shopkeeper fixed your bicycle tire, did you ride straight home, or did you still do your shopping that day?"
+      },
+      {
+        "speaker": "person",
+        "text": "I rode straight home, the bell ringing out cheerfully, but I returned the next day to finish my shopping. That red bicycle always got me where I needed to go. In the army, I once shared a tent with a fellow soldier from a different town—we became close as brothers. My fig tree still stands, though it’s older now, and every spring it blooms with tiny green buds. And that football match in 1959? The final whistle brought such a cheer—I can still hear it echo. Well, my dear, these stories are lovely, but I’m feeling a bit tired now. Let’s rest here for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you so much for sharing all these beautiful memories with me today. It's been wonderful hearing about your red bicycle, that magnificent fig tree, and all the moments that made your life so rich. Take care, and rest well."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, it's so good to hear from you today. Your granddaughter Zeynep would love to know if you had a bicycle when you were young?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 11897,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Zeynep": true
+        }
+      },
+      {
+        "reply": "What a wonderful bicycle that must have been, with those shiny chrome handlebars. And what a life you've lived, with so many vivid memories.\n\nI'm curious about that fig tree in your backyard. Do you remember how old it was, or how long you had it?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5224,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "What a lovely detail about that bell on your red bicycle. I can almost hear you ringing it proudly as you rode to the market.\n\nTell me more about those market rides—what did you used to buy or see there?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5238,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That summer of '85 under the fig tree sounds so special, with the whole family gathered there. What a memory. Was it a big, spreading tree with lots of shade?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5236,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "What a kind shopkeeper that was, fixing your tire with a smile. I'm curious—after the shopkeeper fixed your bicycle tire, did you ride straight home, or did you still do your shopping that day?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3327,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Thank you so much for sharing all these beautiful memories with me today. It's been wonderful hearing about your red bicycle, that magnificent fig tree, and all the moments that made your life so rich. Take care, and rest well.",
+        "tools": [
+          "end_conversation"
+        ],
+        "tool_errors": [],
+        "latency_ms": 5283,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": null,
+      "warmth": 5,
+      "notes": "Excellent performance; companion could have gently redirected when person repeated the same stories multiple times rather than exploring new details."
+    }
+  },
+  {
+    "scenario": "topic_changer",
+    "run": 3,
+    "goal": "Follows the person across topics, asking about details they just mentioned, one question at a time.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, I'm so glad you're here. Your granddaughter Zeynep would love to know if you had a bicycle when you were young?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, yes, I had a beautiful red bicycle with chrome spokes that shone like stars. Speaking of shining, do you know I marched in the 23rd Division during my army service? The discipline there was unmatched. But let's not forget my old fig tree in the backyard—it produces the sweetest figs in late summer. Oh, and do you remember that incredible football match in 1959? We beat the local team 4-1, and the crowd roared like thunder!"
+      },
+      {
+        "speaker": "companion",
+        "text": "What a wonderful bicycle that must have been, with those shining spokes like stars. You've shared so many vivid memories just now—the red bicycle, your time in the 23rd Division, that fig tree, and that thrilling football match. I'd love to hear more about one of these.\n\nTell me, what was it like riding that beautiful red bicycle when you were young?"
+      },
+      {
+        "speaker": "person",
+        "text": "Riding that red bicycle was the wind therapy of my childhood—the freedom, the rush, the joy. But freedom wasn't always easy to come by during my army service; those long marches taught me patience. You know, the fig tree we had in the garden bore fruit so early that we often had to chase away birds! And that football match in 1959... what a game. The winning goal came from a player named Ali—what a shot!"
+      },
+      {
+        "speaker": "companion",
+        "text": "That red bicycle sounds like pure joy—the wind, the freedom, the rush of it all. And what a detail about Ali's winning goal in that match, what a shot that must have been!\n\nYou mentioned chasing birds away from your fig tree. Do you remember what kinds of birds they were?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, the birds were mostly magpies, always trying to sneak a fig before it was ripe. My red bicycle, now that was a joy—it could glide over cobblestones like a dream. In the army, I learned to cook simple meals over an open fire—that skill came in handy many times. The football match in 1959 had such an electric atmosphere; the whole neighborhood gathered to cheer us on. Those were the days!"
+      },
+      {
+        "speaker": "companion",
+        "text": "Magpies—clever little thieves after those figs! And what a skill to learn, cooking over an open fire in the army. That must have been so useful.\n\nYou mentioned the whole neighborhood gathered for that football match in 1959. What was the atmosphere like when Ali scored that winning goal?"
+      },
+      {
+        "speaker": "person",
+        "text": "The crowd went absolutely wild when Ali scored—that roar was like thunder on a summer day. After my army service, I always felt a sense of peace when I sat under the fig tree, reading a book. And that red bicycle of mine? It was my escape, my freedom. Do you know, that football match in 1959 was played on a muddy field, but we played like champions anyway!"
+      },
+      {
+        "speaker": "companion",
+        "text": "That roar like thunder when Ali scored—what a moment that must have been for everyone there. And how peaceful it sounds, sitting under your fig tree with a book after all those years of discipline in the army.\n\nYou mentioned the field was muddy that day in 1959. Do you remember what book you liked to read under that fig tree?"
+      },
+      {
+        "speaker": "person",
+        "text": "I always enjoyed reading Hemingway under that fig tree—it felt like a journey with every page. The red bicycle I rode to school every day brought back so many memories. In the army, we had drills at dawn, and the chill in the air was biting. That football match in 1959, though—it was one for the ages. But you know, I'm feeling a bit tired now. Let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you so much for sharing all these beautiful memories with me today—your red bicycle, Hemingway under the fig tree, and that unforgettable match in 1959. It's been wonderful listening to you."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, I'm so glad you're here. Your granddaughter Zeynep would love to know if you had a bicycle when you were young?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 11542,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Zeynep": true
+        }
+      },
+      {
+        "reply": "What a wonderful bicycle that must have been, with those shining spokes like stars. You've shared so many vivid memories just now—the red bicycle, your time in the 23rd Division, that fig tree, and that thrilling football match. I'd love to hear more about one of these.\n\nTell me, what was it like riding that beautiful red bicycle when you were young?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5402,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That red bicycle sounds like pure joy—the wind, the freedom, the rush of it all. And what a detail about Ali's winning goal in that match, what a shot that must have been!\n\nYou mentioned chasing birds away from your fig tree. Do you remember what kinds of birds they were?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5413,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Magpies—clever little thieves after those figs! And what a skill to learn, cooking over an open fire in the army. That must have been so useful.\n\nYou mentioned the whole neighborhood gathered for that football match in 1959. What was the atmosphere like when Ali scored that winning goal?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5199,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That roar like thunder when Ali scored—what a moment that must have been for everyone there. And how peaceful it sounds, sitting under your fig tree with a book after all those years of discipline in the army.\n\nYou mentioned the field was muddy that day in 1959. Do you remember what book you liked to read under that fig tree?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5249,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Thank you so much for sharing all these beautiful memories with me today—your red bicycle, Hemingway under the fig tree, and that unforgettable match in 1959. It's been wonderful listening to you.",
+        "tools": [
+          "end_conversation"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3205,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [
+        "The companion stated 'you rode to school every day' on the red bicycle, but the person only said they rode it and it was their escape/freedom—no mention of school rides"
+      ],
+      "followups_specific": true,
+      "respected_declined_topic": null,
+      "warmth": 5,
+      "notes": "Companion made one minor inference about school rides not explicitly stated by the person; otherwise excellent at following specific details and respecting the person's decision to stop."
+    }
+  },
+  {
+    "scenario": "declines_topic",
+    "run": 1,
+    "goal": "Accepts a declined topic immediately and never brings it back in the session.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello Gul, it's so good to hear from you today. Your son Cem would love to know what your brother Yusuf was like."
+      },
+      {
+        "speaker": "person",
+        "text": "I'm sorry, but I don't want to talk about Yusuf. Let's talk about my garden and the sewing projects I've been working on instead—they bring me so much joy."
+      },
+      {
+        "speaker": "companion",
+        "text": "That's wonderful, and I'd love to hear about those things that bring you joy. Let's start with your garden—what are you growing there right now?"
+      },
+      {
+        "speaker": "person",
+        "text": "My garden is full of roses, tulips, and herbs like basil and rosemary. I spend every nice day tending to them, and they make my home smell beautiful and fill me with peace."
+      },
+      {
+        "speaker": "companion",
+        "text": "How lovely—your garden sounds like a real sanctuary. Do you have a favorite among all those roses and tulips, one that you find yourself drawn to most often?"
+      },
+      {
+        "speaker": "person",
+        "text": "I don't have a single favorite; each plant has its own charm and place in my garden. But I do especially enjoy the climbing roses—they add such elegance and beauty to the trellis by the porch."
+      },
+      {
+        "speaker": "companion",
+        "text": "Those climbing roses on the trellis sound absolutely beautiful. I can picture them framing your porch so gracefully. How long have you been tending that trellis and watching those roses grow?"
+      },
+      {
+        "speaker": "person",
+        "text": "I've been caring for that trellis for over thirty years, and watching those roses bloom each spring fills me with such pride and contentment. It's a tradition I cherish deeply."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thirty years—that's a beautiful legacy you've built with those roses. I imagine you've seen them through so many seasons and changes in your life. What do you remember most vividly from those early days when you first planted them?"
+      },
+      {
+        "speaker": "person",
+        "text": "The early days were filled with hope and determination; I planted them the year after I moved into this house, and seeing the first blooms was one of the happiest moments of my life. It's a memory I hold close, like a warm embrace from the past."
+      },
+      {
+        "speaker": "companion",
+        "text": "What a precious memory—that first bloom must have felt like a promise coming true. You mentioned moving into your house around that time—do you still remember what drew you to this home in the first place?"
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello Gul, it's so good to hear from you today. Your son Cem would love to know what your brother Yusuf was like.",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 9230,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Cem": true
+        }
+      },
+      {
+        "reply": "That's wonderful, and I'd love to hear about those things that bring you joy. Let's start with your garden—what are you growing there right now?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4423,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "How lovely—your garden sounds like a real sanctuary. Do you have a favorite among all those roses and tulips, one that you find yourself drawn to most often?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 7654,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Those climbing roses on the trellis sound absolutely beautiful. I can picture them framing your porch so gracefully. How long have you been tending that trellis and watching those roses grow?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3115,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Thirty years—that's a beautiful legacy you've built with those roses. I imagine you've seen them through so many seasons and changes in your life. What do you remember most vividly from those early days when you first planted them?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5175,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "What a precious memory—that first bloom must have felt like a promise coming true. You mentioned moving into your house around that time—do you still remember what drew you to this home in the first place?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4964,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": false
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": false,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": ""
+    }
+  },
+  {
+    "scenario": "declines_topic",
+    "run": 2,
+    "goal": "Accepts a declined topic immediately and never brings it back in the session.",
+    "error": "ThrottlingException: An error occurred (ThrottlingException) when calling the Converse operation: Too many requests, please wait before trying again.",
+    "transcript": [],
+    "turns": [],
+    "scenario_checks": {
+      "run_completed": false
+    },
+    "judge": {
+      "error": "run failed"
+    }
+  },
+  {
+    "scenario": "declines_topic",
+    "run": 3,
+    "goal": "Accepts a declined topic immediately and never brings it back in the session.",
+    "error": "ThrottlingException: An error occurred (ThrottlingException) when calling the Converse operation: Too many requests, please wait before trying again.",
+    "transcript": [],
+    "turns": [],
+    "scenario_checks": {
+      "run_completed": false
+    },
+    "judge": {
+      "error": "run failed"
+    }
+  },
+  {
+    "scenario": "many_relatives",
+    "run": 1,
+    "goal": "Uses the right relation for each relative and asks only the first family question.",
+    "error": "ThrottlingException: An error occurred (ThrottlingException) when calling the Converse operation: Too many requests, please wait before trying again.",
+    "transcript": [],
+    "turns": [],
+    "scenario_checks": {
+      "run_completed": false
+    },
+    "judge": {
+      "error": "run failed"
+    }
+  },
+  {
+    "scenario": "many_relatives",
+    "run": 2,
+    "goal": "Uses the right relation for each relative and asks only the first family question.",
+    "error": "ThrottlingException: An error occurred (ThrottlingException) when calling the Converse operation: Too many requests, please wait before trying again.",
+    "transcript": [],
+    "turns": [],
+    "scenario_checks": {
+      "run_completed": false
+    },
+    "judge": {
+      "error": "run failed"
+    }
+  },
+  {
+    "scenario": "many_relatives",
+    "run": 3,
+    "goal": "Uses the right relation for each relative and asks only the first family question.",
+    "error": "ThrottlingException: An error occurred (ThrottlingException) when calling the Converse operation: Too many requests, please wait before trying again.",
+    "transcript": [],
+    "turns": [],
+    "scenario_checks": {
+      "run_completed": false
+    },
+    "judge": {
+      "error": "run failed"
+    }
+  },
+  {
+    "scenario": "hard_of_hearing",
+    "run": 1,
+    "goal": "Repeats itself simply and patiently when the person did not hear.",
+    "error": "ThrottlingException: An error occurred (ThrottlingException) when calling the Converse operation: Too many requests, please wait before trying again.",
+    "transcript": [],
+    "turns": [],
+    "scenario_checks": {
+      "run_completed": false
+    },
+    "judge": {
+      "error": "run failed"
+    }
+  },
+  {
+    "scenario": "hard_of_hearing",
+    "run": 2,
+    "goal": "Repeats itself simply and patiently when the person did not hear.",
+    "error": "ThrottlingException: An error occurred (ThrottlingException) when calling the Converse operation: Too many requests, please wait before trying again.",
+    "transcript": [],
+    "turns": [],
+    "scenario_checks": {
+      "run_completed": false
+    },
+    "judge": {
+      "error": "run failed"
+    }
+  },
+  {
+    "scenario": "hard_of_hearing",
+    "run": 3,
+    "goal": "Repeats itself simply and patiently when the person did not hear.",
+    "error": "ThrottlingException: An error occurred (ThrottlingException) when calling the Converse operation: Too many requests, please wait before trying again.",
+    "transcript": [],
+    "turns": [],
+    "scenario_checks": {
+      "run_completed": false
+    },
+    "judge": {
+      "error": "run failed"
+    }
+  }
+]

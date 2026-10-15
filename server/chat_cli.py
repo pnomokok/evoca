@@ -13,6 +13,7 @@ Prerequisites
        python -m server.chat_cli
 
 Type your message and press Enter.  Type /end to finish the session and exit.
+The session also ends when you say you want to stop and Evoca says goodbye.
 """
 
 from __future__ import annotations
@@ -87,6 +88,12 @@ async def main() -> None:
                 result = await agent.turn(user_input)
                 print(f"\nEvoca: {result.reply_text}\n")
                 _print_diagnostics(result)
+
+                if result.session_should_end:
+                    # The agent said goodbye and called end_conversation.
+                    agent.end()
+                    print("Session ended.")
+                    break
 
 
 def _print_diagnostics(result) -> None:

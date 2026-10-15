@@ -15,12 +15,22 @@ Architecture
 - The tool config is restricted to CHAT_TOOLS, so the model never sees
   archivist tools such as save_story. A call to any other tool gets an error
   result and never reaches the MCP server.
+- end_conversation is a LOCAL tool, handled here and never sent to the MCP
+  server. When the model calls it, the turn ends without another LLM call and
+  TurnResult.session_should_end is True.
+- Every reply passes through clean_reply(): quotation marks are removed, at
+  most one question is kept, and a goodbye keeps no question at all. The
+  cleaned text is what is returned, stored as a Segment and kept in history.
+- Fallback for models that say goodbye without calling end_conversation: if
+  the person clearly asked to stop (asks_to_stop) and the reply contains no
+  question, the turn is treated as end_conversation.
 """
 
 from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -51,6 +61,22 @@ CHAT_TOOLS = frozenset({
     "mark_reactions_delivered",
 })
 
+END_CONVERSATION = "end_conversation"
+# Tools handled inside ChatAgent itself, offered next to the MCP tools.
+LOCAL_TOOLS = frozenset({END_CONVERSATION})
+_END_CONVERSATION_SPEC = {
+    "toolSpec": {
+        "name": END_CONVERSATION,
+        "description": (
+            "End the conversation. Call this when the person wants to stop, "
+            "in the same turn as your warm goodbye."
+        ),
+        "inputSchema": {"json": {"type": "object", "properties": {}}},
+    }
+}
+
+GOODBYE_FALLBACK = "Thank you for sharing your memories today. Goodbye for now."
+
 DEFAULT_CHAT_MODEL = "us.amazon.nova-2-lite-v1:0"
 DEFAULT_CHAT_TEMPERATURE = 0.3
 
@@ -61,6 +87,76 @@ def chat_llm() -> BedrockLLM:
         model_id=os.environ.get("EVOCA_CHAT_MODEL", DEFAULT_CHAT_MODEL),
         temperature=float(os.environ.get("EVOCA_CHAT_TEMPERATURE", DEFAULT_CHAT_TEMPERATURE)),
     )
+
+
+# ---------------------------------------------------------------------------
+# Reply guards (pure functions)
+# ---------------------------------------------------------------------------
+
+_QUOTES = re.compile('["\u201c\u201d]')
+_SENTENCE_BREAK = re.compile(r"(?<=[.!?])\s+")
+_ABBREVIATION = re.compile(r"\b(?:Mr|Mrs|Ms|Dr|St)\.$")
+
+
+def strip_quotes(text: str) -> str:
+    """Remove the quotation marks " \u201c \u201d; they do not work in speech."""
+    return _QUOTES.sub("", text)
+
+
+def split_sentences(text: str) -> list[str]:
+    """Split on whitespace after . ! or ?, keeping titles like "Mr." attached."""
+    sentences: list[str] = []
+    for piece in _SENTENCE_BREAK.split(text.strip()):
+        if sentences and _ABBREVIATION.search(sentences[-1]):
+            sentences[-1] += " " + piece
+        elif piece:
+            sentences.append(piece)
+    return sentences
+
+
+def _is_question(sentence: str) -> bool:
+    return sentence.rstrip().endswith("?")
+
+
+def keep_last_question(text: str) -> str:
+    """With more than one question, drop all but the last question sentence."""
+    sentences = split_sentences(text)
+    questions = [i for i, s in enumerate(sentences) if _is_question(s)]
+    if len(questions) <= 1:
+        return text
+    last = questions[-1]
+    return " ".join(s for i, s in enumerate(sentences) if not _is_question(s) or i == last)
+
+
+def remove_questions(text: str) -> str:
+    """Drop every question sentence."""
+    return " ".join(s for s in split_sentences(text) if not _is_question(s))
+
+
+# Conservative stop detection: a few explicit phrases only, so a story does
+# not end the session by accident:
+# - "I'm tired" does not count when followed by "of" ("I'm tired of the rain");
+# - "goodbye" counts only at the start of a sentence ("He said goodbye to ..." does not);
+# - "that's enough" counts only at the end of a sentence or with "for today/now".
+_STOP_PHRASES = re.compile(
+    r"\b(?:let'?s stop|let us stop|stop for today|continue tomorrow|talk tomorrow)\b"
+    r"|\bi(?:'?m| am) (?:so |very |a bit )?tired\b(?! of)"
+    r"|\bthat(?:'?s| is) enough(?: for (?:today|now))?\s*(?:[.!]|$)"
+    r"|(?:^|[.!?]\s+)(?:good-?bye|bye for now)\b"
+)
+
+
+def asks_to_stop(text: str) -> bool:
+    """True if the person's message clearly asks to end the conversation."""
+    return bool(_STOP_PHRASES.search(text.lower().replace("\u2019", "'")))
+
+
+def clean_reply(text: str, ending: bool) -> str:
+    """Apply the reply guards. A goodbye (ending=True) keeps no question at all."""
+    text = keep_last_question(strip_quotes(text).strip())
+    if ending:
+        text = remove_questions(text) or GOODBYE_FALLBACK
+    return text
 
 
 # ---------------------------------------------------------------------------
@@ -81,6 +177,7 @@ class TurnResult:
     reply_text: str
     trace: list[ToolTrace]
     latency: dict[str, int]  # llm_ms, tools_ms, total_ms
+    session_should_end: bool = False  # the model called end_conversation
 
 
 # ---------------------------------------------------------------------------
@@ -179,20 +276,28 @@ class ChatAgent:
             full = await self._bridge.bedrock_tool_config()
             self._tool_config = {
                 "tools": [t for t in full["tools"] if t["toolSpec"]["name"] in CHAT_TOOLS]
+                + [_END_CONVERSATION_SPEC]
             }
 
         # Store the user's segment before we do anything.
         seg_start = self._elapsed_ms()
-        # Add user message to history.
-        self._history.append(
-            {"role": "user", "content": [{"text": user_text}]}
-        )
+        # Add user message to history. After end_conversation the history may
+        # already end with a user message (the tool results); roles must
+        # alternate, so the text joins that message.
+        if self._history and self._history[-1]["role"] == "user":
+            self._history[-1]["content"].append({"text": user_text})
+        else:
+            self._history.append(
+                {"role": "user", "content": [{"text": user_text}]}
+            )
 
         llm_ms_total = 0
         tools_ms_total = 0
         trace: list[ToolTrace] = []
 
         reply_text = ""
+        reply_block: dict[str, Any] | None = None   # history block holding the reply
+        ending = False
 
         for _round in range(_MAX_TOOL_ROUNDS):
             # Call the LLM in a thread so we don't block the event loop.
@@ -215,6 +320,7 @@ class ChatAgent:
             for block in assistant_msg.get("content", []):
                 if "text" in block:
                     reply_text = strip_thinking(block["text"])
+                    reply_block = block
 
             if stop_reason != "tool_use":
                 # Model is done — exit the tool loop.
@@ -232,17 +338,23 @@ class ChatAgent:
 
                 t0 = time.monotonic()
                 is_error = False
-                try:
-                    if tool_name not in CHAT_TOOLS:
-                        raise RuntimeError(
-                            f"Tool '{tool_name}' is not available to the chat agent."
-                        )
-                    result = await self._bridge.call_tool(tool_name, tool_input)
+                if tool_name == END_CONVERSATION:
+                    # Local tool: handled here, never sent to the MCP server.
+                    ending = True
+                    result = {"status": "ok"}
                     result_content = [{"json": result}]
-                except Exception as exc:
-                    result = {"error": str(exc)}
-                    result_content = [{"text": str(exc)}]
-                    is_error = True
+                else:
+                    try:
+                        if tool_name not in CHAT_TOOLS:
+                            raise RuntimeError(
+                                f"Tool '{tool_name}' is not available to the chat agent."
+                            )
+                        result = await self._bridge.call_tool(tool_name, tool_input)
+                        result_content = [{"json": result}]
+                    except Exception as exc:
+                        result = {"error": str(exc)}
+                        result_content = [{"text": str(exc)}]
+                        is_error = True
                 tool_ms = int((time.monotonic() - t0) * 1000)
                 tools_ms_total += tool_ms
 
@@ -271,9 +383,21 @@ class ChatAgent:
                 {"role": "user", "content": tool_results_content}
             )
 
+            if ending:
+                # The goodbye was said in this message; no second LLM call.
+                break
+
         else:
             # Exhausted max rounds without a text reply.
             reply_text = reply_text or "I'm sorry, I ran into a problem. Please try again."
+
+        reply_text = clean_reply(reply_text, ending)
+        if not ending and asks_to_stop(user_text) and "?" not in reply_text:
+            # The model said goodbye without calling end_conversation.
+            ending = True
+        if reply_block is not None:
+            # Keep the history in line with what was actually spoken.
+            reply_block["text"] = reply_text
 
         # Store segments.
         seg_end = self._elapsed_ms()
@@ -290,4 +414,5 @@ class ChatAgent:
                 "tools_ms": tools_ms_total,
                 "total_ms": total_ms,
             },
+            session_should_end=ending,
         )
