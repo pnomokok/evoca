@@ -15,6 +15,12 @@ Coverage
 - max-rounds guard: loop exits after _MAX_TOOL_ROUNDS even without text reply.
 - Tool allowlist: archivist tools are not offered, and a call to one is
   rejected without reaching the bridge.
+- Reply guards: quotes removed, only the last question kept; applied to the
+  returned reply, the stored Segment and the history.
+- end_conversation: local tool, never reaches the bridge, no second LLM call,
+  session_should_end set, goodbye cleaned of questions (fallback text if empty).
+- Stop fallback: a clear request to stop plus a reply without a question ends
+  the session even without end_conversation; "I'm tired of ..." does not.
 - chat_llm / archivist_llm read model and temperature from the environment;
   BedrockLLM sends temperature only when set.
 """
@@ -48,7 +54,20 @@ from core.services.session_tools import (
     mark_question_asked_data,
 )
 from server.agents.archivist_agent import archivist_llm
-from server.agents.chat_agent import CHAT_TOOLS, ChatAgent, _MAX_TOOL_ROUNDS, chat_llm
+from server.agents.chat_agent import (
+    CHAT_TOOLS,
+    GOODBYE_FALLBACK,
+    LOCAL_TOOLS,
+    ChatAgent,
+    _MAX_TOOL_ROUNDS,
+    asks_to_stop,
+    chat_llm,
+    clean_reply,
+    keep_last_question,
+    remove_questions,
+    split_sentences,
+    strip_quotes,
+)
 from server.llm import BedrockLLM, RecordingLLM, strip_thinking
 
 
@@ -427,8 +446,9 @@ async def test_archivist_tools_not_offered_to_chat_model(world):
     await agent.turn("hello")
 
     offered = {t["toolSpec"]["name"] for t in llm.calls[0]["tools"]["tools"]}
-    assert offered == {"get_session_context", "get_pending_questions", "mark_question_asked"}
-    assert offered <= CHAT_TOOLS
+    assert offered == {"get_session_context", "get_pending_questions",
+                       "mark_question_asked", "end_conversation"}
+    assert offered <= CHAT_TOOLS | LOCAL_TOOLS
 
 
 @pytest.mark.anyio
@@ -511,3 +531,183 @@ def test_bedrock_client_uses_adaptive_retry():
     assert retries["mode"] == "adaptive"
     # botocore's max_attempts=10 counts retries: 1 call + 10 retries.
     assert retries["total_max_attempts"] == 11
+
+
+# ---------------------------------------------------------------------------
+# Reply guards
+# ---------------------------------------------------------------------------
+
+def test_strip_quotes():
+    assert strip_quotes('She said “hello” and "bye".') == "She said hello and bye."
+
+
+def test_split_sentences_keeps_titles():
+    assert split_sentences("Did Mr. Kemal teach you? He was kind.") == [
+        "Did Mr. Kemal teach you?", "He was kind.",
+    ]
+
+
+def test_keep_last_question_drops_earlier_questions():
+    text = "What a lovely garden. Who planted it? It sounds peaceful. Did you have roses?"
+    assert keep_last_question(text) == "What a lovely garden. It sounds peaceful. Did you have roses?"
+
+
+def test_keep_last_question_leaves_single_question_untouched():
+    text = "That is touching.  Who was there?"
+    assert keep_last_question(text) == text
+
+
+def test_remove_questions():
+    assert remove_questions("Thank you. Shall we talk tomorrow? Goodbye.") == "Thank you. Goodbye."
+
+
+def test_clean_reply_goodbye_fallback():
+    assert clean_reply("Shall we talk again tomorrow?", ending=True) == GOODBYE_FALLBACK
+    assert clean_reply("", ending=True) == GOODBYE_FALLBACK
+
+
+@pytest.mark.anyio
+async def test_guards_applied_to_reply_segment_and_history(world):
+    llm = ScriptedLLM(['What a “big” tree! Who planted it? Did you climb it?'])
+    agent = _make_agent(world, llm)
+    result = await agent.turn("We had a mulberry tree.")
+
+    expected = "What a big tree! Did you climb it?"
+    assert result.reply_text == expected
+    assert result.session_should_end is False
+    assert expected in [s.transcript for s in world.db.query(Segment).all()]
+    assert agent._history[-1]["content"][0]["text"] == expected
+
+
+# ---------------------------------------------------------------------------
+# end_conversation (local tool)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.anyio
+async def test_end_conversation_ends_session_without_second_llm_call(world):
+    llm = ScriptedLLM([
+        [{"text": "Thank you, it was lovely to hear about the garden. Shall we talk tomorrow?"},
+         _tool_use("end_conversation", {})],
+        "This should never be requested.",
+    ])
+    bridge = FakeMCPBridge(world.db, world.fatma.id, world.circle.id)
+    agent = ChatAgent(llm=llm, person_id=world.fatma.id, circle_id=world.circle.id,
+                      db_session=world.db, bridge=bridge)
+    result = await agent.turn("I am tired, let us stop.")
+
+    assert result.session_should_end is True
+    assert result.reply_text == "Thank you, it was lovely to hear about the garden."
+    assert len(llm.calls) == 1
+    assert bridge.tool_calls == []
+    assert [(t.tool, t.is_error) for t in result.trace] == [("end_conversation", False)]
+    assert result.reply_text in [s.transcript for s in world.db.query(Segment).all()]
+
+
+@pytest.mark.anyio
+async def test_end_conversation_with_only_a_question_uses_fallback(world):
+    llm = ScriptedLLM([[{"text": "Shall we talk again tomorrow?"}, _tool_use("end_conversation", {})]])
+    agent = _make_agent(world, llm)
+    result = await agent.turn("Goodbye.")
+    assert result.session_should_end is True
+    assert result.reply_text == GOODBYE_FALLBACK
+
+
+@pytest.mark.anyio
+async def test_end_conversation_without_text_uses_fallback(world):
+    llm = ScriptedLLM([[_tool_use("end_conversation", {})]])
+    agent = _make_agent(world, llm)
+    result = await agent.turn("Goodbye.")
+    assert result.reply_text == GOODBYE_FALLBACK
+
+
+@pytest.mark.anyio
+async def test_end_conversation_runs_other_tools_in_same_message(world):
+    llm = ScriptedLLM([[
+        {"text": "Goodbye for now."},
+        _tool_use("mark_question_asked", {"question_id": world.q.id}),
+        _tool_use("end_conversation", {}),
+    ]])
+    bridge = FakeMCPBridge(world.db, world.fatma.id, world.circle.id)
+    agent = ChatAgent(llm=llm, person_id=world.fatma.id, circle_id=world.circle.id,
+                      db_session=world.db, bridge=bridge)
+    result = await agent.turn("Bye.")
+    assert result.session_should_end is True
+    assert [n for n, _ in bridge.tool_calls] == ["mark_question_asked"]
+
+
+@pytest.mark.anyio
+async def test_history_alternates_roles_after_end_conversation(world):
+    llm = ScriptedLLM([
+        [{"text": "Goodbye for now."}, _tool_use("end_conversation", {})],
+        "Oh, hello again.",
+    ])
+    agent = _make_agent(world, llm)
+    await agent.turn("Bye.")
+    await agent.turn("Wait, one more thing.")
+
+    roles = [m["role"] for m in llm.calls[-1]["messages"]]
+    assert all(a != b for a, b in zip(roles, roles[1:]))
+
+
+# ---------------------------------------------------------------------------
+# Stop fallback (model says goodbye without calling end_conversation)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("text", [
+    "I'm tired now, let's stop for today.",
+    "I am very tired.",
+    "Goodbye, dear.",
+    "Thank you. Goodbye!",
+    "That’s enough for today.",
+    "We can continue tomorrow.",
+    "Let us talk tomorrow.",
+])
+def test_asks_to_stop_detects_clear_requests(text):
+    assert asks_to_stop(text)
+
+
+@pytest.mark.parametrize("text", [
+    "I'm tired of the rain.",
+    "I am tired of waiting for the bus.",
+    "He said goodbye to the village in 1960.",
+    "That's enough money for a bicycle, he said.",
+    "Please do not stop.",
+    "(Session started.)",
+])
+def test_asks_to_stop_ignores_stories_and_other_uses(text):
+    assert not asks_to_stop(text)
+
+
+@pytest.mark.anyio
+async def test_stop_request_and_goodbye_without_tool_ends_session(world):
+    llm = ScriptedLLM(["Thank you for these lovely stories. Rest well."])
+    agent = _make_agent(world, llm)
+    result = await agent.turn("I'm tired now, let's stop for today.")
+    assert result.session_should_end is True
+    assert result.reply_text == "Thank you for these lovely stories. Rest well."
+    assert result.trace == []
+
+
+@pytest.mark.anyio
+async def test_tired_of_something_with_question_does_not_end(world):
+    llm = ScriptedLLM(["Rainy days can feel long. What did you do on rainy days as a child?"])
+    agent = _make_agent(world, llm)
+    result = await agent.turn("I'm tired of the rain.")
+    assert result.session_should_end is False
+    assert result.reply_text.endswith("?")
+
+
+@pytest.mark.anyio
+async def test_stop_request_but_agent_asks_question_does_not_end(world):
+    llm = ScriptedLLM(["Of course. Shall we talk again tomorrow?"])
+    agent = _make_agent(world, llm)
+    result = await agent.turn("I'm tired now, let's stop for today.")
+    assert result.session_should_end is False
+
+
+@pytest.mark.anyio
+async def test_no_stop_request_and_no_question_does_not_end(world):
+    llm = ScriptedLLM(["That sounds like a wonderful summer."])
+    agent = _make_agent(world, llm)
+    result = await agent.turn("We swam in the river every day.")
+    assert result.session_should_end is False

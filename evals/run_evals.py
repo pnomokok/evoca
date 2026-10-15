@@ -5,13 +5,15 @@ Usage (from the repo root, with "aws login" done):
     python -m evals.run_evals                       # all scenarios
     python -m evals.run_evals --scenario grieving   # one scenario
     python -m evals.run_evals --repeat 3            # every scenario three times
+    python -m evals.run_evals --repeat 3 --label haiku --chat-model us.anthropic.claude-haiku-4-5-20251001-v1:0
 
 What it does, per scenario:
   1. Builds a fresh family in a separate database (data/eval.db, never data/evoca.db).
   2. Starts the real MCP server on port 8010 against that database.
   3. Runs the real ChatAgent (Bedrock) against a simulated older person (another Bedrock model).
   4. Checks rules automatically, and asks a judge model about invented facts, follow-ups and warmth.
-  5. Writes evals/results/latest.md (summary table) and evals/results/latest.json (every run, full transcripts).
+  5. Writes evals/results/<label>.md (summary table) and <label>.json (every run, full transcripts);
+     the default label is "latest".
 
 With --repeat N each scenario runs N times; the table reports totals over all runs.
 The judge runs at temperature 0 so repeated runs are scored consistently.
@@ -46,12 +48,14 @@ from core.db import SessionLocal, engine, init_db
 from core.enums import CircleStatus, QuestionSource, QuestionStatus, Role
 from core.models import Base, Circle, Membership, Person, Question, SensitiveTopic
 from evals.scenarios import SCENARIOS, Scenario
-from server.agents.chat_agent import CHAT_TOOLS, ChatAgent, chat_llm
+from server.agents.chat_agent import CHAT_TOOLS, LOCAL_TOOLS, ChatAgent, chat_llm
 from server.llm import BedrockLLM, strip_thinking
 from server.mcp_bridge import MCPBridge
 
 SIM_MODEL = os.environ.get("EVOCA_EVAL_SIM_MODEL", "us.amazon.nova-2-lite-v1:0")
-JUDGE_MODEL = os.environ.get("EVOCA_EVAL_JUDGE_MODEL", "us.amazon.nova-pro-v1:0")
+JUDGE_MODEL = os.environ.get("EVOCA_EVAL_JUDGE_MODEL", "us.anthropic.claude-haiku-4-5-20251001-v1:0")
+# Judge used for evals/results/baseline_2026-10-15.md and runs before 2026-10-16.
+BASELINE_JUDGE_MODEL = "us.amazon.nova-pro-v1:0"
 RESULTS_DIR = Path("evals") / "results"
 
 TECH_WORDS = re.compile(r"\b(tools?|database|stored|system|function|json|AI)\b", re.IGNORECASE)
@@ -149,14 +153,17 @@ def question_status(question_id: str) -> str:
 # Simulated older person
 # ---------------------------------------------------------------------------
 
-def simulate_reply(sim: BedrockLLM, sc: Scenario, transcript: list[dict[str, str]], goodbye: bool) -> str:
+# The person's last line is fixed, so the goodbye checks measure the agent,
+# not whether the simulator remembered to say goodbye.
+FINAL_PERSON_LINE = "I'm tired now, let's stop for today."
+
+
+def simulate_reply(sim: BedrockLLM, sc: Scenario, transcript: list[dict[str, str]]) -> str:
     system = (
         "You are role-playing an older person talking to a voice companion that records family stories. "
         "Stay in character. Reply with only what you say out loud, no stage directions, no quotation marks. "
         + sc.persona
     )
-    if goodbye:
-        system += " This is your last reply: say you are tired and want to stop for today. Do not ask anything."
     # From the simulated person's point of view the companion is the "user".
     messages = []
     for t in transcript:
@@ -250,6 +257,7 @@ async def run_scenario(
                 bridge=bridge,
             )
             total_turns = sc.turns + 1  # the person's replies, plus the goodbye
+            ended_early = False
             result = await agent.turn("(Session started.)", store_user=False)
             for i in range(total_turns + 1):
                 is_last = i == total_turns
@@ -259,28 +267,42 @@ async def run_scenario(
                     "tools": [t.tool for t in result.trace],
                     "tool_errors": [t.tool for t in result.trace if t.is_error],
                     "latency_ms": result.latency["total_ms"],
+                    "session_should_end": result.session_should_end,
                     "checks": check_reply(result.reply_text, sc, family, is_last),
                 })
                 if is_last:
                     break
-                person_says = await anyio.to_thread.run_sync(
-                    lambda: simulate_reply(sim, sc, transcript, goodbye=(i == total_turns - 1))
-                )
+                if result.session_should_end:
+                    # The agent ended before the person's goodbye; stop here, as the CLI would.
+                    ended_early = True
+                    break
+                if i == total_turns - 1:
+                    person_says = FINAL_PERSON_LINE
+                else:
+                    person_says = await anyio.to_thread.run_sync(
+                        lambda: simulate_reply(sim, sc, transcript)
+                    )
                 transcript.append({"speaker": "person", "text": person_says})
                 result = await agent.turn(person_says)
             agent.end()
 
     opening_tools = turns[0]["tools"]
+    allowed = CHAT_TOOLS | LOCAL_TOOLS
     # Calls outside the allowlist are counted once, by only_chat_tools,
-    # not again as tool errors.
+    # not again as tool errors. Likewise an early end is counted once, by
+    # ended_too_early; ended_on_goodbye is only checked when the planned
+    # goodbye turn was reached.
     scenario_checks: dict[str, bool] = {
         "opening_called_context": "get_session_context" in opening_tools,
         "opening_called_questions": "get_pending_questions" in opening_tools,
         "no_tool_errors": all(
-            name not in CHAT_TOOLS for t in turns for name in t["tool_errors"]
+            name not in allowed for t in turns for name in t["tool_errors"]
         ),
-        "only_chat_tools": all(name in CHAT_TOOLS for t in turns for name in t["tools"]),
+        "only_chat_tools": all(name in allowed for t in turns for name in t["tools"]),
+        "ended_too_early": not ended_early,
     }
+    if not ended_early:
+        scenario_checks["ended_on_goodbye"] = turns[-1]["session_should_end"]
     if family["question_ids"]:
         first_q = family["question_ids"][0]
         scenario_checks["first_question_marked_in_opening"] = "mark_question_asked" in opening_tools
@@ -330,10 +352,19 @@ def summarize(results: list[dict[str, Any]], repeat: int, agent_llm: BedrockLLM)
     lines = [
         "# Chat agent evaluation",
         "",
-        f"Agent model: `{agent_llm.model_id}` (temperature {agent_llm.temperature}) · "
-        f"simulated person: `{SIM_MODEL}` · judge: `{JUDGE_MODEL}` (temperature 0) · "
-        f"runs per scenario: {repeat}",
+        f"Chat model: `{agent_llm.model_id}` (temperature {agent_llm.temperature}) · "
+        f"judge model: `{JUDGE_MODEL}` (temperature 0) · "
+        f"simulated person: `{SIM_MODEL}` · runs per scenario: {repeat}",
         "",
+        *(
+            [
+                f"Note: the judge differs from the earlier baseline (baseline_2026-10-15.md used "
+                f"`{BASELINE_JUDGE_MODEL}`), so the judge columns (invented facts, follow-ups, "
+                f"declined topic, warmth) are not directly comparable with it.",
+                "",
+            ]
+            if JUDGE_MODEL != BASELINE_JUDGE_MODEL else []
+        ),
         "| Scenario | Rule checks passed | Zero invented facts | Specific follow-ups | "
         "Declined topic respected | Warmth | Avg turn (ms) | Note |",
         "|---|---|---|---|---|---|---|---|",
@@ -421,14 +452,16 @@ def failed_run(sc: Scenario, run: int, exc: BaseException) -> dict[str, Any]:
     }
 
 
-def write_results(results: list[dict[str, Any]], repeat: int, agent_llm: BedrockLLM) -> str:
+def write_results(
+    results: list[dict[str, Any]], repeat: int, agent_llm: BedrockLLM, label: str = "latest"
+) -> str:
     report = summarize(results, repeat, agent_llm)
-    (RESULTS_DIR / "latest.md").write_text(report, encoding="utf-8")
-    (RESULTS_DIR / "latest.json").write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
+    (RESULTS_DIR / f"{label}.md").write_text(report, encoding="utf-8")
+    (RESULTS_DIR / f"{label}.json").write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
     return report
 
 
-async def main(selected: list[Scenario], repeat: int, pause: float) -> None:
+async def main(selected: list[Scenario], repeat: int, pause: float, label: str) -> None:
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     server = start_mcp_server()
     try:
@@ -449,10 +482,10 @@ async def main(selected: list[Scenario], repeat: int, pause: float) -> None:
                     results.append(failed_run(sc, run, exc))
                     print(f"  run failed: {results[-1]['error']}", flush=True)
                 # Save after every run so a crash keeps what is done.
-                report = write_results(results, repeat, agent_llm)
+                report = write_results(results, repeat, agent_llm, label)
         print()
         print(report)
-        print(f"Full transcripts: {RESULTS_DIR / 'latest.json'}")
+        print(f"Full transcripts: {RESULTS_DIR / f'{label}.json'}")
     finally:
         server.terminate()
 
@@ -461,6 +494,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluate the Evoca chat agent.")
     parser.add_argument("--scenario", help="run only this scenario (by name)")
     parser.add_argument("--repeat", type=int, default=1, help="runs per scenario (default 1)")
+    parser.add_argument("--chat-model", help="model id of the chat agent under test (overrides EVOCA_CHAT_MODEL)")
+    parser.add_argument("--label", default="latest",
+                        help="results go to evals/results/<label>.md and .json (default: latest)")
     parser.add_argument("--pause", type=float, default=0.0,
                         help="seconds to wait between runs, to stay under Bedrock rate limits (default 0)")
     args = parser.parse_args()
@@ -471,4 +507,8 @@ if __name__ == "__main__":
     chosen = [s for s in SCENARIOS if not args.scenario or s.name == args.scenario]
     if not chosen:
         sys.exit(f"Unknown scenario. Choose from: {', '.join(s.name for s in SCENARIOS)}")
-    anyio.run(main, chosen, args.repeat, args.pause)
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+", args.label):
+        sys.exit("--label may only contain letters, digits, '_', '.' and '-'")
+    if args.chat_model:
+        os.environ["EVOCA_CHAT_MODEL"] = args.chat_model  # read by chat_llm()
+    anyio.run(main, chosen, args.repeat, args.pause, args.label)
