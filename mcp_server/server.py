@@ -1,5 +1,5 @@
 """
-Evoca MCP server — chat-agent tools.
+Evoca MCP server — chat-agent and archivist-agent tools.
 
 Architecture:
   - Identity comes from HTTP headers only (X-Evoca-Person-Id, X-Evoca-Circle-Id),
@@ -7,7 +7,11 @@ Architecture:
   - get_viewer(ctx, db) reads those headers and delegates the membership check to
     core.services.session_tools.require_member, which raises ValueError on failure.
   - Each tool is a thin wrapper: get viewer → open DB session → call service → return.
-  - All business logic lives in core/services/session_tools.py.
+  - Services raise ValueError for anticipated failures. tool_errors() turns those
+    into ToolError so the model sees the message and can correct its call; any
+    other exception is a crash and SDK v2 hides its text from the client.
+  - All business logic lives in core/services/session_tools.py and
+    core/services/archive_tools.py.
 
 Run:
     uvicorn mcp_server.server:app --port 8000
@@ -15,13 +19,22 @@ Run:
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import asdict
-from typing import Any
+from typing import Any, Literal, TypedDict
 
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
+from mcp.server.mcpserver.exceptions import ToolError
 
 from core.db import SessionLocal, init_db
+from core.services.archive_tools import (
+    add_question_data,
+    get_session_transcript_data,
+    record_answer_data,
+    save_story_data,
+)
 from core.services.session_tools import (
     get_pending_questions_data,
     get_session_context_data,
@@ -33,6 +46,19 @@ from core.services.session_tools import (
 init_db()
 
 mcp = MCPServer("Evoca")
+
+# ---------------------------------------------------------------------------
+# Error helper
+# ---------------------------------------------------------------------------
+
+@contextmanager
+def tool_errors() -> Iterator[None]:
+    """Report anticipated service failures (ValueError) to the model as ToolError."""
+    try:
+        yield
+    except ValueError as exc:
+        raise ToolError(str(exc)) from exc
+
 
 # ---------------------------------------------------------------------------
 # Identity helper
@@ -71,7 +97,7 @@ def get_session_context(ctx: Context) -> dict[str, Any]:
 
     Called once at the beginning of every conversation.
     """
-    with SessionLocal() as db:
+    with SessionLocal() as db, tool_errors():
         viewer_id, circle_id = get_viewer(ctx, db)
         result = get_session_context_data(db, viewer_id, circle_id)
         return asdict(result)
@@ -86,7 +112,7 @@ def get_pending_questions(ctx: Context, limit: int = 5) -> list[dict[str, Any]]:
     silently excluded. Each item includes the asker's name and their
     relation_to_center.
     """
-    with SessionLocal() as db:
+    with SessionLocal() as db, tool_errors():
         viewer_id, circle_id = get_viewer(ctx, db)
         items = get_pending_questions_data(db, viewer_id, circle_id, limit)
         return [asdict(item) for item in items]
@@ -99,11 +125,126 @@ def mark_question_asked(ctx: Context, question_id: str) -> dict[str, str]:
     Only valid for a question in the viewer's circle that is currently
     'waiting'. Raises an error otherwise.
     """
-    with SessionLocal() as db:
+    with SessionLocal() as db, tool_errors():
         viewer_id, circle_id = get_viewer(ctx, db)
         mark_question_asked_data(db, viewer_id, circle_id, question_id)
         db.commit()
         return {"status": "ok", "question_id": question_id}
+
+
+# ---------------------------------------------------------------------------
+# Archivist tools
+# ---------------------------------------------------------------------------
+
+# LifePeriod values (core.enums), spelled out so the tool schema lists them.
+PeriodValue = Literal[
+    "childhood", "youth", "marriage_early_years",
+    "raising_children", "midlife", "retirement",
+]
+
+
+class SubjectInput(TypedDict):
+    """A person the story is about, with the life period it happened in."""
+    person_id: str
+    period: PeriodValue
+
+
+class SourceInput(TypedDict):
+    """An audio range of a session where the story is told."""
+    session_id: str
+    start_ms: int
+    end_ms: int
+
+
+@mcp.tool()
+def get_session_transcript(ctx: Context, session_id: str) -> dict[str, Any]:
+    """Return a finished session's transcript for archiving.
+
+    Includes the session's non-private segments in order (speaker, start_ms,
+    end_ms, transcript, word timestamps; speaker_id is null for the agent) and
+    the circle's questions with status 'asked', so answers can be matched.
+    """
+    with SessionLocal() as db, tool_errors():
+        viewer_id, circle_id = get_viewer(ctx, db)
+        result = get_session_transcript_data(db, viewer_id, circle_id, session_id)
+        return asdict(result)
+
+
+@mcp.tool()
+def save_story(
+    ctx: Context,
+    title: str,
+    summary: str,
+    teller_id: str,
+    subjects: list[SubjectInput],
+    sources: list[SourceInput],
+    place: str | None = None,
+    stated_year: int | None = None,
+    original_story_id: str | None = None,
+) -> dict[str, str]:
+    """Save one story extracted from a session. Returns its story_id.
+
+    subjects: people the story is about, each with a period from
+    childhood, youth, marriage_early_years, raising_children, midlife, retirement.
+    sources: audio ranges {session_id, start_ms, end_ms} where the story is told.
+    stated_year only if the teller said the year. original_story_id only for a
+    retelling of an existing story. The story starts as pending, visible to the
+    circle after 24 hours.
+    """
+    with SessionLocal() as db, tool_errors():
+        viewer_id, circle_id = get_viewer(ctx, db)
+        story_id = save_story_data(
+            db, viewer_id, circle_id,
+            title=title, summary=summary, teller_id=teller_id,
+            subjects=[dict(s) for s in subjects],
+            sources=[dict(s) for s in sources],
+            place=place, stated_year=stated_year,
+            original_story_id=original_story_id,
+        )
+        db.commit()
+        return {"story_id": story_id}
+
+
+@mcp.tool()
+def record_answer(
+    ctx: Context,
+    question_id: str,
+    story_id: str,
+    start_ms: int,
+    end_ms: int,
+) -> dict[str, Any]:
+    """Record that an asked question was answered in a saved story.
+
+    start_ms / end_ms is the audio range of the answer in the story's session.
+    The question's status becomes 'answered'.
+    """
+    with SessionLocal() as db, tool_errors():
+        viewer_id, circle_id = get_viewer(ctx, db)
+        answer = record_answer_data(
+            db, viewer_id, circle_id, question_id, story_id, start_ms, end_ms
+        )
+        db.commit()
+        return {"status": "ok", "question_id": question_id, "answer": answer}
+
+
+@mcp.tool()
+def add_question(
+    ctx: Context,
+    text: str,
+    source: Literal["follow_up", "gap"],
+    period: PeriodValue | None = None,
+) -> dict[str, str]:
+    """Add a question for the center person to be asked in a later session.
+
+    source: 'follow_up' or 'gap'. period: optional life period. Questions that
+    touch a sensitive topic are kept with status 'filtered' and never asked.
+    Returns {question_id, status}.
+    """
+    with SessionLocal() as db, tool_errors():
+        viewer_id, circle_id = get_viewer(ctx, db)
+        result = add_question_data(db, viewer_id, circle_id, text, source, period)
+        db.commit()
+        return result
 
 
 # ---------------------------------------------------------------------------

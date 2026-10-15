@@ -57,13 +57,16 @@ class BedrockLLM:
     Configuration via environment variables:
       BEDROCK_REGION    — AWS region (default: us-east-1)
       EVOCA_CHAT_MODEL  — model ID  (default: us.amazon.nova-2-lite-v1:0)
+
+    model_id overrides EVOCA_CHAT_MODEL (the archivist passes its own model).
     """
 
-    def __init__(self) -> None:
+    def __init__(self, model_id: str | None = None, max_tokens: int = 1024) -> None:
         region = os.environ.get("BEDROCK_REGION", "us-east-1")
-        self.model_id = os.environ.get(
+        self.model_id = model_id or os.environ.get(
             "EVOCA_CHAT_MODEL", "us.amazon.nova-2-lite-v1:0"
         )
+        self.max_tokens = max_tokens
         self._client = boto3.Session(region_name=region).client("bedrock-runtime")
 
     def converse(
@@ -76,7 +79,7 @@ class BedrockLLM:
             "modelId": self.model_id,
             "system": system,
             "messages": messages,
-            "inferenceConfig": {"maxTokens": 1024},
+            "inferenceConfig": {"maxTokens": self.max_tokens},
         }
         if tools:
             kwargs["toolConfig"] = tools
