@@ -22,7 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from core.db import SessionLocal, init_db
 from core.models import Session as OrmSession
 from server.session_store import SessionStore
-from server.speech import FakeSTT, FakeTTS, PollyTTS, WhisperSTT
+from server.speech import PollyTTS, WhisperSTT
 
 log = logging.getLogger(__name__)
 
@@ -60,13 +60,12 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # Shutdown: close any remaining live bridges.
-    for live in list(_store._sessions.values()):
+    # Shutdown: close the DB sessions of live sessions (MCP clients are per request).
+    for live in _store.all():
         try:
-            await live.bridge.__aexit__(None, None, None)
             live.db.close()
         except Exception:
-            pass
+            log.exception("Closing live session %s on shutdown failed", live.session_id)
 
 
 # ---------------------------------------------------------------------------
@@ -74,6 +73,14 @@ async def lifespan(app: FastAPI):
 # ---------------------------------------------------------------------------
 
 app = FastAPI(title="Evoca API", lifespan=lifespan)
+
+# Show our INFO lines (e.g. "Archivist finished session ...") in the uvicorn log.
+_server_log = logging.getLogger("server")
+_server_log.setLevel(logging.INFO)
+if not _server_log.handlers:
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(logging.Formatter("%(levelname)s:     %(name)s: %(message)s"))
+    _server_log.addHandler(_handler)
 
 app.add_middleware(
     CORSMiddleware,

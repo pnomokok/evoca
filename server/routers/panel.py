@@ -15,10 +15,9 @@ from pydantic import BaseModel
 
 from core.clock import now_utc
 from core.db import SessionLocal
-from core.enums import QuestionSource, QuestionStatus
-from core.models import Circle, Membership, Person, Question
+from core.enums import LifePeriod, QuestionSource, QuestionStatus
+from core.models import Circle, Membership, Person, Question, SensitiveTopic
 from core.services.session_tools import _matches_sensitive_topic
-from core.models import SensitiveTopic
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -126,10 +125,13 @@ async def post_question(
 
     Matches POST_questions_accepted.json and POST_questions_filtered.json.
     A filtered question returns HTTP 200 (not an error); the message never
-    reveals which sensitive topic matched.
+    reveals which sensitive topic matched. Like every filtered question, it is
+    kept with status "filtered" (docs/PROJECT.md "Hassas konular").
     """
     if not body.text.strip():
         raise HTTPException(status_code=400, detail="Question text is required.")
+    if body.period is not None and body.period not in {p.value for p in LifePeriod}:
+        raise HTTPException(status_code=400, detail="Invalid period.")
 
     with SessionLocal() as db:
         person_id, circle_id = _resolve_panel_viewer(x_person_id, db)
@@ -155,18 +157,9 @@ async def post_question(
             .filter(SensitiveTopic.circle_id == circle_id)
             .all()
         )
-        for topic in topics:
-            if _matches_sensitive_topic(body.text, topic.text):
-                return {
-                    "status": "filtered",
-                    "question": None,
-                    "message": (
-                        "This question touches a topic the family asked Evoca not "
-                        "to bring up. It was not sent."
-                    ),
-                }
+        filtered = any(_matches_sensitive_topic(body.text, t.text) for t in topics)
 
-        # Save the question.
+        # Save the question; a filtered one is kept but never asked.
         q = Question(
             circle_id=circle_id,
             target_person_id=body.target_person_id,
@@ -174,12 +167,22 @@ async def post_question(
             text=body.text.strip(),
             source=QuestionSource.family,
             period=body.period,
-            status=QuestionStatus.waiting,
+            status=QuestionStatus.filtered if filtered else QuestionStatus.waiting,
             answer=None,
             created_at=now_utc().isoformat(),
         )
         db.add(q)
         db.commit()
+
+        if filtered:
+            return {
+                "status": "filtered",
+                "question": None,
+                "message": (
+                    "This question touches a topic the family asked Evoca not "
+                    "to bring up. It was not sent."
+                ),
+            }
 
         return {
             "status": "waiting",

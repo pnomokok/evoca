@@ -17,7 +17,7 @@ TTS
 PollyTTS     – Amazon Polly, eu-north-1, standard engine.
                Voice from env EVOCA_TTS_VOICE (default Joanna).
                Returns mp3 bytes.
-FakeTTS      – returns a minimal valid mp3 header; for tests.
+FakeTTS      – returns a silent 16 kHz WAV of the requested length; for tests.
 
 Audio decode
 ------------
@@ -30,8 +30,7 @@ from __future__ import annotations
 
 import io
 import os
-import struct
-import time
+import wave
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
@@ -168,8 +167,9 @@ class FakeSTT:
 
 @dataclass
 class TTSResult:
-    mp3_bytes: bytes
-    duration_ms: int    # approximate; 0 if unknown
+    mp3_bytes: bytes        # the audio bytes, in audio_format
+    duration_ms: int        # approximate; 0 if unknown
+    audio_format: str = "mp3"   # "mp3" (Polly) or "wav" (FakeTTS); also the file extension
 
 
 class TTS(Protocol):
@@ -205,21 +205,24 @@ class PollyTTS:
         return TTSResult(mp3_bytes=mp3_bytes, duration_ms=duration_ms)
 
 
-# Minimal valid MP3 frame (silence) for FakeTTS — just the header bytes.
-_FAKE_MP3 = (
-    b"\xff\xfb\x90\x00"   # MPEG1 Layer3 128kbps 44.1kHz
-    + b"\x00" * 413        # padding to one frame
-)
-
-
 class FakeTTS:
-    """Returns a minimal mp3 payload; used in tests."""
+    """Returns a silent 16 kHz mono WAV of duration_ms; used in tests.
+
+    A real (decodable) payload, so the backend can append it to the session WAV.
+    """
 
     def __init__(self, duration_ms: int = 500):
         self._duration_ms = duration_ms
 
     async def synthesize(self, text: str) -> TTSResult:
-        return TTSResult(mp3_bytes=_FAKE_MP3, duration_ms=self._duration_ms)
+        buf = io.BytesIO()
+        with wave.open(buf, "wb") as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(16_000)
+            wf.writeframes(b"\x00\x00" * (16 * self._duration_ms))
+        return TTSResult(mp3_bytes=buf.getvalue(), duration_ms=self._duration_ms,
+                         audio_format="wav")
 
 
 # ---------------------------------------------------------------------------
@@ -233,17 +236,16 @@ def _decode_audio_sync(raw_bytes: bytes) -> bytes:
     directly (no PyAV resample needed). All other formats go through PyAV.
     Runs synchronously; call via anyio.to_thread.run_sync.
     """
-    import av
-
     # Fast path: plain WAV at 16 kHz / mono / 16-bit PCM — just read frames.
     if raw_bytes[:4] == b"RIFF" and raw_bytes[8:12] == b"WAVE":
         try:
-            buf_in = io.BytesIO(raw_bytes)
-            with wave.open(buf_in, "rb") as wf:
+            with wave.open(io.BytesIO(raw_bytes), "rb") as wf:
                 if wf.getnchannels() == 1 and wf.getsampwidth() == 2 and wf.getframerate() == 16_000:
                     return wf.readframes(wf.getnframes())
-        except Exception:
-            pass  # fall through to PyAV for malformed WAVs
+        except wave.Error:
+            pass  # not a plain PCM WAV; let PyAV handle it
+
+    import av
 
     buf = io.BytesIO(raw_bytes)
     container = av.open(buf, format=None)

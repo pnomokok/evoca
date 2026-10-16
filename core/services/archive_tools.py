@@ -10,6 +10,8 @@ Tool table from docs/PROJECT.md:
   save_story               — new pending story with subjects and sources
   record_answer            — flip an asked question to "answered"
   add_question             — follow_up / gap question for the center person
+  mark_question_declined   — the center declined to answer: "asked" -> "declined"
+  reopen_question          — asked but not answered: "asked" -> "waiting"
 
 Private segments (is_private = True) never appear in any output here, and no
 story source or answer range may overlap one.
@@ -405,3 +407,52 @@ def add_question_data(
     db.add(q)
     db.flush()
     return {"question_id": q.id, "status": status.value}
+
+
+# ---------------------------------------------------------------------------
+# mark_question_declined / reopen_question
+# ---------------------------------------------------------------------------
+
+def _require_asked_question(db: DbSession, circle_id: str, question_id: str) -> Question:
+    q: Question | None = db.get(Question, question_id)
+    if q is None or q.circle_id != circle_id:
+        raise ValueError(f"Question '{question_id}' not found in this circle.")
+    if q.status != QuestionStatus.asked:
+        raise ValueError(
+            f"Question '{question_id}' has status '{q.status}', expected 'asked'."
+        )
+    return q
+
+
+def mark_question_declined_data(
+    db: DbSession,
+    viewer_id: str,
+    circle_id: str,
+    question_id: str,
+    session_id: str,
+    start_ms: int,
+    end_ms: int,
+) -> None:
+    """Set an asked question to "declined": the speaker declined to answer it.
+
+    start_ms / end_ms is where the speaker declines, in a session of the
+    circle; it must not overlap a private segment. A declined question is
+    never offered again.
+    """
+    q = _require_asked_question(db, circle_id, question_id)
+    _require_session_in_circle(db, session_id, circle_id)
+    _check_range(db, session_id, start_ms, end_ms)
+    q.status = QuestionStatus.declined
+    db.flush()
+
+
+def reopen_question_data(
+    db: DbSession,
+    viewer_id: str,
+    circle_id: str,
+    question_id: str,
+) -> None:
+    """Return an asked but unanswered question to "waiting" so it is asked again."""
+    q = _require_asked_question(db, circle_id, question_id)
+    q.status = QuestionStatus.waiting
+    db.flush()
