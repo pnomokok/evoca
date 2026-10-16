@@ -446,6 +446,7 @@ Cevap iletimi (bildirim) `record_answer`'ın yan etkisidir; ajan doğrudan bildi
 
 | Uç | Kim | Ne yapar |
 | --- | --- | --- |
+| `POST /api/device/session/start` | Cihaz ekranı | Oturumu başlatır (davet varsa `invitation`, yoksa `spontaneous`), MCPBridge ve ChatAgent açar, açılış turunu çalıştırır; `POST /api/device/turn` ile aynı şekli döner |
 | `POST /api/device/turn` | Cihaz ekranı | Ses yükler; cevap metni + TTS sesi + gösterilecek kartlar döner |
 | `POST /api/device/session/end` | Cihaz ekranı | Oturumu kapatır, işlemeyi başlatır |
 | `GET /api/device/invitation` | Cihaz ekranı | Işık yansın mı? |

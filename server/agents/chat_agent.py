@@ -167,7 +167,8 @@ def clean_reply(text: str, ending: bool) -> str:
 class ToolTrace:
     tool: str
     input: dict[str, Any]
-    result_preview: str      # first 300 chars of the serialised result
+    result: Any              # full structured result (not sent to the client)
+    result_preview: str      # first 300 chars of the serialised result (for API responses)
     ms: int
     is_error: bool
 
@@ -246,6 +247,7 @@ class ChatAgent:
         text: str,
         start_ms: int,
         end_ms: int,
+        words: list[dict] | None = None,
     ) -> None:
         add_segment(
             self._db,
@@ -254,6 +256,7 @@ class ChatAgent:
             text,
             start_ms,
             end_ms,
+            words=words or [],
         )
         self._db.commit()
 
@@ -267,8 +270,26 @@ class ChatAgent:
     # Main entry point
     # ------------------------------------------------------------------
 
-    async def turn(self, user_text: str, store_user: bool = True) -> TurnResult:
-        """Process one user utterance and return reply + diagnostics."""
+    async def turn(
+        self,
+        user_text: str,
+        store_user: bool = True,
+        user_start_ms: int | None = None,
+        user_end_ms: int | None = None,
+        user_words: list[dict] | None = None,
+        agent_start_ms: int | None = None,
+        agent_end_ms: int | None = None,
+    ) -> TurnResult:
+        """Process one user utterance and return reply + diagnostics.
+
+        Optional real-span arguments (set by the FastAPI backend after STT/TTS):
+          user_start_ms / user_end_ms   – real byte-accurate WAV positions for
+                                           the user's segment.
+          user_words                    – Whisper word timestamps shifted to WAV
+                                           positions.
+          agent_start_ms / agent_end_ms – real WAV positions for the TTS reply;
+                                           set via set_agent_span() after TTS.
+        """
         total_start = time.monotonic()
 
         # Lazy-fetch the tool config once per agent lifetime, limited to CHAT_TOOLS.
@@ -363,6 +384,7 @@ class ChatAgent:
                     ToolTrace(
                         tool=tool_name,
                         input=tool_input,
+                        result=result,
                         result_preview=preview,
                         ms=tool_ms,
                         is_error=is_error,
@@ -402,8 +424,15 @@ class ChatAgent:
         # Store segments.
         seg_end = self._elapsed_ms()
         if store_user:
-            self._store_segment(self._person_id, user_text, seg_start, seg_start + 100)
-        self._store_segment(None, reply_text, seg_end, seg_end + 100)
+            u_start = user_start_ms if user_start_ms is not None else seg_start
+            u_end   = user_end_ms   if user_end_ms   is not None else seg_start + 100
+            self._store_segment(
+                self._person_id, user_text, u_start, u_end,
+                words=user_words or [],
+            )
+        a_start = agent_start_ms if agent_start_ms is not None else seg_end
+        a_end   = agent_end_ms   if agent_end_ms   is not None else seg_end + 100
+        self._store_segment(None, reply_text, a_start, a_end)
 
         total_ms = int((time.monotonic() - total_start) * 1000)
         return TurnResult(

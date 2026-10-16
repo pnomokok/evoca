@@ -196,6 +196,7 @@ class ArchivistAgent:
                     ToolTrace(
                         tool=tool_name,
                         input=tool_input,
+                        result=tool_result,
                         result_preview=json.dumps(tool_result)[:300] if tool_result is not None else "",
                         ms=tool_ms,
                         is_error=is_error,
