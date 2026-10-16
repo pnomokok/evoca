@@ -45,10 +45,11 @@ import anyio
 
 from core.clock import now_utc
 from core.db import SessionLocal, engine, init_db
-from core.enums import CircleStatus, QuestionSource, QuestionStatus, Role
+from core.enums import CircleStatus, QuestionSource, QuestionStatus, Role, SessionStart
+from core.services.sessions import start_session
 from core.models import Base, Circle, Membership, Person, Question, SensitiveTopic
 from evals.scenarios import SCENARIOS, Scenario
-from server.agents.chat_agent import CHAT_TOOLS, LOCAL_TOOLS, ChatAgent, chat_llm
+from server.agents.chat_agent import CHAT_TOOLS, CODE_TOOLS, LOCAL_TOOLS, ChatAgent, chat_llm
 from server.llm import BedrockLLM, strip_thinking
 from server.mcp_bridge import MCPBridge
 
@@ -247,7 +248,12 @@ async def run_scenario(
     transcript: list[dict[str, str]] = []
     turns: list[dict[str, Any]] = []
 
-    async with MCPBridge(family["center_id"], family["circle_id"]) as bridge:
+    with SessionLocal() as db:
+        session_id = start_session(db, family["circle_id"], SessionStart.spontaneous,
+                                   [family["center_id"]]).id
+        db.commit()
+
+    async with MCPBridge(family["center_id"], family["circle_id"], session_id=session_id) as bridge:
         with SessionLocal() as db:
             agent = ChatAgent(
                 llm=agent_llm,
@@ -255,6 +261,7 @@ async def run_scenario(
                 circle_id=family["circle_id"],
                 db_session=db,
                 bridge=bridge,
+                session_id=session_id,
             )
             total_turns = sc.turns + 1  # the person's replies, plus the goodbye
             ended_early = False
@@ -287,7 +294,7 @@ async def run_scenario(
             agent.end()
 
     opening_tools = turns[0]["tools"]
-    allowed = CHAT_TOOLS | LOCAL_TOOLS
+    allowed = CHAT_TOOLS | LOCAL_TOOLS | CODE_TOOLS
     # Calls outside the allowlist are counted once, by only_chat_tools,
     # not again as tool errors. Likewise an early end is counted once, by
     # ended_too_early; ended_on_goodbye is only checked when the planned

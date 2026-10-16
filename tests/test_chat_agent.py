@@ -48,6 +48,12 @@ from core.models import (
     Reaction, Segment, Story,
     Session as OrmSession,
 )
+from core.services.chat_tools import (
+    mark_private_data,
+    mark_reactions_delivered_data,
+    search_archive_data,
+    set_story_access_data,
+)
 from core.services.session_tools import (
     get_pending_questions_data,
     get_session_context_data,
@@ -194,10 +200,15 @@ def _tool_use(name: str, args: dict, uid: str | None = None) -> dict:
 class FakeMCPBridge:
     """Calls real service functions on the in-memory DB. No network."""
 
-    def __init__(self, db, person_id: str, circle_id: str) -> None:
+    def __init__(self, db, person_id: str, circle_id: str, session_id: str | None = None) -> None:
         self._db = db
         self._person_id = person_id
         self._circle_id = circle_id
+        # Like the X-Evoca-Session-Id header. Tests whose agent creates its own
+        # session set session_id_provider (e.g. lambda: agent._orm_session_id).
+        self.session_id = session_id
+        self.session_id_provider = None
+        self.fail_tools: set[str] = set()   # tools that raise, to test failure paths
         self.tool_calls: list[tuple[str, dict]] = []
 
     async def bedrock_tool_config(self) -> dict:
@@ -236,6 +247,8 @@ class FakeMCPBridge:
                 limit=arguments.get("limit", 5),
             )
             return [asdict(i) for i in items]
+        elif name in self.fail_tools:
+            raise RuntimeError(f"MCP tool '{name}' returned error: simulated failure")
         elif name == "mark_question_asked":
             mark_question_asked_data(
                 self._db, self._person_id, self._circle_id,
@@ -243,6 +256,25 @@ class FakeMCPBridge:
             )
             self._db.commit()
             return {"status": "ok", "question_id": arguments["question_id"]}
+        elif name == "mark_private":
+            session_id = self.session_id or (self.session_id_provider and self.session_id_provider())
+            ids = mark_private_data(self._db, self._person_id, self._circle_id,
+                                    session_id, arguments["start_ms"], arguments["end_ms"])
+            self._db.commit()
+            return {"status": "ok", "segments_marked": len(ids)}
+        elif name == "mark_reactions_delivered":
+            n = mark_reactions_delivered_data(self._db, self._person_id, self._circle_id,
+                                              arguments["story_ids"])
+            self._db.commit()
+            return {"status": "ok", "reactions_marked": n}
+        elif name == "set_story_access":
+            set_story_access_data(self._db, self._person_id, self._circle_id,
+                                  arguments["story_id"], arguments["type"])
+            self._db.commit()
+            return {"status": "ok"}
+        elif name == "search_archive":
+            return {"result": search_archive_data(self._db, self._person_id, self._circle_id,
+                                                  arguments.get("query", ""))}
         else:
             raise RuntimeError(f"Unknown tool: {name}")
 
@@ -447,7 +479,7 @@ async def test_archivist_tools_not_offered_to_chat_model(world):
 
     offered = {t["toolSpec"]["name"] for t in llm.calls[0]["tools"]["tools"]}
     assert offered == {"get_session_context", "get_pending_questions",
-                       "mark_question_asked", "end_conversation"}
+                       "mark_question_asked", "end_conversation", "keep_private"}
     assert offered <= CHAT_TOOLS | LOCAL_TOOLS
 
 

@@ -14,6 +14,11 @@ The session audio is one WAV per session (server/wav_writer.py). Every user
 turn and every spoken agent reply is appended to it, and each Segment gets its
 real position in that WAV, so story sources, answers and private ranges all
 point at the right audio.
+
+Privacy marks ("don't let anyone hear that") are flushed after the reply's
+audio span is in the WAV. A mark that fails stays pending; /session/end (or a
+goodbye) retries it, and if it still fails the archivist is NOT run for that
+session: the story may be lost, the secret must not leak.
 """
 
 from __future__ import annotations
@@ -200,13 +205,26 @@ async def _connected(live: LiveSession):
     per-turn MCP overhead.
     """
     t0 = time.monotonic()
-    async with MCPBridge(live.owner_id, live.agent._circle_id) as bridge:
+    async with MCPBridge(live.owner_id, live.agent._circle_id, session_id=live.session_id) as bridge:
         connect_ms = int((time.monotonic() - t0) * 1000)
         live.agent.set_bridge(bridge)
         try:
             yield connect_ms
         finally:
             live.agent.set_bridge(None)
+
+
+async def _flush_marks(live: LiveSession) -> list:
+    """Apply pending privacy marks through MCP; failures stay pending."""
+    if not live.agent.has_pending_private:
+        return []
+    try:
+        async with _connected(live):
+            return await live.agent.flush_private_marks()
+    except Exception:
+        log.exception("Could not connect to mark private segments (session %s); "
+                      "the marks stay pending", live.session_id)
+        return []
 
 
 async def _close_live(live: LiveSession) -> None:
@@ -226,11 +244,25 @@ def _end_session_row(session_id: str) -> str:
 
 
 async def _finish(live: LiveSession, store: SessionStore, background_tasks: BackgroundTasks) -> str:
-    """End a live session and start the archivist in the background."""
+    """End a live session and start the archivist in the background.
+
+    Pending privacy marks are retried first. If any still fail, the archivist
+    is not run for this session (fail closed).
+    """
     store.pop(live.session_id)
+    if live.agent.has_pending_private:
+        await _flush_marks(live)
     ended_at = _end_session_row(live.session_id)
+    unmarked = list(live.agent.pending_private)
     await _close_live(live)
-    background_tasks.add_task(_run_archivist, live.session_id, live.owner_id, live.agent._circle_id)
+    if unmarked:
+        log.error(
+            "Session %s: %d segment(s) could not be marked private; the archivist is NOT "
+            "run for this session so the private part cannot leak (segments: %s)",
+            live.session_id, len(unmarked), ", ".join(unmarked),
+        )
+    else:
+        background_tasks.add_task(_run_archivist, live.session_id, live.owner_id, live.agent._circle_id)
     return ended_at
 
 
@@ -304,7 +336,8 @@ async def session_start(
 
     db_session = SessionLocal()
     agent = ChatAgent(llm=chat_llm(), person_id=person_id, circle_id=circle_id,
-                      db_session=db_session, bridge=None, session_id=session_id)
+                      db_session=db_session, bridge=None, session_id=session_id,
+                      flush_marks_in_turn=False)
     live = LiveSession(session_id=session_id, owner_id=person_id, agent=agent, db=db_session)
     store.put(live)
 
@@ -315,6 +348,7 @@ async def session_start(
             _remember_questions(live, result.trace)
             live.last_question = _question_in(result.reply_text)
             audio_url, tts_ms = await _speak(live, tts, result.reply_text, record=True)
+            result.trace.extend(await _flush_marks(live))
         except Exception:
             # MCP server down, LLM or TTS failure: do not leave an open session behind.
             log.exception("Opening turn failed for session %s", session_id)
@@ -419,10 +453,13 @@ async def device_turn(
             log.exception("Turn failed for session %s", session_id)
             raise HTTPException(status_code=502, detail="The conversation service is not available.")
 
-        # 6. Speak and record the reply.
+        # 6. Speak and record the reply, then apply privacy marks (the reply's
+        #    real audio span is known only now).
         _remember_questions(live, result.trace)
-        live.last_question = _question_in(result.reply_text)
+        # A hidden reply must not reach Whisper's hint either.
+        live.last_question = None if result.marked_private else _question_in(result.reply_text)
         audio_url, tts_ms = await _speak(live, tts, result.reply_text, record=True)
+        result.trace.extend(await _flush_marks(live))
 
         # 7. The agent said goodbye: end the session and archive it.
         if result.session_should_end:

@@ -37,6 +37,12 @@ from core.services.archive_tools import (
     reopen_question_data,
     save_story_data,
 )
+from core.services.chat_tools import (
+    mark_private_data,
+    mark_reactions_delivered_data,
+    search_archive_data,
+    set_story_access_data,
+)
 from core.services.session_tools import (
     get_pending_questions_data,
     get_session_context_data,
@@ -83,6 +89,13 @@ def get_viewer(ctx: Context, db: Any) -> tuple[str, str]:
     # Delegate the membership check — raises ValueError with a clear message.
     require_member(db, person_id, circle_id)
     return person_id, circle_id
+
+
+def get_session_id(ctx: Context) -> str:
+    """The live session, from the X-Evoca-Session-Id header (set by the
+    backend, like identity; never a tool argument the model could choose)."""
+    request = ctx.request_context.request
+    return request.headers.get("x-evoca-session-id", "").strip() if request else ""
 
 
 # ---------------------------------------------------------------------------
@@ -283,6 +296,71 @@ def reopen_question(ctx: Context, question_id: str) -> dict[str, str]:
         reopen_question_data(db, viewer_id, circle_id, question_id)
         db.commit()
         return {"status": "ok", "question_id": question_id}
+
+
+# ---------------------------------------------------------------------------
+# Chat-agent tools: privacy, reactions, story access, archive search
+# ---------------------------------------------------------------------------
+
+@mcp.tool()
+def mark_private(ctx: Context, start_ms: int, end_ms: int) -> dict[str, Any]:
+    """Hide a range of the live session: its segments become private.
+
+    "Don't let anyone hear that." The session comes from the X-Evoca-Session-Id
+    header. Called by the chat agent's code with exact segment boundaries.
+    """
+    with SessionLocal() as db, tool_errors():
+        viewer_id, circle_id = get_viewer(ctx, db)
+        ids = mark_private_data(db, viewer_id, circle_id, get_session_id(ctx), start_ms, end_ms)
+        db.commit()
+        return {"status": "ok", "segments_marked": len(ids)}
+
+
+@mcp.tool()
+def mark_reactions_delivered(ctx: Context, story_ids: list[str]) -> dict[str, Any]:
+    """Record that the reactions on these stories were told to the center person."""
+    with SessionLocal() as db, tool_errors():
+        viewer_id, circle_id = get_viewer(ctx, db)
+        count = mark_reactions_delivered_data(db, viewer_id, circle_id, story_ids)
+        db.commit()
+        return {"status": "ok", "reactions_marked": count}
+
+
+@mcp.tool()
+def set_story_access(
+    ctx: Context,
+    story_id: str,
+    type: Literal["private", "circle"],
+) -> dict[str, str]:
+    """Change who can hear one of the speaker's own stories.
+
+    "private": only the speaker. "circle": the whole family circle again.
+    Only the person who told the story can change it. Find the story_id with
+    search_archive.
+    """
+    with SessionLocal() as db, tool_errors():
+        viewer_id, circle_id = get_viewer(ctx, db)
+        set_story_access_data(db, viewer_id, circle_id, story_id, type)
+        db.commit()
+        return {"status": "ok", "story_id": story_id, "access": type}
+
+
+@mcp.tool()
+def search_archive(
+    ctx: Context,
+    query: str,
+    person_id: str | None = None,
+    period: PeriodValue | None = None,
+) -> list[dict[str, Any]]:
+    """Find stories in the family archive by keywords (at most 5).
+
+    Returns story_id, title, AI summary, place, periods and audio sources of
+    stories the viewer is allowed to see. Use it when the person asks about
+    something they may have told before, or to find a story's id.
+    """
+    with SessionLocal() as db, tool_errors():
+        viewer_id, circle_id = get_viewer(ctx, db)
+        return search_archive_data(db, viewer_id, circle_id, query, person_id, period)
 
 
 # ---------------------------------------------------------------------------

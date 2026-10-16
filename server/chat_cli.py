@@ -28,7 +28,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core.db import SessionLocal, init_db
 from core.models import Circle, Membership
-from core.enums import Role
+from core.enums import Role, SessionStart
+from core.services.sessions import start_session
 from server.agents.chat_agent import ChatAgent, chat_llm
 from server.mcp_bridge import MCPBridge
 
@@ -56,7 +57,13 @@ async def main() -> None:
 
     llm = chat_llm()
 
-    async with MCPBridge(person_id, circle_id) as bridge:
+    # Create the session first: the MCP bridge sends its id (X-Evoca-Session-Id),
+    # which mark_private needs.
+    with SessionLocal() as db:
+        session_id = start_session(db, circle_id, SessionStart.spontaneous, [person_id]).id
+        db.commit()
+
+    async with MCPBridge(person_id, circle_id, session_id=session_id) as bridge:
         with SessionLocal() as db:
             agent = ChatAgent(
                 llm=llm,
@@ -64,6 +71,7 @@ async def main() -> None:
                 circle_id=circle_id,
                 db_session=db,
                 bridge=bridge,
+                session_id=session_id,
             )
 
             # Kick off with an empty first turn so the agent greets.

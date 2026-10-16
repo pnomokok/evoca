@@ -32,22 +32,23 @@ class MCPBridge:
             result = await bridge.call_tool("get_pending_questions", {"limit": 3})
     """
 
-    def __init__(self, person_id: str, circle_id: str) -> None:
+    def __init__(self, person_id: str, circle_id: str, session_id: str | None = None) -> None:
         self._person_id = person_id
         self._circle_id = circle_id
+        self._session_id = session_id   # sent as X-Evoca-Session-Id (needed by mark_private)
         self._url = os.environ.get("EVOCA_MCP_URL", "http://localhost:8000/mcp")
         self._http: httpx2.AsyncClient | None = None
         self._client: Client | None = None
         self._client_ctx = None
 
     async def __aenter__(self) -> "MCPBridge":
-        self._http = httpx2.AsyncClient(
-            headers={
-                "X-Evoca-Person-Id": self._person_id,
-                "X-Evoca-Circle-Id": self._circle_id,
-            },
-            timeout=30.0,
-        )
+        headers = {
+            "X-Evoca-Person-Id": self._person_id,
+            "X-Evoca-Circle-Id": self._circle_id,
+        }
+        if self._session_id:
+            headers["X-Evoca-Session-Id"] = self._session_id
+        self._http = httpx2.AsyncClient(headers=headers, timeout=30.0)
         transport = streamable_http_client(self._url, http_client=self._http)
         self._client = Client(transport)
         self._client_ctx = self._client.__aenter__

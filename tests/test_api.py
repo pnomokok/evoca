@@ -201,8 +201,8 @@ def test_app(tmp_path, monkeypatch):
         pattern (bridge = MCPBridge(...); await bridge.__aenter__(); agent uses bridge)
         works correctly.
         """
-        def __init__(self, person_id, circle_id):
-            self._inner = FakeMCPBridge(db, person_id, circle_id)
+        def __init__(self, person_id, circle_id, session_id=None):
+            self._inner = FakeMCPBridge(db, person_id, circle_id, session_id)
         async def __aenter__(self):
             return self   # device.py stores the factory itself as the bridge
         async def __aexit__(self, *a):
@@ -1056,7 +1056,7 @@ async def test_mcp_clients_closed_in_same_task_over_several_sessions(test_app, m
     app, db, fatma, *_ = test_app
     _TrackingBridge.open_count = _TrackingBridge.opened = _TrackingBridge.wrong_task_exits = 0
     monkeypatch.setattr(_dev_r, "MCPBridge",
-                        lambda person_id, circle_id: _TrackingBridge(db, person_id, circle_id))
+                        lambda person_id, circle_id, session_id=None: _TrackingBridge(db, person_id, circle_id))
     _set_llm_script(test_app, ["A reply."])
     wav = _make_wav_bytes(_make_silent_pcm(300))
 
@@ -1091,7 +1091,7 @@ async def test_turn_with_mcp_down_returns_502_and_stores_nothing(test_app, monke
                             headers={"x-person-id": fatma.id})).json()["session_id"]
 
         class _Down:
-            def __init__(self, *a):
+            def __init__(self, *a, **kw):
                 pass
 
             async def __aenter__(self):
