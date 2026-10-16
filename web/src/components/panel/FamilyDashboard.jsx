@@ -1,9 +1,78 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { apiClient } from '../../api/client';
-import { Play, Pause, PhoneCall, Sparkles, Clock, MessageSquarePlus, Mic, ChevronRight, Heart, AlertCircle, ArrowUpRight, ArrowRight } from 'lucide-react';
+import { Play, Pause, PhoneCall, Sparkles, Clock, MessageSquarePlus, Mic, ChevronRight, ChevronLeft, Heart, AlertCircle, ArrowUpRight, ArrowRight } from 'lucide-react';
 import FamilyTreeCard from './FamilyTreeCard';
 import FamilyTreeModal from './FamilyTreeModal';
+
+const SIX_RECENT_STORIES = [
+  {
+    id: "story_mulberry",
+    title: "The Mulberry Tree",
+    period: "Childhood Chapter",
+    year: "1956",
+    photo: "/mulberry_memory.jpg",
+    caption: "The village garden, 1956",
+    teller: "Grandma Fatma",
+    duration: "0:22",
+    excerpt: "When I was a little girl in the village, we had a big mulberry tree in the garden. Every summer we would climb it and eat until our hands turned purple."
+  },
+  {
+    id: "story_school",
+    title: "Walking to School in the Snow",
+    period: "Childhood Chapter",
+    year: "1958",
+    photo: "/school_winter.jpg",
+    caption: "Winter trail to schoolhouse, 1958",
+    teller: "Grandma Fatma",
+    duration: "0:57",
+    excerpt: "Four kilometers through knee-deep snow. Mother would slip two hot baked potatoes straight from the wood stove into our coat pockets so our fingers wouldn't freeze on the walk."
+  },
+  {
+    id: "story_coast",
+    title: "The Summer We Moved to the Coast",
+    period: "Early Adulthood",
+    year: "1968",
+    photo: "/coast_memory.jpg",
+    caption: "Akçaabat coastal cottage, 1968",
+    teller: "Grandma Fatma",
+    duration: "1:04",
+    excerpt: "We packed two wooden trunks with olive oil tins, dried figs, and my mother's hand-embroidered curtains. The air smelled of salt and wild pine as the truck rounded the coastal bend."
+  },
+  {
+    id: "story_bazaar",
+    title: "The Friday Tea Bazaar",
+    period: "Early Adulthood",
+    year: "1963",
+    photo: "/bazaar_memory.jpg",
+    caption: "Akçaabat port market, 1963",
+    teller: "Grandma Fatma",
+    duration: "0:45",
+    excerpt: "Every Friday after morning mist lifted, we brought bags of wild mint and mountain tea down to the harbor. The scales clinked and tea aromas drifted across the boats."
+  },
+  {
+    id: "story_olive",
+    title: "Autumn Olive Harvest",
+    period: "Family Traditions",
+    year: "1965",
+    photo: "/olive_memory.jpg",
+    caption: "Hillside olive orchard, 1965",
+    teller: "Grandma Fatma",
+    duration: "0:38",
+    excerpt: "We laid coarse burlap blankets under the oldest trees on the terraced hill. All the children collected fallen olives into wicker baskets, laughing until the evening sun set over the sea."
+  },
+  {
+    id: "story_gathering",
+    title: "Three Generations on the Veranda",
+    period: "Family Gathering",
+    year: "1974",
+    photo: "/family_hero.jpg",
+    caption: "Veranda tea gathering, 1974",
+    teller: "Grandma Fatma",
+    duration: "1:12",
+    excerpt: "When the summer breezes arrived, the entire family gathered on the stone terrace. We brewed fresh tea in the samovar and told old village tales under the grape arbor until midnight."
+  }
+];
 
 export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
   const { setSelectedStoryId, setPanelSubTab, showToast, circleData, currentViewerId, switchViewer } = useApp();
@@ -12,6 +81,22 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
   const [lifeline, setLifeline] = useState(null);
   const [playingId, setPlayingId] = useState(null);
   const [isTreeModalOpen, setIsTreeModalOpen] = useState(false);
+  const [storiesPageIndex, setStoriesPageIndex] = useState(0);
+
+  const STORIES_PER_PAGE = 3;
+  const totalStoryPages = Math.ceil(SIX_RECENT_STORIES.length / STORIES_PER_PAGE);
+  const visibleStories = SIX_RECENT_STORIES.slice(
+    storiesPageIndex * STORIES_PER_PAGE,
+    (storiesPageIndex + 1) * STORIES_PER_PAGE
+  );
+
+  const handlePrevStories = () => {
+    setStoriesPageIndex(prev => (prev === 0 ? totalStoryPages - 1 : prev - 1));
+  };
+
+  const handleNextStories = () => {
+    setStoriesPageIndex(prev => (prev + 1) % totalStoryPages);
+  };
 
   const me = circleData?.me || { name: 'Elif Yilmaz', role: 'member', relation_to_center: 'granddaughter' };
   const circle = circleData?.circle || { name: 'The Yilmaz Family', chat_time: '10:00' };
@@ -35,7 +120,7 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
   }, []);
 
   // Compute actual deduplicated story count from all existing data sources
-  const uniqueStoryIds = new Set();
+  const uniqueStoryIds = new Set(SIX_RECENT_STORIES.map(s => s.id));
   if (lifeline?.periods) {
     lifeline.periods.forEach(p => {
       (p.stories || []).forEach(s => {
@@ -195,120 +280,111 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
         <span className="divider-line" />
       </div>
 
-      {/* 2. Recent Family Stories Section */}
+      {/* 2. Recent Family Stories Section (3 Cards Per Page with Arrow Navigation, max 6 stories) */}
       <section className="recent-memories-section" aria-labelledby="recent-heading">
-        <div className="section-header-editorial">
-          <span className="section-eyebrow">Archive Entries</span>
-          <h2 id="recent-heading" className="section-title-serif">Recent Family Stories</h2>
-          <p className="section-desc">
-            Transcribed and preserved from Grandma's morning conversations with Evoca.
-          </p>
+        <div className="section-header-editorial-with-nav">
+          <div className="section-header-left">
+            <span className="section-eyebrow">Archive Entries</span>
+            <h2 id="recent-heading" className="section-title-serif">Recent Family Stories</h2>
+            <p className="section-desc">
+              Transcribed and preserved from Grandma's morning conversations with Evoca.
+            </p>
+          </div>
+
+          {/* Navigation Controls: Page Indicator, Dots, and Arrow Buttons */}
+          <div className="stories-pagination-controls" aria-label="Stories navigation">
+            <div className="pagination-indicators">
+              <span className="pagination-page-label">
+                Page <strong>{storiesPageIndex + 1}</strong> of <strong>{totalStoryPages}</strong>
+              </span>
+              <div className="pagination-dots">
+                {Array.from({ length: totalStoryPages }).map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    className={`pagination-dot ${idx === storiesPageIndex ? 'active' : ''}`}
+                    onClick={() => setStoriesPageIndex(idx)}
+                    aria-label={`Go to page ${idx + 1}`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="pagination-arrow-btns">
+              <button
+                type="button"
+                className="story-nav-arrow-btn prev"
+                onClick={handlePrevStories}
+                aria-label="Previous stories"
+                title="Previous stories"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <button
+                type="button"
+                className="story-nav-arrow-btn next"
+                onClick={handleNextStories}
+                aria-label="Next stories"
+                title="Next stories"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div className="editorial-stories-grid">
-          {/* Story Card 1: The Mulberry Tree */}
-          <article className="story-editorial-card split-layout">
-            <figure className="photo-matte-frame card-frame">
-              <img
-                src="/mulberry_memory.jpg"
-                alt="Two sisters under the mulberry tree"
-                className="archival-photo"
-              />
-              <figcaption className="photo-caption">
-                <span>The village garden, 1956</span>
-              </figcaption>
-            </figure>
+        {/* Horizontal 3-Column Stories Grid */}
+        <div className="editorial-stories-horizontal-grid" key={storiesPageIndex}>
+          {visibleStories.map((story) => (
+            <article key={story.id} className="story-editorial-card vertical-card">
+              <figure className="photo-matte-frame card-frame">
+                <img
+                  src={story.photo}
+                  alt={story.title}
+                  className="archival-photo"
+                  loading="lazy"
+                />
+                <figcaption className="photo-caption">
+                  <span>{story.caption}</span>
+                </figcaption>
+              </figure>
 
-            <div className="story-card-body">
-              <div className="card-period-tag">Childhood Chapter</div>
-              <h3
-                className="card-story-title"
-                onClick={() => handleOpenStory('story_mulberry')}
-              >
-                The Mulberry Tree
-              </h3>
-              <p className="card-storyteller">Told by Grandma Fatma</p>
-
-              <p className="card-excerpt">
-                "When I was a little girl in the village, we had a big mulberry tree in the garden. Every summer we would climb it and eat until our hands turned purple."
-              </p>
-
-              <div className="card-action-bar">
-                <button
-                  type="button"
-                  className="mini-audio-btn"
-                  onClick={() => handlePlayAudio(
-                    'story_mulberry',
-                    "When I was a little girl in the village, we had a big mulberry tree in the garden. Every summer we would climb it and eat until our hands turned purple.",
-                    "The Mulberry Tree"
-                  )}
+              <div className="story-card-body">
+                <div className="card-period-tag">{story.period} · {story.year}</div>
+                <h3
+                  className="card-story-title"
+                  onClick={() => handleOpenStory(story.id)}
+                  title={`Read "${story.title}"`}
                 >
-                  {playingId === 'story_mulberry' ? <Pause size={17} /> : <Play size={17} />}
-                  <span>{playingId === 'story_mulberry' ? 'Pause (0:22)' : 'Listen (0:22)'}</span>
-                </button>
+                  {story.title}
+                </h3>
+                <p className="card-storyteller">Told by {story.teller}</p>
 
-                <button
-                  type="button"
-                  className="read-more-text"
-                  onClick={() => handleOpenStory('story_mulberry')}
-                >
-                  Read & view transcript →
-                </button>
+                <p className="card-excerpt">
+                  "{story.excerpt}"
+                </p>
+
+                <div className="card-action-bar">
+                  <button
+                    type="button"
+                    className="mini-audio-btn"
+                    onClick={() => handlePlayAudio(story.id, story.excerpt, story.title)}
+                  >
+                    {playingId === story.id ? <Pause size={15} /> : <Play size={15} />}
+                    <span>{playingId === story.id ? `Pause (${story.duration})` : `Listen (${story.duration})`}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="read-more-text"
+                    onClick={() => handleOpenStory(story.id)}
+                  >
+                    Read memory →
+                  </button>
+                </div>
               </div>
-            </div>
-          </article>
-
-          {/* Story Card 2: Walking to School in the Snow */}
-          <article className="story-editorial-card split-layout">
-            <figure className="photo-matte-frame card-frame">
-              <img
-                src="/school_winter.jpg"
-                alt="Children walking through village snow to school"
-                className="archival-photo"
-              />
-              <figcaption className="photo-caption">
-                <span>Winter trail to schoolhouse, 1958</span>
-              </figcaption>
-            </figure>
-
-            <div className="story-card-body">
-              <div className="card-period-tag">Childhood Chapter</div>
-              <h3
-                className="card-story-title"
-                onClick={() => handleOpenStory('story_school')}
-              >
-                Walking to School in the Snow
-              </h3>
-              <p className="card-storyteller">Told by Grandma Fatma</p>
-
-              <p className="card-excerpt">
-                "Four kilometers through knee-deep snow. Mother would slip two hot baked potatoes straight from the wood stove into our coat pockets so our fingers wouldn't freeze on the walk."
-              </p>
-
-              <div className="card-action-bar">
-                <button
-                  type="button"
-                  className="mini-audio-btn"
-                  onClick={() => handlePlayAudio(
-                    'story_school',
-                    "Four kilometers in knee-deep snow. Mother would slip two hot baked potatoes straight from the wood stove into our coat pockets.",
-                    "Walking to School in the Snow"
-                  )}
-                >
-                  {playingId === 'story_school' ? <Pause size={15} /> : <Play size={15} />}
-                  <span>{playingId === 'story_school' ? 'Pause (0:57)' : 'Listen (0:57)'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  className="read-more-text"
-                  onClick={() => handleOpenStory('story_school')}
-                >
-                  Read & view transcript →
-                </button>
-              </div>
-            </div>
-          </article>
+            </article>
+          ))}
         </div>
       </section>
 
