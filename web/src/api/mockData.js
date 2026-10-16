@@ -396,3 +396,183 @@ export const SENSITIVE_TOPIC_KEYWORDS = [
   "inheritance dispute",
   "miras"
 ];
+
+function createTimedWords(text, durationMs = 20000) {
+  const words = text.trim().split(/\s+/);
+  const msPerWord = Math.floor(durationMs / (words.length || 1));
+  return words.map((w, idx) => ({
+    w,
+    start_ms: idx * msPerWord,
+    end_ms: (idx + 1) * msPerWord - 40
+  }));
+}
+
+export const STORIES_DATABASE = {
+  story_mulberry: initialStoryMulberry,
+  story_school: {
+    id: "story_school",
+    circle_id: "circle_yilmaz",
+    title: "Walking to School in the Snow",
+    year: 1958,
+    place: "Highland Trail to School, 1958",
+    period: "childhood",
+    period_label: "Childhood Chapter (0-12)",
+    photo_url: "/school_winter.jpg",
+    photo_caption: "Winter trail to schoolhouse, 1958",
+    ai_summary: "Carrying hot baked potatoes in pockets during harsh winter treks to the one-room schoolhouse.",
+    teller: { id: "person_fatma", name: "Fatma Yilmaz", relation_to_center: null },
+    duration_ms: 24000,
+    transcript: [
+      {
+        segment_id: "seg_school",
+        speaker: { id: "person_fatma", name: "Fatma Yilmaz" },
+        start_ms: 0,
+        end_ms: 24000,
+        text: "Four kilometers in knee-deep snow. Mother would slip two hot baked potatoes straight from the wood stove into our coat pockets so our fingers wouldn't freeze on the walk.",
+        words: createTimedWords("Four kilometers in knee-deep snow. Mother would slip two hot baked potatoes straight from the wood stove into our coat pockets so our fingers wouldn't freeze on the walk.", 24000)
+      }
+    ],
+    retellings: [
+      {
+        id: "ret_school_elif",
+        title: "Grandma's Mittens Warning",
+        teller: { id: "person_elif", name: "Elif Yilmaz", relation_to_center: "granddaughter" },
+        relation_note: "She always reminds us to wear double-knitted mittens whenever the first flakes fall in Istanbul."
+      }
+    ],
+    reactions: { counts: { heart: 5, laugh: 1, sad: 0, pray: 2 }, mine: ["heart"] }
+  },
+  story_bazaar: {
+    id: "story_bazaar",
+    circle_id: "circle_yilmaz",
+    title: "The Friday Tea Bazaar",
+    year: 1963,
+    place: "Akçaabat Port Market, 1963",
+    period: "youth",
+    period_label: "Youth & Discovery (13-20)",
+    photo_url: "/bazaar_memory.jpg",
+    photo_caption: "Akçaabat port market, 1963",
+    ai_summary: "Visiting the lively Friday harbor market with her father to trade handpicked tea sacks and roasted hazelnuts.",
+    teller: { id: "person_fatma", name: "Fatma Yilmaz", relation_to_center: null },
+    duration_ms: 22000,
+    transcript: [
+      {
+        segment_id: "seg_bazaar",
+        speaker: { id: "person_fatma", name: "Fatma Yilmaz" },
+        start_ms: 0,
+        end_ms: 22000,
+        text: "Every Friday morning before sunrise, the harbor smelled of roasted hazelnuts and fresh black tea leaves brought down from the mountain terraces.",
+        words: createTimedWords("Every Friday morning before sunrise, the harbor smelled of roasted hazelnuts and fresh black tea leaves brought down from the mountain terraces.", 22000)
+      }
+    ],
+    retellings: [
+      {
+        id: "ret_bazaar_mehmet",
+        title: "The Copper Tea Scales",
+        teller: { id: "person_mehmet", name: "Mehmet Yilmaz", relation_to_center: "son" },
+        relation_note: "Grandpa's old brass balance scale from the harbor shop is still resting on our living room bookshelf."
+      }
+    ],
+    reactions: { counts: { heart: 3, laugh: 2, sad: 0, pray: 3 }, mine: ["pray"] }
+  },
+  story_olive: {
+    id: "story_olive",
+    circle_id: "circle_yilmaz",
+    title: "Autumn Olive Harvest",
+    year: 1965,
+    place: "Hillside Olive Orchard, 1965",
+    period: "youth",
+    period_label: "Youth & Discovery (13-20)",
+    photo_url: "/olive_memory.jpg",
+    photo_caption: "Hillside olive orchard, 1965",
+    ai_summary: "Community traditions and folk songs during the late October olive harvest on the hills overlooking the sea.",
+    teller: { id: "person_fatma", name: "Fatma Yilmaz", relation_to_center: null },
+    duration_ms: 26000,
+    transcript: [
+      {
+        segment_id: "seg_olive",
+        speaker: { id: "person_fatma", name: "Fatma Yilmaz" },
+        start_ms: 0,
+        end_ms: 26000,
+        text: "The entire village gathered when the first autumn rains touched the branches. We sang folk melodies while spreading burlap sheets under ancient trees.",
+        words: createTimedWords("The entire village gathered when the first autumn rains touched the branches. We sang folk melodies while spreading burlap sheets under ancient trees.", 26000)
+      }
+    ],
+    retellings: [
+      {
+        id: "ret_olive_ayse",
+        title: "Cold-Pressed Memories",
+        teller: { id: "person_ayse", name: "Ayşe Yilmaz", relation_to_center: "daughter" },
+        relation_note: "That golden green olive oil tasted so peppery you could feel the autumn sunshine in your throat."
+      }
+    ],
+    reactions: { counts: { heart: 6, laugh: 0, sad: 0, pray: 4 }, mine: ["heart"] }
+  },
+  story_coast: {
+    id: "story_coast",
+    circle_id: "circle_yilmaz",
+    title: "The Summer We Moved to the Coast",
+    year: 1968,
+    place: "Akçaabat Coastal Cottage, 1968",
+    period: "marriage_early_years",
+    period_label: "Early Adulthood & Marriage",
+    photo_url: "/coast_memory.jpg",
+    photo_caption: "Akçaabat coastal cottage, 1968",
+    ai_summary: "Fatma recounts moving to the Black Sea coast after marriage, settling into their stone cottage by the shore.",
+    teller: { id: "person_fatma", name: "Fatma Yilmaz", relation_to_center: null },
+    duration_ms: 28000,
+    transcript: [
+      {
+        segment_id: "seg_coast",
+        speaker: { id: "person_fatma", name: "Fatma Yilmaz" },
+        start_ms: 0,
+        end_ms: 28000,
+        text: "We packed two wooden trunks with olive oil tins, dried figs, and my mother's hand-embroidered curtains. The air smelled of salt and wild pine as the truck rounded the coastal bend.",
+        words: createTimedWords("We packed two wooden trunks with olive oil tins, dried figs, and my mother's hand-embroidered curtains. The air smelled of salt and wild pine as the truck rounded the coastal bend.", 28000)
+      }
+    ],
+    retellings: [
+      {
+        id: "ret_coast_murat",
+        title: "The Stone Cottage Waves",
+        teller: { id: "person_murat", name: "Murat Yilmaz", relation_to_center: "grandson" },
+        relation_note: "You could hear the breakers pounding against the rocks right from the bedroom window."
+      }
+    ],
+    reactions: { counts: { heart: 8, laugh: 2, sad: 1, pray: 5 }, mine: ["heart", "pray"] }
+  },
+  story_veranda: {
+    id: "story_veranda",
+    circle_id: "circle_yilmaz",
+    title: "Three Generations on the Veranda",
+    year: 1974,
+    place: "The Family Stone Veranda, 1974",
+    period: "raising_children",
+    period_label: "Raising a Family & Veranda Days",
+    photo_url: "/family_hero.jpg",
+    photo_caption: "Veranda tea gathering, 1974",
+    ai_summary: "Summer Sunday afternoons filled with fresh tea, laughter, and storytelling under the bougainvillea trellis.",
+    teller: { id: "person_fatma", name: "Fatma Yilmaz", relation_to_center: null },
+    duration_ms: 27000,
+    transcript: [
+      {
+        segment_id: "seg_veranda",
+        speaker: { id: "person_fatma", name: "Fatma Yilmaz" },
+        start_ms: 0,
+        end_ms: 27000,
+        text: "Sunday afternoons were sacred. Grandfather brewed fresh tea in the brass samovar, the children chased sparrows through the garden, and we talked until sunset.",
+        words: createTimedWords("Sunday afternoons were sacred. Grandfather brewed fresh tea in the brass samovar, the children chased sparrows through the garden, and we talked until sunset.", 27000)
+      }
+    ],
+    retellings: [
+      {
+        id: "ret_veranda_elif",
+        title: "The Brass Samovar Whistle",
+        teller: { id: "person_elif", name: "Elif Yilmaz", relation_to_center: "granddaughter" },
+        relation_note: "I still remember the scent of bergamot steam floating through the garden on warm Sunday evenings."
+      }
+    ],
+    reactions: { counts: { heart: 9, laugh: 4, sad: 0, pray: 6 }, mine: ["heart", "laugh"] }
+  }
+};
+

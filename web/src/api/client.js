@@ -7,7 +7,8 @@ import {
   initialStoryMulberry,
   initialFeaturedStory,
   initialStoryMulberryPlaylist,
-  SENSITIVE_TOPIC_KEYWORDS
+  SENSITIVE_TOPIC_KEYWORDS,
+  STORIES_DATABASE
 } from './mockData';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
@@ -143,6 +144,9 @@ class EvocaApiClient {
 
   async getStory(storyId = 'story_mulberry') {
     if (this.useMock) {
+      if (storyId && STORIES_DATABASE[storyId]) {
+        return JSON.parse(JSON.stringify(STORIES_DATABASE[storyId]));
+      }
       return { ...this.story };
     }
     const res = await fetch(`${API_BASE_URL}/api/stories/${storyId}`, { headers: this.getHeaders() });
