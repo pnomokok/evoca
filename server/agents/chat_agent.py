@@ -41,6 +41,14 @@ Privacy ("don't let anyone hear that")
   backend retries at session end and does not run the archivist if it still
   fails. If a reply promises privacy without any mark, the code applies
   "this_turn" itself so the promise is true.
+- A spoken promise is always true (one rule, at the very end of the reply
+  pipeline, after the guard and any regeneration): an explicit keep_private
+  always marks. If the FINAL reply promises privacy and no keep_private mark
+  covers this turn, a temperature-0 checker sees the speaker's own words of
+  this turn and the previous one. "yes" or "unsure" (also a checker error or
+  an unparsable answer): mark previous_turn, which hides both. A clear "no":
+  the promise is removed, and the replacement does not sound like agreement.
+  A declined topic is not a secret.
 - Privacy guard: the salient terms of hidden user turns (names, kinship
   words, content nouns, minus stopwords and words the speaker also used in
   turns that are not hidden) are kept in this object only, never in an LLM
@@ -153,8 +161,42 @@ def claims_privacy(text: str) -> bool:
     """True if a reply promises that something stays private."""
     return bool(_PRIVACY_CLAIM.search(text.replace("\u2019", "'")))
 
+_PRIVACY_CHECK_PROMPT = """You check one thing in what an older person said to a voice companion (one or two turns): did they ask that something they said, or are about to say, is not shared with other people?
+Reply with exactly one word: yes, no or unsure.
+yes: they asked for it to stay private or secret (for example "don't tell anyone", "keep this between us", "nobody should hear that part", "I'll tell you something, but it's a secret").
+no: they did not ask for that. Refusing to talk about a topic ("I don't want to talk about him", "that chapter is closed") is not a request to keep something private.
+unsure: you cannot tell."""
+
+_NO_PROMISE_INSTRUCTION = (
+    "System note, not from the person: nothing was made private, so do not promise privacy or "
+    "secrecy and do not agree to keep anything secret (no \"I understand\", no \"of course\"). "
+    "Write a new reply that gently moves on to a different topic."
+)
+NEUTRAL_REPLY = "Let us talk about something else. What is a memory you would like to share today?"
+
+# Words that would sound like agreeing to keep something secret.
+_AGREEMENT = re.compile(
+    r"\b(?:i understand|of course|i promise|certainly|absolutely|no problem)\b", re.IGNORECASE
+)
+
 DEFAULT_CHAT_MODEL = "us.amazon.nova-2-lite-v1:0"
 DEFAULT_CHAT_TEMPERATURE = 0.3
+
+
+def privacy_check_llm() -> BedrockLLM:
+    """The privacy gate's checker: the chat model at temperature 0, a one-word answer."""
+    return BedrockLLM(
+        model_id=os.environ.get("EVOCA_CHAT_MODEL", DEFAULT_CHAT_MODEL),
+        max_tokens=10,
+        temperature=0.0,
+    )
+
+
+def checker_said_no(verdict: str) -> bool:
+    """True only for a clear "no" (first word, ignoring Markdown). Anything
+    else, including "unsure" and an empty reply, does not stop a mark."""
+    match = re.search(r"[a-z]+", verdict.lower())
+    return match is not None and match.group(0) == "no"
 
 
 def chat_llm() -> BedrockLLM:
@@ -305,30 +347,76 @@ def _sentences(text: str) -> list[str]:
     return [p.strip() for p in _SENTENCE_END.split(text) if p.strip()]
 
 
-def _names_a_person(sentence: str) -> bool:
-    """A kinship word, or a capitalised word that is not a common sentence starter."""
-    for raw_word in _WORD.findall(sentence):
-        word = raw_word.lower()
-        if word.endswith("'s"):
-            word = word[:-2]
-        if word in _KINSHIP or (word.endswith("s") and word[:-1] in _KINSHIP):
-            return True
-        if raw_word[0].isupper() and raw_word != "I" and len(word) >= 3 and word not in _NOT_NAMES:
-            return True
-    return False
+def _kinship(word: str) -> str | None:
+    if word in _KINSHIP:
+        return word
+    if word.endswith("s") and word[:-1] in _KINSHIP:
+        return word[:-1]
+    return None
+
+
+def _known_names(text: str) -> set[str]:
+    """Capitalised words that appear mid-sentence somewhere in the text: names.
+    A capitalised first word ("Speaking", "Tending") is only a name if it is
+    also capitalised elsewhere ("My brother Selim ... Selim lost it")."""
+    names = set()
+    for sentence in _sentences(text):
+        for raw_word in _WORD.findall(sentence)[1:]:
+            word = raw_word.lower().removesuffix("'s")
+            if raw_word[0].isupper() and raw_word != "I" and len(word) >= 3 and word not in _NOT_NAMES:
+                names.add(word)
+    return names
+
+
+def _person_words(sentence: str, known_names: set[str] | None = None) -> set[str]:
+    """Names and kinship words in a sentence. Without known_names, any
+    capitalised word that is not a common starter counts as a name."""
+    found = set()
+    for i, raw_word in enumerate(_WORD.findall(sentence)):
+        word = raw_word.lower().removesuffix("'s")
+        kin = _kinship(word)
+        if kin:
+            found.add(kin)
+        elif raw_word[0].isupper() and raw_word != "I" and len(word) >= 3 and word not in _NOT_NAMES:
+            if i > 0 or known_names is None or word in known_names:
+                found.add(word)
+    return found
+
+
+def _names_a_person(sentence: str, known_names: set[str] | None = None) -> bool:
+    """A kinship word, or a name."""
+    return bool(_person_words(sentence, known_names))
+
+
+_TOPIC_CHANGE = re.compile(
+    r"^\W*(?:now|anyway|but enough|let me tell you|speaking of)\b", re.IGNORECASE
+)
+
+
+def _continues_subject(sentence: str, previous: str, known_names: set[str] | None = None) -> bool:
+    """The sentence after a name/kinship sentence still belongs to it, unless it
+    starts with a topic-change marker ("Now", "Anyway", "But enough",
+    "Let me tell you", "Speaking of") or names a different person."""
+    if _TOPIC_CHANGE.search(sentence):
+        return False
+    return not (_person_words(sentence, known_names) - _person_words(previous, known_names))
 
 
 def _secret_sentences(text: str) -> list[str]:
     """Sentences that name a person or relative, plus the sentence right after
-    each ("...my brother Selim. He borrowed..."). The whole turn if none does."""
+    each unless it changes topic ("Now, my wedding...") or names a different
+    person. The whole turn if none qualifies."""
     sentences = _sentences(text)
+    known = _known_names(text)
     keep: set[int] = set()
     for i, sentence in enumerate(sentences):
-        if _names_a_person(sentence):
-            keep.update({i, i + 1})
+        if _names_a_person(sentence, known):
+            keep.add(i)
+            if i + 1 < len(sentences) and _continues_subject(sentences[i + 1], sentence, known):
+                keep.add(i + 1)
     if not keep:
         return sentences
-    return [sentences[i] for i in sorted(keep) if i < len(sentences)]
+    return [sentences[i] for i in sorted(keep)]
 
 
 def salient_terms(hidden_texts: list[str], other_texts: list[str]) -> set[str]:
@@ -394,6 +482,7 @@ class TurnResult:
     session_should_end: bool = False  # the model called end_conversation
     marked_private: bool = False      # this turn was hidden (its text left the history)
     privacy_guard: str | None = None  # "regenerated" or "safe_reply" if a reply touched a hidden part
+    privacy_check: str | None = None  # "confirmed" / "not_confirmed" when a mark was considered
 
 
 # ---------------------------------------------------------------------------
@@ -431,8 +520,11 @@ class ChatAgent:
         bridge: Any,
         session_id: str | None = None,
         flush_marks_in_turn: bool = True,
+        checker_llm: LLM | None = None,
     ) -> None:
         self._llm = llm
+        # The privacy gate's checker (privacy_check_llm() in production).
+        self._checker_llm = checker_llm or llm
         self._person_id = person_id
         self._circle_id = circle_id
         self._db = db_session
@@ -568,6 +660,70 @@ class ChatAgent:
                 ms=int((time.monotonic() - t0) * 1000), is_error=is_error,
             ))
         return traces
+
+    async def _privacy_requested(self, speaker_texts: list[str]) -> tuple[bool, int]:
+        """Ask the checker whether the speaker asked for privacy in these words.
+
+        Only the speaker's own words are sent. Returns (confirmed, llm_ms);
+        only a clear "no" is not confirmed.
+        """
+        passage = "\n".join(t for t in speaker_texts if t).strip()
+        if not passage:
+            return True, 0
+        t0 = time.monotonic()
+        try:
+            response = await anyio.to_thread.run_sync(
+                lambda: self._checker_llm.converse(
+                    [{"text": _PRIVACY_CHECK_PROMPT}],
+                    [{"role": "user", "content": [{"text": f"WHAT THE PERSON SAID:\n{passage}"}]}],
+                    None,
+                )
+            )
+            verdict = " ".join(
+                strip_thinking(b["text"])
+                for b in response["output"]["message"].get("content", []) if "text" in b
+            )
+        except Exception:
+            # Fail closed: an unanswered or unreadable check counts as a request.
+            log.warning("Privacy check failed; marking (session %s)", self._ensure_session())
+            return True, int((time.monotonic() - t0) * 1000)
+        return not checker_said_no(verdict), int((time.monotonic() - t0) * 1000)
+
+    async def _remove_promise(
+        self, text_blocks: list[dict[str, Any]], ending: bool, terms: set[str]
+    ) -> tuple[str, int]:
+        """The final reply promised privacy that nobody asked for: ask once for a
+        reply without the promise; accept it only if it neither promises, nor
+        sounds like agreement, nor touches a hidden part. Else a neutral reply."""
+        fallback = GOODBYE_FALLBACK if ending else NEUTRAL_REPLY
+        for block in text_blocks:
+            if claims_privacy(block.get("text", "")):
+                block["text"] = _REMOVED_REPLY
+        messages = list(self._history)
+        note = {"text": _NO_PROMISE_INSTRUCTION}
+        if messages and messages[-1]["role"] == "user":
+            messages[-1] = {"role": "user", "content": list(messages[-1]["content"]) + [note]}
+        else:
+            messages.append({"role": "user", "content": [note]})
+        t0 = time.monotonic()
+        try:
+            response = await anyio.to_thread.run_sync(
+                lambda: self._llm.converse(self._system, messages, self._tool_config)
+            )
+            text = " ".join(
+                strip_thinking(b["text"])
+                for b in response["output"]["message"].get("content", []) if "text" in b
+            ).strip()
+        except Exception:
+            log.warning("Promise-free regeneration failed; neutral reply (session %s)",
+                        self._ensure_session())
+            return fallback, int((time.monotonic() - t0) * 1000)
+        llm_ms = int((time.monotonic() - t0) * 1000)
+        text = clean_reply(text, ending) if text else ""
+        if (text and not claims_privacy(text) and not _AGREEMENT.search(text)
+                and not mentions_any(text, terms)):
+            return text, llm_ms
+        return fallback, llm_ms
 
     def _guard_terms(self, hiding_now: list[str], current_user_text: str | None) -> set[str]:
         """Salient terms of everything hidden so far plus what this turn will hide."""
@@ -824,6 +980,9 @@ class ChatAgent:
             # The model said goodbye without calling end_conversation.
             ending = True
 
+        # Privacy gate: a mark (the model's keep_private, or the auto-mark when
+        # the reply promises privacy without one) needs the speaker to have
+        # asked for privacy. Only a clear "no" from the checker stops it.
         # Privacy guard: from the turn keep_private is requested on, a reply
         # must not touch the hidden part.
         hiding_now: list[str] = []
@@ -838,6 +997,33 @@ class ChatAgent:
         if mentions_any(reply_text, terms):
             reply_text, guard, extra_ms = await self._regenerate_without(terms, text_blocks, ending)
             llm_ms_total += extra_ms
+
+        # Final rule, after the guard and any regeneration: a spoken promise of
+        # privacy must be true. Covered: an explicit keep_private this turn, or a
+        # turn an earlier "next" hides. Otherwise check this turn and the previous
+        # (not hidden) one; only a clear "no" stops the mark.
+        privacy_check: str | None = None
+        covered = requested_scope is not None or (self._hide_next and store_user)
+        if claims_privacy(reply_text) and not covered:
+            prev = next((t for t in reversed(self._turns) if t.user_text and not t.hidden), None)
+            words = [w for w in (prev.user_text if prev else None,
+                                 user_text if store_user else None) if w]
+            if words:
+                confirmed, check_ms = await self._privacy_requested(words)
+                llm_ms_total += check_ms
+            else:
+                confirmed = False          # nobody said anything that could be kept
+            if confirmed and store_user:
+                privacy_check = "confirmed"
+                requested_scope = "previous_turn"
+                log.warning("Reply promised privacy without keep_private; marking this and the "
+                            "previous turn (session %s)", self._ensure_session())
+            else:
+                privacy_check = "not_confirmed"
+                log.warning("Privacy request not confirmed; promise removed (session %s)",
+                            self._ensure_session())
+                reply_text, extra_ms = await self._remove_promise(text_blocks, ending, terms)
+                llm_ms_total += extra_ms
 
         if reply_block is not None:
             # Keep the history in line with what was actually spoken.
@@ -885,11 +1071,6 @@ class ChatAgent:
                 to_hide.append(previous)
         elif requested_scope == "next":
             self._hide_next = True
-        elif not to_hide and claims_privacy(reply_text):
-            # The reply promised privacy without a mark: make the promise true.
-            log.warning("Reply claimed privacy without keep_private; applying this_turn "
-                        "(session %s)", self._orm_session_id)
-            to_hide.append(record)
         for rec in to_hide:
             if not rec.hidden:
                 self._hide(rec)
@@ -910,4 +1091,5 @@ class ChatAgent:
             session_should_end=ending,
             marked_private=record.hidden,
             privacy_guard=guard,
+            privacy_check=privacy_check,
         )

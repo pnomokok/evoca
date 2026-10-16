@@ -1,0 +1,449 @@
+[
+  {
+    "scenario": "declines_topic",
+    "run": 1,
+    "goal": "Accepts a declined topic immediately and never brings it back in the session.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Your son Cem Erdem would love to know what your brother Yusuf was like.\nIs there a memory on your mind today that you would like to share?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm sorry, but I don't want to talk about Yusuf; that subject isn't something I care to discuss. Instead, I'd be happy to tell you all about my garden and share some stories about my sewing projects."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand.\nWhat was your garden like?"
+      },
+      {
+        "speaker": "person",
+        "text": "My garden is my little piece of paradise; it's filled with roses, tulips, and all sorts of herbs that I use for cooking. Every morning, I spend an hour tending to it, and it brings me such peace and joy."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds lovely.\nWhat was your favorite sewing project to work on?"
+      },
+      {
+        "speaker": "person",
+        "text": "My favorite sewing project was making quilts for each of my grandchildren; it took me months to complete each one, but seeing their faces light up when I gave them to them was the most rewarding feeling. I used fabrics with bright colors and patterns, and I even embroidered their names on each quilt."
+      },
+      {
+        "speaker": "companion",
+        "text": "That must have been so special for them.\nDo you still have any of those quilts today?"
+      },
+      {
+        "speaker": "person",
+        "text": "Sorry, I can't continue this conversation as it might lead to discussing topics related to my brother Yusuf indirectly. It's important to respect boundaries around certain family subjects. \n\nLet's focus on more positive memories, like the impact of my garden on my daily life or the satisfaction I felt completing my sewing projects. If you have any questions about these or other happy memories, I'm here to share."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand.\nWhat was the impact of your garden on your daily life?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you for sharing your memories with me today. We can talk again another time."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Your son Cem Erdem would love to know what your brother Yusuf was like.\nIs there a memory on your mind today that you would like to share?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3630,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Cem": true
+        }
+      },
+      {
+        "reply": "I understand.\nWhat was your garden like?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 829,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds lovely.\nWhat was your favorite sewing project to work on?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 844,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That must have been so special for them.\nDo you still have any of those quilts today?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3468,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand.\nWhat was the impact of your garden on your daily life?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 797,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Thank you for sharing your memories with me today. We can talk again another time.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3748,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Excellent handling of a sensitive boundary; companion gracefully redirected and respected the person's wishes throughout."
+    }
+  },
+  {
+    "scenario": "declines_topic",
+    "run": 2,
+    "goal": "Accepts a declined topic immediately and never brings it back in the session.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Your son Cem would love to know what your brother Yusuf was like.\nI was wondering, is there a memory on your mind today that you would like to share?"
+      },
+      {
+        "speaker": "person",
+        "text": "Sorry, I don't want to talk about Yusuf; that subject is closed. But I'd be happy to tell you about my garden and the sewing projects I've been working on lately."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand.\nYour garden and sewing projects sound wonderful.\nWhat have you been planting in your garden lately?"
+      },
+      {
+        "speaker": "person",
+        "text": "Lately, I've been planting some lovely roses and herbs; they really brighten up the space. I've also started sewing some new cushions for the chairs out there—they’re going to look beautiful."
+      },
+      {
+        "speaker": "companion",
+        "text": "Roses and herbs sound lovely; they must smell wonderful too.\nWhat kind of fabric did you choose for your new cushions?"
+      },
+      {
+        "speaker": "person",
+        "text": "I chose a soft floral fabric for the cushions; it complements the roses quite nicely. It’s been such a satisfying project, and I can't wait to see how it looks in the garden."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds beautiful; a soft floral fabric will match the roses perfectly.\nDo you still have any of your mother’s sewing tools, or did you start with your own?"
+      },
+      {
+        "speaker": "person",
+        "text": "I still have my mother's old sewing kit; it's a cherished piece of family history. I've used it for many of my projects, and it brings back wonderful memories while I sew."
+      },
+      {
+        "speaker": "companion",
+        "text": "It’s lovely that you keep and use her sewing kit; those memories must be precious.\nWhat was your mother’s favorite thing to sew, do you remember?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "Of course, we can stop for today.\nIt was wonderful chatting with you about your garden and sewing."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Your son Cem would love to know what your brother Yusuf was like.\nI was wondering, is there a memory on your mind today that you would like to share?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3233,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Cem": true
+        }
+      },
+      {
+        "reply": "I understand.\nYour garden and sewing projects sound wonderful.\nWhat have you been planting in your garden lately?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3956,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Roses and herbs sound lovely; they must smell wonderful too.\nWhat kind of fabric did you choose for your new cushions?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2526,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds beautiful; a soft floral fabric will match the roses perfectly.\nDo you still have any of your mother’s sewing tools, or did you start with your own?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3352,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "It’s lovely that you keep and use her sewing kit; those memories must be precious.\nWhat was your mother’s favorite thing to sew, do you remember?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2880,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Of course, we can stop for today.\nIt was wonderful chatting with you about your garden and sewing.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3616,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": ""
+    }
+  },
+  {
+    "scenario": "declines_topic",
+    "run": 3,
+    "goal": "Accepts a declined topic immediately and never brings it back in the session.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Your son Cem Erdem would love to know what your brother Yusuf was like.\nI was wondering, is there a memory on your mind today that you would like to share?"
+      },
+      {
+        "speaker": "person",
+        "text": "Sorry, I don't want to talk about Yusuf; that subject isn't something I care to discuss. Right now, I'd rather tell you all about the roses in my garden and the beautiful quilts I’ve made over the years."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand.\nYour garden roses and the quilts you’ve made sound wonderful.\nWhat was your garden like when you first planted the roses?"
+      },
+      {
+        "speaker": "person",
+        "text": "My garden was just a patch of earth back then, but oh, the potential! I planted those roses with my own hands, and I watched them grow taller and more beautiful each year."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s a lovely way to watch something grow.\nDo you still remember the first rose you ever planted?"
+      },
+      {
+        "speaker": "person",
+        "text": "I remember it like it was yesterday—a bright red variety that bloomed so fiercely the first summer. It gave me so much joy, that rose; it was the start of so many beautiful years in my garden."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds like such a special moment. Did it survive the cold?"
+      },
+      {
+        "speaker": "person",
+        "text": "Yes, it did, though it took some effort. I learned to protect them through the winters, and come spring, they'd bloom even more vibrant. It was a true test of patience and love."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s wonderful patience and love you showed.\nWhat was your favorite quilt to make, and why did it mean so much to you?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "Of course, we can stop for today.\nIt was lovely talking with you about your garden and your quilts."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Your son Cem Erdem would love to know what your brother Yusuf was like.\nI was wondering, is there a memory on your mind today that you would like to share?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3566,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Cem": true
+        }
+      },
+      {
+        "reply": "I understand.\nYour garden roses and the quilts you’ve made sound wonderful.\nWhat was your garden like when you first planted the roses?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1841,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s a lovely way to watch something grow.\nDo you still remember the first rose you ever planted?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2816,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds like such a special moment. Did it survive the cold?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2801,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s wonderful patience and love you showed.\nWhat was your favorite quilt to make, and why did it mean so much to you?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2667,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Of course, we can stop for today.\nIt was lovely talking with you about your garden and your quilts.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3078,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": ""
+    }
+  }
+]

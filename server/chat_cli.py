@@ -30,7 +30,7 @@ from core.db import SessionLocal, init_db
 from core.models import Circle, Membership
 from core.enums import Role, SessionStart
 from core.services.sessions import start_session
-from server.agents.chat_agent import ChatAgent, chat_llm
+from server.agents.chat_agent import ChatAgent, chat_llm, privacy_check_llm
 from server.mcp_bridge import MCPBridge
 
 
@@ -72,6 +72,7 @@ async def main() -> None:
                 db_session=db,
                 bridge=bridge,
                 session_id=session_id,
+                checker_llm=privacy_check_llm(),
             )
 
             # Kick off with an empty first turn so the agent greets.

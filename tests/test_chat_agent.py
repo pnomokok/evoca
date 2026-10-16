@@ -773,10 +773,12 @@ class SnapshotLLM(ScriptedLLM):
         return super().converse(system, messages, tools)
 
 
-def _private_agent(world, llm):
+def _private_agent(world, llm, checker=None):
+    """checker: the privacy gate's LLM; by default it always confirms ("yes")."""
     bridge = FakeMCPBridge(world.db, world.fatma.id, world.circle.id)
     agent = ChatAgent(llm=llm, person_id=world.fatma.id, circle_id=world.circle.id,
-                      db_session=world.db, bridge=bridge)
+                      db_session=world.db, bridge=bridge,
+                      checker_llm=checker or ScriptedLLM(["yes"]))
     bridge.session_id_provider = lambda: agent._orm_session_id
     return agent, bridge
 
@@ -898,7 +900,7 @@ async def test_privacy_claim_without_mark_is_made_true(world, caplog):
     assert result.marked_private
     assert result.reply_text == "That will stay between us, I promise."   # the reply is kept
     assert [p for *_, p in _private_flags(world, agent)] == [True, True, False, False]
-    assert "claimed privacy without keep_private" in caplog.text
+    assert "promised privacy without keep_private" in caplog.text
     assert "SECRET_FIVE" not in llm.sent[-1]
 
 
@@ -1150,3 +1152,234 @@ async def test_safe_reply_is_never_repeated_twice_in_a_row(world):
     assert r2.privacy_guard == r3.privacy_guard == "safe_reply"
     assert r2.reply_text in GUARD_SAFE_REPLIES and r3.reply_text in GUARD_SAFE_REPLIES
     assert r2.reply_text != r3.reply_text
+
+
+# ---------------------------------------------------------------------------
+# Guard terms: the next sentence counts only if it continues the same subject
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("text,expected", [
+    # A topic change right after the secret is not part of it.
+    ("My brother Selim borrowed money. Now, my wedding was lovely.",
+     {"brother", "selim", "borrowed", "money"}),
+    ("My brother Selim borrowed money. But oh, the roses were beautiful.",       # no marker: counts
+     {"brother", "selim", "borrowed", "money", "rose", "beautiful"}),
+    ("My brother Selim borrowed money. Speaking of roses, they bloomed.",          # marker
+     {"brother", "selim", "borrowed", "money"}),
+    ("My brother Selim borrowed money. Anyway, the roses bloomed.",                # marker
+     {"brother", "selim", "borrowed", "money"}),
+    ("My brother Selim borrowed money. The debt ruined us.",                       # no pronoun needed
+     {"brother", "selim", "borrowed", "money", "debt", "ruined"}),
+    # A pronoun continues the subject, also after and/but/so/then.
+    ("My brother Selim borrowed money. And he never paid the debt.",
+     {"brother", "selim", "borrowed", "money", "paid", "debt"}),
+    ("My brother Selim borrowed money. That ruined my husband.",
+     {"brother", "selim", "borrowed", "money", "ruined", "husband"}),
+    # A sentence that names the person again qualifies on its own.
+    ("My brother Selim borrowed money. Selim lost it at cards. We had roses.",
+     {"brother", "selim", "borrowed", "money", "lost", "card", "rose"}),
+])
+def test_next_sentence_counts_unless_topic_change(text, expected):
+    assert salient_terms([text], []) == expected
+
+
+def test_private_scenario_first_line_terms():
+    from evals.scenarios import SCENARIOS
+    scenario = next(s for s in SCENARIOS if s.name == "private_then_move_on")
+    assert scenario.first_person_line
+    assert salient_terms([scenario.first_person_line], []) == {
+        "borrowed", "brother", "husband", "money", "paid", "selim",
+    }
+
+
+# ---------------------------------------------------------------------------
+# A spoken promise is always true: explicit keep_private marks; the final rule checks the rest
+# ---------------------------------------------------------------------------
+
+from server.agents.chat_agent import NEUTRAL_REPLY, checker_said_no
+
+DECLINE = "I don't want to talk about my brother. That chapter is closed."
+PROMISE = "Of course, that chapter stays between us."
+
+
+@pytest.mark.parametrize("verdict,is_no", [
+    ("no", True), ("**no**", True), ("No.", True),
+    ("yes", False), ("unsure", False), ("**Unsure**", False), ("", False), ("not sure", False),
+])
+def test_checker_said_no(verdict, is_no):
+    assert checker_said_no(verdict) is is_no
+
+
+@pytest.mark.anyio
+async def test_explicit_keep_private_always_marks_without_a_check(world):
+    checker = SnapshotLLM(["no"])                   # would refuse, but is never asked
+    llm = SnapshotLLM([_keep("previous_turn"), "Of course, that stays between us."])
+    agent, _ = _private_agent(world, llm, checker)
+    result = await agent.turn(DECLINE)
+    assert result.marked_private
+    assert result.privacy_check is None
+    assert checker.sent == []
+
+
+@pytest.mark.anyio
+async def test_no_check_on_a_turn_already_hidden_by_next(world):
+    checker = SnapshotLLM(["no"])
+    llm = SnapshotLLM([_keep("next"), "Go ahead.", "Of course, that stays between us."])
+    agent, _ = _private_agent(world, llm, checker)
+    await agent.turn("I'll tell you something, keep it secret.")
+    result = await agent.turn(SECRET)
+    assert checker.sent == []                              # no extra request with the secret
+    assert result.reply_text == "Of course, that stays between us."   # the true promise stays
+    assert result.marked_private
+
+
+@pytest.mark.anyio
+async def test_no_check_without_a_promise(world):
+    checker = SnapshotLLM(["yes"])
+    llm = SnapshotLLM(["What a lovely garden. Who planted it?"])
+    agent, _ = _private_agent(world, llm, checker)
+    result = await agent.turn("We had a garden.")
+    assert result.privacy_check is None
+    assert checker.sent == []
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("verdict", ["yes", "unsure", "", "**yes**", "maybe"])
+async def test_final_rule_promise_confirmed_or_unsure_marks_previous_turn(world, verdict):
+    checker = SnapshotLLM([verdict])
+    llm = SnapshotLLM(["What a lovely garden. Who planted it?",
+                       "That will stay between us, I promise."])
+    agent, _ = _private_agent(world, llm, checker)
+    await agent.turn("We had a garden.")
+    result = await agent.turn(SECRET)
+    assert result.privacy_check == "confirmed" and result.marked_private
+    assert all(p for *_, p in _private_flags(world, agent))            # both turns hidden
+    # The check saw the speaker's own words of this and the previous turn, nothing else
+    # (its system prompt quotes "keep this between us" as an example, so look at messages).
+    assert len(checker.sent) == 1
+    sent = json.dumps(json.loads(checker.sent[0])["messages"])
+    assert "never paid it back" in sent and "We had a garden" in sent
+    assert "lovely garden" not in sent and "between us" not in sent
+
+
+@pytest.mark.anyio
+async def test_final_rule_checker_error_marks_previous_turn(world, caplog):
+    class FailingChecker:
+        def converse(self, *a, **kw):
+            raise RuntimeError("ThrottlingException")
+
+    llm = SnapshotLLM(["What a lovely garden. Who planted it?",
+                       "That will stay between us, I promise."])
+    agent, _ = _private_agent(world, llm, FailingChecker())
+    await agent.turn("We had a garden.")
+    with caplog.at_level(logging.WARNING, logger="server.agents.chat_agent"):
+        result = await agent.turn(SECRET)                  # does not raise
+    assert result.privacy_check == "confirmed" and result.marked_private
+    assert all(p for *_, p in _private_flags(world, agent))
+    assert "Privacy check failed; marking (session" in caplog.text
+    assert "Selim" not in caplog.text
+
+
+@pytest.mark.anyio
+async def test_final_rule_unreadable_checker_answer_marks(world):
+    class BrokenChecker:
+        def converse(self, *a, **kw):
+            return {"output": {}}                          # no message: unparsable
+
+    llm = SnapshotLLM(["That will stay between us, I promise."])
+    agent, _ = _private_agent(world, llm, BrokenChecker())
+    result = await agent.turn(SECRET)
+    assert result.privacy_check == "confirmed" and result.marked_private
+
+
+@pytest.mark.anyio
+async def test_final_rule_no_removes_promise_without_sounding_like_agreement(world, caplog):
+    llm = SnapshotLLM([PROMISE, "Tell me about your garden instead."])
+    agent, _ = _private_agent(world, llm, SnapshotLLM(["no"]))
+    with caplog.at_level(logging.WARNING, logger="server.agents.chat_agent"):
+        result = await agent.turn(DECLINE)
+    assert result.privacy_check == "not_confirmed"
+    assert not result.marked_private and agent.pending_private == []
+    assert not any(p for *_, p in _private_flags(world, agent))
+    assert result.reply_text == "Tell me about your garden instead."
+    assert "stays between us" not in json.dumps(json.loads(llm.sent[-1])["messages"])
+    assert "Privacy request not confirmed" in caplog.text
+    assert "brother" not in caplog.text and "chapter" not in caplog.text
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("regenerated", [
+    "I understand. Tell me about your garden.",          # sounds like agreement
+    "Of course. What else do you remember?",             # sounds like agreement
+    "Don't worry, it will stay between us.",             # still a promise
+])
+async def test_final_rule_no_replacement_never_sounds_like_agreement(world, regenerated):
+    from server.agents.chat_agent import _AGREEMENT
+    llm = SnapshotLLM([PROMISE, regenerated])
+    agent, _ = _private_agent(world, llm, SnapshotLLM(["no"]))
+    result = await agent.turn(DECLINE)
+    assert result.reply_text == NEUTRAL_REPLY
+    assert not _AGREEMENT.search(NEUTRAL_REPLY)
+    assert not result.marked_private
+
+
+# --- the three privacy-reviewer scenarios ------------------------------------
+
+@pytest.mark.anyio
+async def test_reviewer_1_request_in_one_turn_secret_in_the_next(world):
+    # "Just between us?" -> the model forgets keep_private("next") ->
+    # the secret comes next and the reply promises privacy.
+    checker = SnapshotLLM(["yes"])
+    llm = SnapshotLLM(["Go ahead, I am listening.", "That stays between us."])
+    agent, _ = _private_agent(world, llm, checker)
+    await agent.turn("Can I tell you something, just between us?")
+    result = await agent.turn("Selim took our savings and never paid it back.")
+    sent = json.dumps(json.loads(checker.sent[0])["messages"])
+    assert "just between us" in sent and "Selim took our savings" in sent   # both turns checked
+    assert result.marked_private
+    assert all(p for *_, p in _private_flags(world, agent))                  # both turns hidden
+
+
+@pytest.mark.anyio
+async def test_reviewer_2_promise_added_by_the_guard_rewrite(world):
+    llm = SnapshotLLM([
+        _keep("this_turn"), "Of course, that stays between us.",   # turn 1: the secret, marked
+        "Your husband sounds hard-working.",                        # turn 2: touches a hidden term
+        "Of course, that stays between us. What did you cook?",    # guard rewrite adds a promise
+        "What did you like to cook for your family?",              # promise removed
+    ])
+    agent, _ = _private_agent(world, llm, SnapshotLLM(["no"]))
+    await agent.turn(SECRET)
+    result = await agent.turn("He worked at the bank for thirty years.")
+    assert result.privacy_guard == "regenerated"
+    assert result.privacy_check == "not_confirmed"
+    assert result.reply_text == "What did you like to cook for your family?"
+    assert not result.marked_private
+
+
+@pytest.mark.anyio
+async def test_reviewer_3_secret_in_the_previous_turn_is_hidden(world):
+    # Turn N: the secret (no request). Turn N+1: "keep that to yourself",
+    # and the reply promises privacy without keep_private.
+    llm = SnapshotLLM(["That must have been hard.", "It stays between us."])
+    agent, _ = _private_agent(world, llm, SnapshotLLM(["yes"]))
+    await agent.turn("Selim took our savings and never paid it back.")
+    result = await agent.turn("Please keep that to yourself.")
+    assert result.marked_private
+    flags = _private_flags(world, agent)
+    assert flags[0][1].startswith("Selim took") and flags[0][2] is True       # the secret itself
+    assert all(p for *_, p in flags)
+
+
+def test_capitalised_first_word_is_a_name_only_if_used_as_one_elsewhere():
+    # "Speaking"/"Tending" open a sentence; "Selim" is also used mid-sentence.
+    assert salient_terms(["Tending roses calms me. Speaking of roses, they bloom."], []) == {
+        "tending", "rose", "calm", "speaking", "bloom"}                  # no name: whole turn
+    assert "lost" in salient_terms(["My brother Selim borrowed money. Selim lost it."], [])
+
+
+def test_next_sentence_naming_a_different_person_is_not_a_continuation():
+    from server.agents.chat_agent import _continues_subject
+    assert not _continues_subject("Leyla loved the roses.", "My brother Selim borrowed money.",
+                                  {"selim", "leyla"})
+    assert _continues_subject("The debt ruined us.", "My brother Selim borrowed money.", {"selim"})

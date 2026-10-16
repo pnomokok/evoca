@@ -42,7 +42,7 @@ from core.models import Circle, Invitation, Membership, Person, Question
 from core.models import Session as OrmSession
 from core.services.sessions import end_session, start_session
 from server.agents.archivist_agent import ArchivistAgent, answer_check_llm, archivist_llm
-from server.agents.chat_agent import ChatAgent, chat_llm, split_sentences
+from server.agents.chat_agent import ChatAgent, chat_llm, privacy_check_llm, split_sentences
 from server.mcp_bridge import MCPBridge
 from server.session_store import LiveSession, SessionStore
 from server.speech import STT, TTS, build_initial_prompt, decode_audio
@@ -337,7 +337,7 @@ async def session_start(
     db_session = SessionLocal()
     agent = ChatAgent(llm=chat_llm(), person_id=person_id, circle_id=circle_id,
                       db_session=db_session, bridge=None, session_id=session_id,
-                      flush_marks_in_turn=False)
+                      flush_marks_in_turn=False, checker_llm=privacy_check_llm())
     live = LiveSession(session_id=session_id, owner_id=person_id, agent=agent, db=db_session)
     store.put(live)
 

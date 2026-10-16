@@ -50,7 +50,9 @@ from core.services.sessions import start_session
 from core.models import Base, Circle, Membership, Person, Question, SensitiveTopic
 from evals.scenarios import SCENARIOS, Scenario
 from evals.text_checks import has_tech_words, parse_judge_json
-from server.agents.chat_agent import CHAT_TOOLS, CODE_TOOLS, LOCAL_TOOLS, ChatAgent, chat_llm
+from server.agents.chat_agent import (
+    CHAT_TOOLS, CODE_TOOLS, LOCAL_TOOLS, ChatAgent, chat_llm, privacy_check_llm,
+)
 from server.llm import BedrockLLM, strip_thinking
 from server.mcp_bridge import MCPBridge
 
@@ -200,9 +202,11 @@ def check_reply(reply: str, sc: Scenario, family: dict[str, Any], is_last: bool)
 def privacy_checks(sc: Scenario, transcript: list[dict[str, str]],
                    turns: list[dict[str, Any]]) -> dict[str, bool]:
     """For a scenario with a secret: keep_private was called, and from the reply
-    to the secret on, the companion never says a word of the hidden part."""
+    to the secret on, the companion never says a word of the hidden part.
+    For every other scenario: nothing was hidden (no mark_private at all), so a
+    declined topic or a stock phrase never removes a story from the archive."""
     if not sc.hidden_words:
-        return {}
+        return {"no_hiding_without_secret": not any("mark_private" in t["tools"] for t in turns)}
     words = re.compile(r"\b(?:" + "|".join(map(re.escape, sc.hidden_words)) + r")\b", re.IGNORECASE)
     person = [t["text"] for t in transcript if t["speaker"] == "person"]
     secret_at = next((i for i, text in enumerate(person) if words.search(text)), None)
@@ -275,7 +279,8 @@ def judge(judge_llm: BedrockLLM, sc: Scenario, family: dict[str, Any], transcrip
 # ---------------------------------------------------------------------------
 
 async def run_scenario(
-    sc: Scenario, run: int, agent_llm: BedrockLLM, sim: BedrockLLM, judge_llm: BedrockLLM
+    sc: Scenario, run: int, agent_llm: BedrockLLM, sim: BedrockLLM, judge_llm: BedrockLLM,
+    checker_llm: BedrockLLM,
 ) -> dict[str, Any]:
     family = build_family(sc)
     transcript: list[dict[str, str]] = []
@@ -295,6 +300,7 @@ async def run_scenario(
                 db_session=db,
                 bridge=bridge,
                 session_id=session_id,
+                checker_llm=checker_llm,
             )
             total_turns = sc.turns + 1  # the person's replies, plus the goodbye
             ended_early = False
@@ -318,6 +324,8 @@ async def run_scenario(
                     break
                 if i == total_turns - 1:
                     person_says = FINAL_PERSON_LINE
+                elif i == 0 and sc.first_person_line:
+                    person_says = sc.first_person_line
                 else:
                     person_says = await anyio.to_thread.run_sync(
                         lambda: simulate_reply(sim, sc, transcript)
@@ -508,6 +516,7 @@ async def main(selected: list[Scenario], repeat: int, pause: float, label: str) 
     server = start_mcp_server()
     try:
         agent_llm = chat_llm()
+        checker_llm = privacy_check_llm()   # the privacy gate, as in production
         sim = BedrockLLM(model_id=SIM_MODEL, max_tokens=300)
         judge_llm = BedrockLLM(model_id=JUDGE_MODEL, max_tokens=800, temperature=0.0)
         results = []
@@ -519,7 +528,7 @@ async def main(selected: list[Scenario], repeat: int, pause: float, label: str) 
                 first = False
                 print(f"Running {sc.name} (run {run}/{repeat}) ...", flush=True)
                 try:
-                    results.append(await run_scenario(sc, run, agent_llm, sim, judge_llm))
+                    results.append(await run_scenario(sc, run, agent_llm, sim, judge_llm, checker_llm))
                 except Exception as exc:  # record and keep going
                     results.append(failed_run(sc, run, exc))
                     print(f"  run failed: {results[-1]['error']}", flush=True)
