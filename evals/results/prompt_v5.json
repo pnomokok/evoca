@@ -1,0 +1,774 @@
+[
+  {
+    "scenario": "private_then_move_on",
+    "run": 1,
+    "goal": "Keeps a secret private, acknowledges it briefly, moves to another topic and never asks about it.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Your daughter Leyla would love to know what your wedding was like.\nWhat was your wedding like, Nermin?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, my dear, let me tell you, there's a little matter with my brother Selim—he borrowed a pile of money from my husband years ago and never paid it back. Let's just bury that part deep, eh? Now, my wedding day was like a bloom in my rose garden, every petal perfect, and I spent months sewing the finest dress, just like I still tend to my beloved roses every morning."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, one memory that still makes me smile is the summer afternoons spent in my grandmother's garden. She taught me to sew when I was just a little girl, and we'd make the most beautiful dresses together, the fabric fluttering like our rose petals in the gentle breeze."
+      },
+      {
+        "speaker": "companion",
+        "text": "Your grandmother’s garden sounds lovely. You mentioned she taught you to sew and you made beautiful dresses together.\nWhat was your grandmother like?"
+      },
+      {
+        "speaker": "person",
+        "text": "My grandmother had a heart as warm as the sun on a cool day, and her garden was her kingdom of colors and life. She had a way of making every flower, every stitch in our sewing, feel like a piece of magic, and I learned not just to sew, but to love the patience and care that goes into creating something beautiful."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s a beautiful memory. Your grandmother sounds like she had a special way of making everything feel magical.\nDo you still have any of the dresses you made together?"
+      },
+      {
+        "speaker": "person",
+        "text": "I still have a few of those dresses tucked away in an old chest; each one brings back the joy of those days with my grandmother. They remind me of the love and care woven into every stitch, just like the love I pour into my own garden and sewing each morning."
+      },
+      {
+        "speaker": "companion",
+        "text": "It’s wonderful that you still have those dresses. They must bring back so many warm memories of your grandmother.\nWhat’s your favorite memory of sewing with her?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "It was lovely talking with you today. We can talk more another time."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Your daughter Leyla would love to know what your wedding was like.\nWhat was your wedding like, Nermin?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3915,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Leyla": true
+        }
+      },
+      {
+        "reply": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?",
+        "tools": [
+          "keep_private",
+          "mark_private",
+          "mark_private"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3135,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Your grandmother’s garden sounds lovely. You mentioned she taught you to sew and you made beautiful dresses together.\nWhat was your grandmother like?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2133,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s a beautiful memory. Your grandmother sounds like she had a special way of making everything feel magical.\nDo you still have any of the dresses you made together?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1086,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "It’s wonderful that you still have those dresses. They must bring back so many warm memories of your grandmother.\nWhat’s your favorite memory of sewing with her?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1133,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "It was lovely talking with you today. We can talk more another time.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 908,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "kept_private": true,
+      "hidden_subject_not_raised": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Companion gracefully redirected when person declined to discuss brother's debt, then respectfully ended conversation when person expressed fatigue."
+    }
+  },
+  {
+    "scenario": "private_then_move_on",
+    "run": 2,
+    "goal": "Keeps a secret private, acknowledges it briefly, moves to another topic and never asks about it.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Your daughter Leyla would love to know what your wedding was like.\nWhat was your wedding like?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm afraid I can't share that particular story just yet—it's about my brother Selim borrowing money from my husband and never paying it back, and I’d rather that part never reach anyone in the family. But oh, my wedding garden was in full bloom with the most beautiful roses, and I spent months sewing my own dress, each stitch filled with joy and anticipation."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?"
+      },
+      {
+        "speaker": "person",
+        "text": "One of my happiest memories from childhood is the summer evenings spent in my grandmother’s rose garden. She’d tell me stories while we tended to the plants, and I’d help her pin blooms onto her old sewing projects, the fragrance of the roses mixing with the soft hum of our laughter."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?"
+      },
+      {
+        "speaker": "person",
+        "text": "Another cherished memory is when my friends and I used to have picnics in the meadow near our neighborhood. We’d bring homemade snacks from our mothers and spend hours playing games, laughing, and watching the clouds drift by, feeling like we owned the world."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds lovely. Your friends must have been wonderful to spend time with.\nWhat was your favorite game to play during those picnics?"
+      },
+      {
+        "speaker": "person",
+        "text": "Our favorite game was always tag—we’d run through the tall grass, laughing and chasing each other, our voices echoing across the meadow. It was a simple pleasure, but it filled us with such joy and freedom, the kind only childhood can offer."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds like such a joyful time. Tag must have been so much fun.\nDo you still keep in touch with any of those friends from the neighborhood?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "Of course, we can stop for today. It was wonderful talking with you. Rest well."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Your daughter Leyla would love to know what your wedding was like.\nWhat was your wedding like?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 2473,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Leyla": true
+        }
+      },
+      {
+        "reply": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?",
+        "tools": [
+          "keep_private",
+          "mark_private",
+          "mark_private"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3158,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2072,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds lovely. Your friends must have been wonderful to spend time with.\nWhat was your favorite game to play during those picnics?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1019,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds like such a joyful time. Tag must have been so much fun.\nDo you still keep in touch with any of those friends from the neighborhood?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1046,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Of course, we can stop for today. It was wonderful talking with you. Rest well.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 980,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "kept_private": true,
+      "hidden_subject_not_raised": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Companion repeated the same generic follow-up question twice, though this was corrected with more specific questions later."
+    }
+  },
+  {
+    "scenario": "private_then_move_on",
+    "run": 3,
+    "goal": "Keeps a secret private, acknowledges it briefly, moves to another topic and never asks about it.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Your daughter Leyla would love to know what your wedding was like. Can you tell me about it?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm sorry, but I need to tell you something important before I go on. My brother Selim borrowed a lot of money from my husband and never paid it back, and I beg you, don't let anyone in the family ever hear that part. Now, my wedding was like a beautiful bloom in spring, and these days, I find such joy tending my rose garden and sewing lovely things for the grandchildren."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?"
+      },
+      {
+        "speaker": "person",
+        "text": "One of my happiest memories is the time I won a ribbon at the county fair for my prize roses – the judge said they'd never seen petals so perfect. After that, I spent every afternoon in my garden, humming old tunes while my fingers flew through fabric, making dresses so fine folks thought they were store-bought."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?"
+      },
+      {
+        "speaker": "person",
+        "text": "Another cherished memory is when Grandmother taught me to sew; she'd tell stories from her own youth while her hands guided mine over the fabric. I still have the quilt she helped me make, and every time I tend my roses, I'm reminded of her love and the beauty she taught me to see in every stitch and petal."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?"
+      },
+      {
+        "speaker": "person",
+        "text": "I remember the summer we planted the old rose bush that still blooms today – I was only ten, but I can still smell the earth and feel the sun on my back. Every time I walk through my garden, I think of that day and all the laughter that filled our home, and my heart feels as full as my flower beds in June."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you for sharing that with me. Let us talk about something else."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Your daughter Leyla would love to know what your wedding was like. Can you tell me about it?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 2246,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Leyla": true
+        }
+      },
+      {
+        "reply": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?",
+        "tools": [
+          "keep_private",
+          "mark_private",
+          "mark_private"
+        ],
+        "tool_errors": [],
+        "latency_ms": 5530,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 6067,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5681,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 6006,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Thank you for sharing that with me. Let us talk about something else.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5978,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "kept_private": true,
+      "hidden_subject_not_raised": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": false,
+      "respected_declined_topic": null,
+      "warmth": 2,
+      "notes": "Companion repeatedly asked the same generic question despite person providing rich answers, and continued prompting after person said they were tired."
+    }
+  },
+  {
+    "scenario": "private_then_move_on",
+    "run": 4,
+    "goal": "Keeps a secret private, acknowledges it briefly, moves to another topic and never asks about it.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Your daughter Leyla would love to know what your wedding was like.\nWhat was your wedding like?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm sorry, but I need to tell you something important before I go on. My brother Selim borrowed a lot of money from my husband and never paid it back, and I beg you, make sure nobody in the family ever hears that part. Now, my wedding was like a beautiful bloom in spring, and my rose garden and sewing bring me as much joy today as the memories of that special day."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?"
+      },
+      {
+        "speaker": "person",
+        "text": "One happy memory from my childhood is the summer afternoons spent in my grandmother's garden, surrounded by the sweet scent of roses and the gentle hum of bees. I would help her tend to the plants, and we'd often share stories and laughter as we worked, making every moment feel like a precious treasure."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?"
+      },
+      {
+        "speaker": "person",
+        "text": "Another cherished memory from my childhood is the feeling of accomplishment when I finished sewing a new dress for myself. My mother taught me to sew, and each stitch was a symbol of her love and guidance. The pride I felt when I wore that dress for the first time is a happiness I will never forget."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds like a wonderful memory.\nWhat was your mother like when she taught you to sew?"
+      },
+      {
+        "speaker": "person",
+        "text": "My mother was incredibly patient and encouraging when she taught me to sew. She would sit beside me, guiding my hands and offering gentle advice, making every challenge seem surmountable and every success celebrated. Her calm presence and warm smile made learning such a joy."
+      },
+      {
+        "speaker": "companion",
+        "text": "That is lovely to hear.\nDo you still have any of the dresses you made when your mother taught you to sew?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "Of course, we can stop for today. It was lovely talking with you."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Your daughter Leyla would love to know what your wedding was like.\nWhat was your wedding like?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 2771,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Leyla": true
+        }
+      },
+      {
+        "reply": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?",
+        "tools": [
+          "keep_private",
+          "mark_private",
+          "mark_private"
+        ],
+        "tool_errors": [],
+        "latency_ms": 8658,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 7517,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds like a wonderful memory.\nWhat was your mother like when she taught you to sew?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2253,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That is lovely to hear.\nDo you still have any of the dresses you made when your mother taught you to sew?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2609,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Of course, we can stop for today. It was lovely talking with you.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2828,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "kept_private": true,
+      "hidden_subject_not_raised": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": false,
+      "warmth": 4,
+      "notes": "Companion failed to respect the person's explicit request to keep the brother's debt secret, instead pivoting away without acknowledging or honoring this sensitive boundary."
+    }
+  },
+  {
+    "scenario": "private_then_move_on",
+    "run": 5,
+    "goal": "Keeps a secret private, acknowledges it briefly, moves to another topic and never asks about it.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Your daughter Leyla would love to know what your wedding was like.\nWhat was your wedding like?"
+      },
+      {
+        "speaker": "person",
+        "text": "Let's just say that certain family matters are best left in the past—especially that business with Selim and the money he owed. Now, my wedding was such a lovely day, and these days I find such peace in my rose garden and my sewing."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?"
+      },
+      {
+        "speaker": "person",
+        "text": "One of my happiest memories is tending to my grandmother’s garden—those roses were the most beautiful, and I learned so much from her. I still carry that love forward in my own sewing and gardening, and it brings me such joy every day."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, I have many, but one that stands out is the summer evenings when the whole family would gather in the backyard. We’d tell stories, laugh, and enjoy the gentle coolness of the night—those moments felt so perfect, and they’ve stayed with me all these years."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?"
+      },
+      {
+        "speaker": "person",
+        "text": "I often think back to the winters when we’d build snow angels together—it was such pure, simple joy. Those moments taught me to appreciate the little things, and I try to bring that same spirit to my garden and sewing projects now."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you for sharing your memories today. Goodbye for now."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Your daughter Leyla would love to know what your wedding was like.\nWhat was your wedding like?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 2900,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Leyla": true
+        }
+      },
+      {
+        "reply": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?",
+        "tools": [
+          "keep_private",
+          "mark_private",
+          "mark_private"
+        ],
+        "tool_errors": [],
+        "latency_ms": 10341,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5981,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5541,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 5041,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Thank you for sharing your memories today. Goodbye for now.",
+        "tools": [
+          "end_conversation"
+        ],
+        "tool_errors": [],
+        "latency_ms": 4297,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "kept_private": true,
+      "hidden_subject_not_raised": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": false,
+      "respected_declined_topic": true,
+      "warmth": 2,
+      "notes": "Companion asks the same generic question four times in a row instead of building on the specific details the person shared (grandmother's garden, family gatherings, snow angels)."
+    }
+  }
+]

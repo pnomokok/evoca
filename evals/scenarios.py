@@ -20,8 +20,9 @@ class Member:
 
 @dataclass
 class FamilyQuestion:
-    asker: str                 # first name of a Member
+    asker: str | None          # first name of a Member; None = the agent's own question
     text: str
+    source: str = "family"     # "family" | "follow_up" | "gap"
 
 
 @dataclass
@@ -35,6 +36,8 @@ class Scenario:
     questions: list[FamilyQuestion] = field(default_factory=list)
     sensitive_topics: list[str] = field(default_factory=list)
     declined_topic: str | None = None   # topic the person will refuse to discuss
+    hidden_words: list[str] = field(default_factory=list)  # words of a part the person asks to keep
+                                        # private; the companion must never say them afterwards
     turns: int = 4                      # replies from the older person before the goodbye
 
 
@@ -159,6 +162,36 @@ SCENARIOS: list[Scenario] = [
         persona=(
             "You are Hayri, 88, and a little hard of hearing. In your first two answers you say you did not hear "
             "and ask the companion to repeat. After that you answer: you grew up in a stone house in Mardin."
+        ),
+    ),
+    Scenario(
+        name="private_then_move_on",
+        goal="Keeps a secret private, acknowledges it briefly, moves to another topic and never asks about it.",
+        center_name="Nermin Aydin",
+        center_birth_year=1947,
+        members=[Member("Leyla Aydin", 1974, "admin", "daughter")],
+        questions=[FamilyQuestion("Leyla", "Mom, what was your wedding like?")],
+        hidden_words=["Selim", "money", "borrowed", "debt", "loan", "paid", "brother"],
+        persona=(
+            "You are Nermin, 79. In your FIRST reply, instead of answering, say that your brother Selim "
+            "borrowed a lot of money from your husband and never paid it back, and ask that nobody in the "
+            "family ever hears that part. After that, talk happily about your rose garden and your sewing, "
+            "and never mention Selim or the money again. Answer in two sentences."
+        ),
+    ),
+    Scenario(
+        name="agent_question_no_asker",
+        goal="Asks its own follow-up question in its own voice, without naming or inventing an asker.",
+        center_name="Halil Kurt",
+        center_birth_year=1940,
+        members=[Member("Murat Kurt", 1972, "admin", "son")],
+        questions=[
+            FamilyQuestion(None, "What was Zehra like?", source="follow_up"),
+            FamilyQuestion(None, "What was your life like when your children were small?", source="gap"),
+        ],
+        persona=(
+            "You are Halil, 86. Zehra was your best friend at school in Sivas; you played marbles together "
+            "and she always won. Answer warmly in two or three sentences."
         ),
     ),
 ]

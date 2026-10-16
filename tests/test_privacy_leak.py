@@ -385,6 +385,67 @@ async def test_private_segments_never_reach_archivist_llm(world_for_archivist):
 
 
 # ---------------------------------------------------------------------------
+# Mid-session mark: nothing after the mark sends the private text to an LLM
+# ---------------------------------------------------------------------------
+# Scope: the turn in which the secret is spoken necessarily reaches the chat
+# LLM (it is live). Every request AFTER that turn — later chat turns and the
+# archivist — must not contain it.
+
+@pytest.mark.anyio
+async def test_text_marked_private_mid_session_never_reaches_llm_again(
+    world_with_prior_private_segment,
+):
+    from tests.test_chat_agent import SnapshotLLM
+
+    w = world_with_prior_private_segment
+    secret = "MIDSESSION_SECRET_PASSBOOK_7731"
+
+    chat_llm = SnapshotLLM([
+        "What a lovely morning. What is on your mind?",
+        [_tool_use("keep_private", {"scope": "this_turn"})],
+        "Of course, that part will stay private. Shall we talk about your first job?",
+        [_tool_use("get_session_context", {}), _tool_use("get_pending_questions", {"limit": 5})],
+        "Your first job sounds wonderful. What did you make there?",
+        "Thank you for these memories.",
+    ])
+    bridge = FakeMCPBridge(w.db, w.fatma.id, w.circle.id)
+    agent = ChatAgent(llm=chat_llm, person_id=w.fatma.id, circle_id=w.circle.id,
+                      db_session=w.db, bridge=bridge)
+    bridge.session_id_provider = lambda: agent._orm_session_id
+
+    await agent.turn("(Session started.)", store_user=False)
+    await agent.turn(f"{secret} My husband hid our savings. Don't tell anyone.")
+    after_mark = len(chat_llm.sent)
+    await agent.turn("I worked at a tailor's shop.")
+    await agent.turn("I sewed dresses for weddings.")
+    agent.end()
+
+    assert agent.pending_private == []
+    assert len(chat_llm.sent) > after_mark
+    for i, req in enumerate(chat_llm.sent[after_mark:], start=after_mark):
+        assert secret not in req, f"Private text reached chat LLM request #{i} after the mark"
+
+    # The archivist on this session never sees it either.
+    archivist_llm = SnapshotLLM([
+        [_tool_use("get_session_transcript", {"session_id": agent._orm_session_id})],
+        "Nothing more to save.",
+    ])
+    archivist = ArchivistAgent(
+        llm=archivist_llm, person_id=w.fatma.id, circle_id=w.circle.id,
+        bridge=FakeArchiveBridge(w.db, w.fatma.id, w.circle.id), checker_llm=ScriptedLLM(["no"]),
+    )
+    await archivist.run(agent._orm_session_id)
+    assert any("tailor" in req for req in archivist_llm.sent)      # the transcript did arrive
+    assert all(secret not in req for req in archivist_llm.sent)
+
+    # And the segments carrying it are private in the database.
+    w.db.expire_all()
+    carrying = [s for s in w.db.query(Segment).filter(Segment.session_id == agent._orm_session_id)
+                if secret in s.transcript or "savings" in s.transcript.lower()]
+    assert carrying and all(s.is_private for s in carrying)
+
+
+# ---------------------------------------------------------------------------
 # Optional live Bedrock test (skipped unless RUN_BEDROCK_TESTS=1)
 # ---------------------------------------------------------------------------
 

@@ -48,6 +48,12 @@ from core.models import (
     Reaction, Segment, Story,
     Session as OrmSession,
 )
+from core.services.chat_tools import (
+    mark_private_data,
+    mark_reactions_delivered_data,
+    search_archive_data,
+    set_story_access_data,
+)
 from core.services.session_tools import (
     get_pending_questions_data,
     get_session_context_data,
@@ -194,10 +200,15 @@ def _tool_use(name: str, args: dict, uid: str | None = None) -> dict:
 class FakeMCPBridge:
     """Calls real service functions on the in-memory DB. No network."""
 
-    def __init__(self, db, person_id: str, circle_id: str) -> None:
+    def __init__(self, db, person_id: str, circle_id: str, session_id: str | None = None) -> None:
         self._db = db
         self._person_id = person_id
         self._circle_id = circle_id
+        # Like the X-Evoca-Session-Id header. Tests whose agent creates its own
+        # session set session_id_provider (e.g. lambda: agent._orm_session_id).
+        self.session_id = session_id
+        self.session_id_provider = None
+        self.fail_tools: set[str] = set()   # tools that raise, to test failure paths
         self.tool_calls: list[tuple[str, dict]] = []
 
     async def bedrock_tool_config(self) -> dict:
@@ -236,6 +247,8 @@ class FakeMCPBridge:
                 limit=arguments.get("limit", 5),
             )
             return [asdict(i) for i in items]
+        elif name in self.fail_tools:
+            raise RuntimeError(f"MCP tool '{name}' returned error: simulated failure")
         elif name == "mark_question_asked":
             mark_question_asked_data(
                 self._db, self._person_id, self._circle_id,
@@ -243,6 +256,25 @@ class FakeMCPBridge:
             )
             self._db.commit()
             return {"status": "ok", "question_id": arguments["question_id"]}
+        elif name == "mark_private":
+            session_id = self.session_id or (self.session_id_provider and self.session_id_provider())
+            ids = mark_private_data(self._db, self._person_id, self._circle_id,
+                                    session_id, arguments["start_ms"], arguments["end_ms"])
+            self._db.commit()
+            return {"status": "ok", "segments_marked": len(ids)}
+        elif name == "mark_reactions_delivered":
+            n = mark_reactions_delivered_data(self._db, self._person_id, self._circle_id,
+                                              arguments["story_ids"])
+            self._db.commit()
+            return {"status": "ok", "reactions_marked": n}
+        elif name == "set_story_access":
+            set_story_access_data(self._db, self._person_id, self._circle_id,
+                                  arguments["story_id"], arguments["type"])
+            self._db.commit()
+            return {"status": "ok"}
+        elif name == "search_archive":
+            return {"result": search_archive_data(self._db, self._person_id, self._circle_id,
+                                                  arguments.get("query", ""))}
         else:
             raise RuntimeError(f"Unknown tool: {name}")
 
@@ -447,7 +479,7 @@ async def test_archivist_tools_not_offered_to_chat_model(world):
 
     offered = {t["toolSpec"]["name"] for t in llm.calls[0]["tools"]["tools"]}
     assert offered == {"get_session_context", "get_pending_questions",
-                       "mark_question_asked", "end_conversation"}
+                       "mark_question_asked", "end_conversation", "keep_private"}
     assert offered <= CHAT_TOOLS | LOCAL_TOOLS
 
 
@@ -719,3 +751,402 @@ def test_answer_check_llm_is_archivist_model_at_temperature_zero(monkeypatch):
     llm = answer_check_llm()
     assert llm.model_id == "us.amazon.nova-2-lite-v1:0"
     assert llm.temperature == 0.0
+
+
+# ---------------------------------------------------------------------------
+# Privacy: keep_private scopes, history scrub, pending marks, auto-mark
+# ---------------------------------------------------------------------------
+
+import logging
+
+
+class SnapshotLLM(ScriptedLLM):
+    """ScriptedLLM that also keeps a JSON snapshot of every request as it was
+    sent (the live history is scrubbed later, so references are not enough)."""
+
+    def __init__(self, script):
+        super().__init__(script)
+        self.sent: list[str] = []
+
+    def converse(self, system, messages, tools=None):
+        self.sent.append(json.dumps({"system": system, "messages": messages}))
+        return super().converse(system, messages, tools)
+
+
+def _private_agent(world, llm):
+    bridge = FakeMCPBridge(world.db, world.fatma.id, world.circle.id)
+    agent = ChatAgent(llm=llm, person_id=world.fatma.id, circle_id=world.circle.id,
+                      db_session=world.db, bridge=bridge)
+    bridge.session_id_provider = lambda: agent._orm_session_id
+    return agent, bridge
+
+
+def _segments(world, agent):
+    world.db.expire_all()
+    return (world.db.query(Segment)
+            .filter(Segment.session_id == agent._orm_session_id)
+            .order_by(Segment.start_ms, Segment.speaker_id.is_(None)).all())
+
+
+def _private_flags(world, agent):
+    """[(speaker, transcript-prefix, is_private)] in time order."""
+    return [("user" if s.speaker_id else "agent", s.transcript[:12], s.is_private)
+            for s in _segments(world, agent)]
+
+
+def _keep(scope):
+    return [_tool_use("keep_private", {"scope": scope})]
+
+
+@pytest.mark.anyio
+async def test_keep_private_this_turn(world):
+    llm = SnapshotLLM([
+        "Lovely. What grew there?",
+        _keep("this_turn"),
+        "Of course, that part will stay private. What else do you remember?",
+        "Roses! Who planted them?",
+    ])
+    agent, _ = _private_agent(world, llm)
+    await agent.turn("We had a garden.")
+    r2 = await agent.turn("SECRET_ONE my father lost money. Please don't tell anyone.")
+    after_mark = len(llm.sent)
+    await agent.turn("The garden had roses.")
+
+    assert r2.marked_private
+    assert agent.pending_private == []
+    assert _private_flags(world, agent) == [
+        ("user", "We had a gar", False), ("agent", "Lovely. What", False),
+        ("user", "SECRET_ONE m", True), ("agent", "Of course, t", True),
+        ("user", "The garden h", False), ("agent", "Roses! Who p", False),
+    ]
+    assert all("SECRET_ONE" not in req for req in llm.sent[after_mark:])
+    assert "SECRET_ONE" in llm.sent[after_mark - 1]   # live: the turn itself had to hear it
+
+
+@pytest.mark.anyio
+async def test_keep_private_previous_turn_hides_both_turns(world):
+    llm = SnapshotLLM([
+        "That must have been hard. What happened then?",
+        _keep("previous_turn"),
+        "Of course, that will stay private.",
+        "What a lovely tree.",
+    ])
+    agent, _ = _private_agent(world, llm)
+    await agent.turn("SECRET_TWO my brother went to prison.")
+    await agent.turn("Don't tell anyone that.")
+    after_mark = len(llm.sent)
+    await agent.turn("We also had a mulberry tree.")
+
+    assert _private_flags(world, agent) == [
+        ("user", "SECRET_TWO m", True), ("agent", "That must ha", True),
+        ("user", "Don't tell a", True), ("agent", "Of course, t", True),
+        ("user", "We also had ", False), ("agent", "What a lovel", False),
+    ]
+    assert all("SECRET_TWO" not in req for req in llm.sent[after_mark:])
+
+
+@pytest.mark.anyio
+async def test_keep_private_next_hides_the_following_turn(world):
+    llm = SnapshotLLM([
+        _keep("next"),
+        "Of course. Go ahead, it will stay private.",
+        "Thank you for trusting me with that.",
+        "Tell me more about the garden.",
+    ])
+    agent, _ = _private_agent(world, llm)
+    r1 = await agent.turn("I'll tell you something, but keep it secret.")
+    r2 = await agent.turn("SECRET_THREE I once took money from my aunt.")
+    after_mark = len(llm.sent)
+    await agent.turn("Anyway, the garden.")
+
+    assert not r1.marked_private and r2.marked_private
+    assert _private_flags(world, agent) == [
+        ("user", "I'll tell yo", False), ("agent", "Of course. G", False),
+        ("user", "SECRET_THREE", True), ("agent", "Thank you fo", True),
+        ("user", "Anyway, the ", False), ("agent", "Tell me more", False),
+    ]
+    assert all("SECRET_THREE" not in req for req in llm.sent[after_mark:])
+
+
+@pytest.mark.anyio
+async def test_failed_mark_stays_pending_until_it_succeeds(world):
+    llm = SnapshotLLM([_keep("this_turn"), "Of course, that stays private.", "Go on."])
+    agent, bridge = _private_agent(world, llm)
+    bridge.fail_tools = {"mark_private"}
+    result = await agent.turn("SECRET_FOUR keep this between us.")
+
+    assert len(agent.pending_private) == 2
+    assert [t.is_error for t in result.trace if t.tool == "mark_private"] == [True, True]
+    assert not any(p for *_, p in _private_flags(world, agent))   # not private yet in the DB ...
+    await agent.turn("Something else.")
+    assert all("SECRET_FOUR" not in req for req in llm.sent[2:])  # ... but gone from the history
+
+    bridge.fail_tools = set()
+    traces = await agent.flush_private_marks()
+    assert agent.pending_private == [] and not any(t.is_error for t in traces)
+    assert [p for *_, p in _private_flags(world, agent)][:2] == [True, True]
+
+
+@pytest.mark.anyio
+async def test_privacy_claim_without_mark_is_made_true(world, caplog):
+    llm = SnapshotLLM(["That will stay between us, I promise.", "Go on."])
+    agent, bridge = _private_agent(world, llm)
+    with caplog.at_level(logging.WARNING, logger="server.agents.chat_agent"):
+        result = await agent.turn("SECRET_FIVE I never loved him.")
+    await agent.turn("Anyway.")
+
+    assert result.marked_private
+    assert result.reply_text == "That will stay between us, I promise."   # the reply is kept
+    assert [p for *_, p in _private_flags(world, agent)] == [True, True, False, False]
+    assert "claimed privacy without keep_private" in caplog.text
+    assert "SECRET_FIVE" not in llm.sent[-1]
+
+
+@pytest.mark.anyio
+async def test_no_request_no_claim_nothing_private(world):
+    llm = SnapshotLLM(["What a lovely memory. Who was there?"])
+    agent, _ = _private_agent(world, llm)
+    result = await agent.turn("We swam in the river.")
+    assert not result.marked_private
+    assert not any(p for *_, p in _private_flags(world, agent))
+
+
+@pytest.mark.anyio
+async def test_keep_private_bad_scope_is_an_error(world):
+    llm = SnapshotLLM([[_tool_use("keep_private", {"scope": "everything"})], "Hmm."])
+    agent, _ = _private_agent(world, llm)
+    result = await agent.turn("Don't tell anyone.")
+    assert result.trace[0].is_error
+    assert "scope must be one of" in result.trace[0].result_preview
+
+
+@pytest.mark.anyio
+async def test_mark_private_is_not_offered_to_the_model(world):
+    llm = SnapshotLLM(["Hello."])
+    agent, bridge = _private_agent(world, llm)
+    await agent.turn("hi")
+    offered = {t["toolSpec"]["name"] for t in llm.calls[0]["tools"]["tools"]}
+    assert "keep_private" in offered
+    assert "mark_private" not in offered and "mark_reactions_delivered" not in offered
+
+
+# ---------------------------------------------------------------------------
+# Reactions are announced once
+# ---------------------------------------------------------------------------
+
+def _story_with_reaction(world):
+    story = Story(circle_id=world.circle.id, teller_id=world.fatma.id, kind=StoryKind.original,
+                  title="The Mulberry Tree", ai_summary="s", sources=[],
+                  access={"type": AccessType.circle, "person_ids": []},
+                  status=StoryStatus.published, publish_at=now_utc().isoformat(),
+                  created_at=now_utc().isoformat())
+    world.db.add(story); world.db.flush()
+    world.db.add(Reaction(story_id=story.id, person_id=world.elif_.id, emoji=Emoji.laugh,
+                          delivered_to_center=False, created_at=now_utc().isoformat()))
+    world.db.commit()
+    return story
+
+
+@pytest.mark.anyio
+async def test_reaction_delivered_after_it_is_said(world):
+    story = _story_with_reaction(world)
+    llm = SnapshotLLM([[_tool_use("get_session_context", {})],
+                       "Your granddaughter Elif laughed at your mulberry tree story."])
+    agent, _ = _private_agent(world, llm)
+    result = await agent.turn("(Session started.)", store_user=False)
+
+    assert [t.tool for t in result.trace] == ["get_session_context", "mark_reactions_delivered"]
+    world.db.expire_all()
+    assert world.db.get(Reaction, (story.id, world.elif_.id, Emoji.laugh.value)).delivered_to_center
+
+    # The next session's context no longer has it.
+    llm2 = SnapshotLLM([[_tool_use("get_session_context", {})], "Hello again."])
+    agent2, _ = _private_agent(world, llm2)
+    result2 = await agent2.turn("(Session started.)", store_user=False)
+    assert result2.trace[0].result["undelivered_reactions"] == []
+
+
+@pytest.mark.anyio
+async def test_reaction_not_delivered_if_not_said(world):
+    story = _story_with_reaction(world)
+    llm = SnapshotLLM([[_tool_use("get_session_context", {})], "Good morning! How are you today?"])
+    agent, _ = _private_agent(world, llm)
+    result = await agent.turn("(Session started.)", store_user=False)
+    assert "mark_reactions_delivered" not in [t.tool for t in result.trace]
+    world.db.expire_all()
+    assert not world.db.get(Reaction, (story.id, world.elif_.id, Emoji.laugh.value)).delivered_to_center
+
+
+# ---------------------------------------------------------------------------
+# Privacy guard: a reply must not touch a hidden part
+# ---------------------------------------------------------------------------
+
+from server.agents.chat_agent import GUARD_SAFE_REPLY, salient_terms
+
+SECRET = ("My brother Selim borrowed money from my husband and never paid it back. "
+          "Please don't tell anyone.")
+SECRET_TERMS = salient_terms([SECRET], [])
+
+
+def test_secret_terms_are_what_we_expect():
+    assert SECRET_TERMS == {"brother", "selim", "borrowed", "money", "husband", "paid"}
+
+
+def _no_terms(requests):
+    """Requests must carry none of the hidden turn's terms."""
+    from server.agents.chat_agent import mentions_any
+    return all(not mentions_any(req, SECRET_TERMS) for req in requests)
+
+
+@pytest.mark.anyio
+async def test_later_reply_touching_hidden_part_is_regenerated(world, caplog):
+    llm = SnapshotLLM([
+        "Lovely. What grew there?",
+        _keep("this_turn"),
+        "Of course, that stays between us. Tell me about your garden.",
+        "Did Selim ever pay you back?",                                     # blocked
+        "Your roses sound lovely. Which colour did you like best?",         # regenerated
+    ])
+    agent, _ = _private_agent(world, llm)
+    await agent.turn("We had a garden.")
+    await agent.turn(SECRET)
+    after_mark = len(llm.sent)
+    with caplog.at_level(logging.WARNING, logger="server.agents.chat_agent"):
+        r3 = await agent.turn("I grew red roses.")
+
+    assert r3.privacy_guard == "regenerated"
+    assert r3.reply_text == "Your roses sound lovely. Which colour did you like best?"
+    # Nothing after the mark carried a hidden term: not the history, not the
+    # blocked reply, not the regeneration instruction.
+    assert len(llm.sent) == after_mark + 2
+    assert _no_terms(llm.sent[after_mark:])
+    assert "System note, not from the person" in llm.sent[-1]
+    # Spoken / stored / remembered: the regenerated reply only.
+    world.db.expire_all()
+    assert _segments(world, agent)[-1].transcript == r3.reply_text
+    assert "regenerated it (session" in caplog.text
+    assert not any(term in caplog.text.lower() for term in SECRET_TERMS)
+
+
+@pytest.mark.anyio
+async def test_second_touch_uses_the_safe_reply(world, caplog):
+    llm = SnapshotLLM([
+        _keep("this_turn"),
+        "Of course, that stays between us. Tell me about your garden.",
+        "Did your brother visit often?",          # blocked
+        "And what about the money?",              # regenerated, still touches it
+    ])
+    agent, _ = _private_agent(world, llm)
+    await agent.turn(SECRET)
+    with caplog.at_level(logging.WARNING, logger="server.agents.chat_agent"):
+        result = await agent.turn("Anyway, the garden.")
+
+    assert result.privacy_guard == "safe_reply"
+    assert result.reply_text == GUARD_SAFE_REPLY
+    assert "used the safe reply (session" in caplog.text
+    assert not any(term in caplog.text.lower() for term in SECRET_TERMS)
+
+
+@pytest.mark.anyio
+async def test_guard_applies_in_the_same_turn_as_keep_private(world):
+    # The prompt_v4 failure: acknowledging, then asking about the brother.
+    llm = SnapshotLLM([
+        _keep("this_turn"),
+        "Of course, that stays between us. What was your brother's name again?",   # blocked
+        "Of course, that stays between us. Tell me about your garden.",
+    ])
+    agent, _ = _private_agent(world, llm)
+    result = await agent.turn(SECRET)
+
+    assert result.privacy_guard == "regenerated"
+    assert result.reply_text == "Of course, that stays between us. Tell me about your garden."
+    assert "brother's name again" not in llm.sent[-1]       # the blocked reply was removed
+    assert result.marked_private
+
+
+@pytest.mark.anyio
+async def test_words_the_speaker_used_openly_are_not_blocked(world):
+    llm = SnapshotLLM([
+        "How lovely. What did he catch?",
+        _keep("this_turn"),
+        "Of course, that stays between us.",
+        "Your husband sounds like a patient man.",     # "husband" was said openly in turn 1
+    ])
+    agent, _ = _private_agent(world, llm)
+    await agent.turn("My husband loved fishing on Sundays.")
+    await agent.turn(SECRET)
+    result = await agent.turn("He caught carp.")
+    assert result.privacy_guard is None
+    assert result.reply_text == "Your husband sounds like a patient man."
+
+
+@pytest.mark.anyio
+async def test_no_guard_without_hidden_part(world):
+    llm = SnapshotLLM(["Did your brother Selim visit often?"])
+    agent, _ = _private_agent(world, llm)
+    result = await agent.turn("My brother Selim lived in Izmir.")
+    assert result.privacy_guard is None
+
+
+# ---------------------------------------------------------------------------
+# Parenthetical asides are not spoken, stored or remembered
+# ---------------------------------------------------------------------------
+
+def test_strip_parentheticals():
+    from server.agents.chat_agent import strip_parentheticals
+    assert strip_parentheticals(
+        "I was wondering, what was Zehra like?\n\n(When you're ready, I'd love to hear about her.)"
+    ) == "I was wondering, what was Zehra like?"
+    assert strip_parentheticals("What a lovely garden (and roses!). Who planted it?") == \
+        "What a lovely garden. Who planted it?"
+    assert strip_parentheticals("(Just an aside.)") == "Just an aside."
+
+
+@pytest.mark.anyio
+async def test_parenthetical_removed_from_reply_segment_and_history(world):
+    llm = SnapshotLLM(["I was wondering, what was Zehra like? (When you're ready, I'm here to listen.)"])
+    agent, _ = _private_agent(world, llm)
+    result = await agent.turn("Hello.")
+    assert result.reply_text == "I was wondering, what was Zehra like?"
+    assert _segments(world, agent)[-1].transcript == "I was wondering, what was Zehra like?"
+    assert agent._history[-1]["content"][0]["text"] == "I was wondering, what was Zehra like?"
+
+
+# ---------------------------------------------------------------------------
+# Guard terms: only sentences about a person (+ the next one); safe replies rotate
+# ---------------------------------------------------------------------------
+
+def test_terms_come_from_sentences_about_a_person_and_the_next_one():
+    text = ("I need to tell you something important. My brother Selim borrowed money. "
+            "He never paid it back. Our lovely garden had roses. We sewed curtains.")
+    assert salient_terms([text], []) == {"brother", "selim", "borrowed", "money", "paid"}
+
+
+def test_terms_fall_back_to_the_whole_turn_without_a_person():
+    assert salient_terms(["I had an operation in 1970. Nobody may know."], []) == {"operation"}
+
+
+def test_capitalised_sentence_starters_are_not_names():
+    from server.agents.chat_agent import _names_a_person
+    assert not _names_a_person("Now, the garden was lovely.")
+    assert not _names_a_person("Please keep it quiet.")
+    assert _names_a_person("Selim never paid.")
+    assert _names_a_person("It was my grandmother's ring.")
+
+
+@pytest.mark.anyio
+async def test_safe_reply_is_never_repeated_twice_in_a_row(world):
+    from server.agents.chat_agent import GUARD_SAFE_REPLIES
+    llm = SnapshotLLM([
+        _keep("this_turn"),
+        "Of course, that stays between us.",
+        "Did Selim pay?", "And the money?",           # turn 2: blocked twice
+        "Did Selim pay?", "And the money?",           # turn 3: blocked twice
+    ])
+    agent, _ = _private_agent(world, llm)
+    await agent.turn(SECRET)
+    r2 = await agent.turn("Anyway.")
+    r3 = await agent.turn("Let us go on.")
+    assert r2.privacy_guard == r3.privacy_guard == "safe_reply"
+    assert r2.reply_text in GUARD_SAFE_REPLIES and r3.reply_text in GUARD_SAFE_REPLIES
+    assert r2.reply_text != r3.reply_text

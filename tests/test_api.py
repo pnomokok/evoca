@@ -201,8 +201,8 @@ def test_app(tmp_path, monkeypatch):
         pattern (bridge = MCPBridge(...); await bridge.__aenter__(); agent uses bridge)
         works correctly.
         """
-        def __init__(self, person_id, circle_id):
-            self._inner = FakeMCPBridge(db, person_id, circle_id)
+        def __init__(self, person_id, circle_id, session_id=None):
+            self._inner = FakeMCPBridge(db, person_id, circle_id, session_id)
         async def __aenter__(self):
             return self   # device.py stores the factory itself as the bridge
         async def __aexit__(self, *a):
@@ -1056,7 +1056,7 @@ async def test_mcp_clients_closed_in_same_task_over_several_sessions(test_app, m
     app, db, fatma, *_ = test_app
     _TrackingBridge.open_count = _TrackingBridge.opened = _TrackingBridge.wrong_task_exits = 0
     monkeypatch.setattr(_dev_r, "MCPBridge",
-                        lambda person_id, circle_id: _TrackingBridge(db, person_id, circle_id))
+                        lambda person_id, circle_id, session_id=None: _TrackingBridge(db, person_id, circle_id))
     _set_llm_script(test_app, ["A reply."])
     wav = _make_wav_bytes(_make_silent_pcm(300))
 
@@ -1091,7 +1091,7 @@ async def test_turn_with_mcp_down_returns_502_and_stores_nothing(test_app, monke
                             headers={"x-person-id": fatma.id})).json()["session_id"]
 
         class _Down:
-            def __init__(self, *a):
+            def __init__(self, *a, **kw):
                 pass
 
             async def __aenter__(self):
@@ -1148,3 +1148,149 @@ async def test_whisper_prompt_contains_the_question_just_asked(test_app):
                           "did you ever meet anyone famous growing up?")
     assert "Hello!" not in first                                            # only the question sentence
     assert second.endswith("The question was: What song did the singer sing?")   # the latest question
+
+
+# ---------------------------------------------------------------------------
+# "Don't let anyone hear that" through the device endpoints
+# ---------------------------------------------------------------------------
+
+def _seg_rows(db, session_id):
+    db.expire_all()
+    return (db.query(Segment).filter(Segment.session_id == session_id)
+            .order_by(Segment.start_ms).all())
+
+
+@pytest.mark.anyio
+async def test_private_turn_through_device_and_audio_rules(test_app):
+    app, db, fatma, elif_, circle, *_ = test_app
+    _set_llm_script(test_app, [
+        "Hello, Fatma!",
+        [_tool_use("keep_private", {"scope": "this_turn"})],
+        "Of course, that part will stay private.",
+        "How lovely. What else do you remember?",
+    ])
+    stt = app.dependency_overrides[_dev_r._get_stt]()
+    wav = _make_wav_bytes(_make_silent_pcm(500))
+    async with _client(app) as c:
+        sid = (await c.post("/api/device/session/start",
+                            headers={"x-person-id": fatma.id})).json()["session_id"]
+        stt._text = "My father lost all our money gambling. Please don't tell anyone."
+        r1 = await c.post("/api/device/turn", headers={"x-person-id": fatma.id},
+                          data={"session_id": sid}, files={"audio": ("a.wav", wav, "audio/wav")})
+        assert "mark_private" in [t["tool"] for t in r1.json()["trace"]]
+        stt._text = "We had a garden."
+        await c.post("/api/device/turn", headers={"x-person-id": fatma.id},
+                     data={"session_id": sid}, files={"audio": ("a.wav", wav, "audio/wav")})
+        await c.post("/api/device/session/end", headers={"x-person-id": fatma.id},
+                     json={"session_id": sid})
+
+    segs = _seg_rows(db, sid)
+    # opening reply [0,400], private user [400,900] + reply [900,1300], then public.
+    assert [(s.start_ms, s.end_ms, s.is_private) for s in segs] == [
+        (0, 400, False), (400, 900, True), (900, 1300, True), (1300, 1800, False), (1800, 2200, False),
+    ]
+    assert [call[0] for call in ARCHIVIST_CALLS] == [sid]   # marks applied, so the archivist runs
+
+    # A (wrong) circle story over the private part does not open it to Elif.
+    _story(db, circle, fatma, [{"session_id": sid, "start_ms": 0, "end_ms": 2200}])
+    assert (await _get_audio(app, sid, 400, 900, elif_.id)).status_code == 403
+    assert (await _get_audio(app, sid, 900, 1300, fatma.id)).status_code == 403   # agent's reply: nobody
+    assert (await _get_audio(app, sid, 400, 900, fatma.id)).status_code == 200    # the speaker herself
+    assert (await _get_audio(app, sid, 1300, 1800, elif_.id)).status_code == 200  # the public part
+
+
+class _FlakyBridge:
+    """Fake MCP bridge whose mark_private fails while FAIL is set."""
+
+    FAIL = {"on": True}
+
+    def __init__(self, db, person_id, circle_id, session_id=None):
+        self._inner = FakeMCPBridge(db, person_id, circle_id, session_id)
+
+    async def __aenter__(self):
+        if self.FAIL["on"]:
+            self._inner.fail_tools = {"mark_private"}
+        return self
+
+    async def __aexit__(self, *exc):
+        pass
+
+    async def bedrock_tool_config(self):
+        return await self._inner.bedrock_tool_config()
+
+    async def call_tool(self, name, arguments):
+        return await self._inner.call_tool(name, arguments)
+
+
+async def _private_session_with_failing_marks(test_app, monkeypatch):
+    app, db, fatma, *_ = test_app
+    monkeypatch.setattr(_dev_r, "MCPBridge",
+                        lambda person_id, circle_id, session_id=None:
+                        _FlakyBridge(db, person_id, circle_id, session_id))
+    _set_llm_script(test_app, [
+        "Hello, Fatma!",
+        [_tool_use("keep_private", {"scope": "this_turn"})],
+        "Of course, that part will stay private.",
+    ])
+    app.dependency_overrides[_dev_r._get_stt]()._text = "SECRET keep this between us."
+    async with _client(app) as c:
+        sid = (await c.post("/api/device/session/start",
+                            headers={"x-person-id": fatma.id})).json()["session_id"]
+        r = await c.post("/api/device/turn", headers={"x-person-id": fatma.id},
+                         data={"session_id": sid},
+                         files={"audio": ("a.wav", _make_wav_bytes(_make_silent_pcm(500)), "audio/wav")})
+        assert r.status_code == 200
+        assert [t["is_error"] for t in r.json()["trace"] if t["tool"] == "mark_private"] == [True, True]
+    return app, db, fatma, sid
+
+
+@pytest.mark.anyio
+async def test_failed_mark_retried_at_end_then_archivist_skipped(test_app, monkeypatch, caplog):
+    import logging
+    _FlakyBridge.FAIL["on"] = True
+    app, db, fatma, sid = await _private_session_with_failing_marks(test_app, monkeypatch)
+    with caplog.at_level(logging.ERROR, logger="server.routers.device"):
+        async with _client(app) as c:
+            end = await c.post("/api/device/session/end", headers={"x-person-id": fatma.id},
+                               json={"session_id": sid})
+    assert end.status_code == 200
+    assert ARCHIVIST_CALLS == []                                         # fail closed
+    assert f"Session {sid}: 2 segment(s) could not be marked private" in caplog.text
+    assert "archivist is NOT run" in caplog.text
+
+
+@pytest.mark.anyio
+async def test_failed_mark_retried_at_end_succeeds_then_archivist_runs(test_app, monkeypatch):
+    _FlakyBridge.FAIL["on"] = True
+    app, db, fatma, sid = await _private_session_with_failing_marks(test_app, monkeypatch)
+    assert not any(s.is_private for s in _seg_rows(db, sid))
+    _FlakyBridge.FAIL["on"] = False                                      # MCP is back
+    async with _client(app) as c:
+        await c.post("/api/device/session/end", headers={"x-person-id": fatma.id},
+                     json={"session_id": sid})
+    assert [s.is_private for s in _seg_rows(db, sid)] == [False, True, True]
+    assert [call[0] for call in ARCHIVIST_CALLS] == [sid]
+
+
+@pytest.mark.anyio
+async def test_reaction_announced_once_across_sessions(test_app):
+    from core.enums import Emoji
+    from core.models import Reaction
+    app, db, fatma, elif_, circle, *_ = test_app
+    story = _story(db, circle, fatma, [])
+    db.add(Reaction(story_id=story.id, person_id=elif_.id, emoji=Emoji.laugh,
+                    delivered_to_center=False, created_at=now_utc().isoformat()))
+    db.commit()
+
+    async with _client(app) as c:
+        _set_llm_script(test_app, [[_tool_use("get_session_context", {})],
+                                   "Your granddaughter Elif laughed at your story."])
+        first = (await c.post("/api/device/session/start", headers={"x-person-id": fatma.id})).json()
+        await c.post("/api/device/session/end", headers={"x-person-id": fatma.id},
+                     json={"session_id": first["session_id"]})
+        _set_llm_script(test_app, [[_tool_use("get_session_context", {})], "Good morning, Fatma!"])
+        second = (await c.post("/api/device/session/start", headers={"x-person-id": fatma.id})).json()
+
+    assert [card["type"] for card in first["cards"]] == ["reaction"]
+    assert "mark_reactions_delivered" in [t["tool"] for t in first["trace"]]
+    assert second["cards"] == []
