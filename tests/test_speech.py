@@ -62,3 +62,46 @@ def test_decode_keeps_the_real_length(container_format, codec, rate):
     samples = np.frombuffer(pcm, dtype="<i2").astype(np.int32)
     middle = samples[16_000 // 2: -16_000 // 2]
     assert np.abs(middle).max() > 5_000          # the tone is there, not silence
+
+
+# ---------------------------------------------------------------------------
+# WhisperSTT: one model per process, measured settings, word timestamps kept
+# ---------------------------------------------------------------------------
+
+def test_whisper_model_loaded_once_with_measured_settings(monkeypatch):
+    import sys
+    import threading
+    import types
+
+    from server.speech import WhisperSTT
+
+    calls = []
+
+    class FakeWhisperModel:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def transcribe(self, audio, **kwargs):
+            calls.append(kwargs)
+            word = types.SimpleNamespace(word=" hi", start=0.1, end=0.3)
+            seg = types.SimpleNamespace(text=" hi", words=[word])
+            return iter([seg]), types.SimpleNamespace(duration=1.0)
+
+    monkeypatch.setitem(sys.modules, "faster_whisper",
+                        types.SimpleNamespace(WhisperModel=FakeWhisperModel))
+    monkeypatch.setattr(WhisperSTT, "_model", None)
+    monkeypatch.setattr(WhisperSTT, "loads", 0)
+
+    threads = [threading.Thread(target=WhisperSTT.preload) for _ in range(8)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    result = anyio.run(WhisperSTT().transcribe, bytes(2 * 16_000), "A family story.")
+
+    assert WhisperSTT.loads == 1
+    assert result.words == [{"w": "hi", "start_ms": 100, "end_ms": 300}]
+    assert calls[-1]["beam_size"] == 1
+    assert calls[-1]["vad_filter"] is True
+    assert calls[-1]["word_timestamps"] is True
+    assert calls[-1]["initial_prompt"] == "A family story."

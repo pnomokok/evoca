@@ -8,6 +8,8 @@ session so that successive /turn requests can reuse them, plus:
   - seen_questions: every item returned by get_pending_questions during the
     session, by question_id, so a question card can be built when the agent
     marks one as asked (possibly in a later turn).
+  - last_question: the question sentence of the agent's latest reply, given to
+    Whisper as context for the person's answer.
 
 No MCP client is kept here: an MCP client must be closed in the same task that
 opened it, so the device router opens one per request ("async with") and hands
@@ -33,6 +35,7 @@ class LiveSession:
     db: Any              # SQLAlchemy session used by the agent
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     seen_questions: dict[str, dict] = field(default_factory=dict)
+    last_question: str | None = None   # the agent's latest question, a hint for Whisper
 
 
 class SessionStore:

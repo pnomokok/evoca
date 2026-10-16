@@ -101,6 +101,20 @@ yes: the speaker clearly says they do not want to talk about it, for example "I'
 no: the speaker answers, tells something else without refusing, says they do not remember, or you are unsure."""
 
 
+_FIRST_WORD = re.compile(r"[a-z]+")
+
+
+def checker_said_yes(verdict: str) -> bool:
+    """True only if the checker's first word is "yes".
+
+    Models format freely ("**yes**", "Yes.", "yes - the passage ..."), so the
+    first word is read ignoring Markdown and punctuation. Anything else,
+    including an empty reply, counts as no.
+    """
+    match = _FIRST_WORD.search(verdict.lower())
+    return match is not None and match.group(0) == "yes"
+
+
 def answer_check_llm() -> BedrockLLM:
     """Bedrock LLM for the answer check: the archivist's model at temperature 0."""
     return BedrockLLM(model_id=archivist_model_id(), max_tokens=10, temperature=0.0)
@@ -396,8 +410,8 @@ class ArchivistAgent:
         self._check_ms += int((time.monotonic() - t0) * 1000)
         verdict = " ".join(
             strip_thinking(b["text"]) for b in response["output"]["message"]["content"] if "text" in b
-        ).strip().lower()
-        return None if verdict.startswith("yes") else failure
+        )
+        return None if checker_said_yes(verdict) else failure
 
     # ------------------------------------------------------------------
     # End of run: unanswered questions go back to "waiting"

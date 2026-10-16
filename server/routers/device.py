@@ -37,7 +37,7 @@ from core.models import Circle, Invitation, Membership, Person, Question
 from core.models import Session as OrmSession
 from core.services.sessions import end_session, start_session
 from server.agents.archivist_agent import ArchivistAgent, answer_check_llm, archivist_llm
-from server.agents.chat_agent import ChatAgent, chat_llm
+from server.agents.chat_agent import ChatAgent, chat_llm, split_sentences
 from server.mcp_bridge import MCPBridge
 from server.session_store import LiveSession, SessionStore
 from server.speech import STT, TTS, build_initial_prompt, decode_audio
@@ -89,15 +89,22 @@ def _require_owner(live: LiveSession, x_person_id: str) -> None:
         raise HTTPException(status_code=403, detail="Only the person who started this session can use it.")
 
 
-def _whisper_prompt(circle_id: str) -> str:
-    """Member names and relations as a Whisper hint (names fail without it)."""
+def _whisper_prompt(circle_id: str, last_question: str | None) -> str:
+    """Member names and relations (names fail without them), plus the question
+    the agent just asked, as a Whisper hint."""
     with SessionLocal() as db:
         members = []
         for m in db.query(Membership).filter(Membership.circle_id == circle_id).all():
             p = db.get(Person, m.person_id)
             if p:
                 members.append({"name": p.name, "relation_to_center": m.relation_to_center})
-    return build_initial_prompt(members)
+    return build_initial_prompt(members, last_question)
+
+
+def _question_in(reply: str) -> str | None:
+    """The last question sentence of a reply, or None."""
+    questions = [s for s in split_sentences(reply) if s.rstrip().endswith("?")]
+    return questions[-1] if questions else None
 
 
 # ---------------------------------------------------------------------------
@@ -306,6 +313,7 @@ async def session_start(
             async with _connected(live) as connect_ms:
                 result = await agent.turn("(Session started.)", store_user=False)
             _remember_questions(live, result.trace)
+            live.last_question = _question_in(result.reply_text)
             audio_url, tts_ms = await _speak(live, tts, result.reply_text, record=True)
         except Exception:
             # MCP server down, LLM or TTS failure: do not leave an open session behind.
@@ -366,7 +374,9 @@ async def device_turn(
             pcm = await decode_audio(raw_bytes)
         except Exception:
             raise HTTPException(status_code=400, detail="Could not read the audio.")
-        prompt = await anyio.to_thread.run_sync(lambda: _whisper_prompt(live.agent._circle_id))
+        prompt = await anyio.to_thread.run_sync(
+            lambda: _whisper_prompt(live.agent._circle_id, live.last_question)
+        )
         stt_result = await stt.transcribe(pcm, prompt)
         stt_ms = int((time.monotonic() - stt_t0) * 1000)
 
@@ -411,6 +421,7 @@ async def device_turn(
 
         # 6. Speak and record the reply.
         _remember_questions(live, result.trace)
+        live.last_question = _question_in(result.reply_text)
         audio_url, tts_ms = await _speak(live, tts, result.reply_text, record=True)
 
         # 7. The agent said goodbye: end the session and archive it.

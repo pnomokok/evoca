@@ -1107,3 +1107,44 @@ async def test_turn_with_mcp_down_returns_502_and_stores_nothing(test_app, monke
     assert r.status_code == 502
     db.expire_all()
     assert db.query(Segment).filter(Segment.session_id == sid).count() == 1   # only the opening
+
+
+# ---------------------------------------------------------------------------
+# Whisper gets the question the agent just asked, plus the family names
+# ---------------------------------------------------------------------------
+
+def test_build_initial_prompt_with_question():
+    from server.speech import build_initial_prompt
+    members = [{"name": "Fatma", "relation_to_center": None},
+               {"name": "Elif", "relation_to_center": "granddaughter"}]
+    assert build_initial_prompt(members) == "A family story. Names: Fatma, Elif (granddaughter)."
+    assert build_initial_prompt(members, "Did you ever meet anyone famous?") == (
+        "A family story. Names: Fatma, Elif (granddaughter). "
+        "The question was: Did you ever meet anyone famous?"
+    )
+    assert len(build_initial_prompt([], "x" * 500)) < 230
+
+
+@pytest.mark.anyio
+async def test_whisper_prompt_contains_the_question_just_asked(test_app):
+    app, db, fatma, *_ = test_app
+    _set_llm_script(test_app, [
+        "Hello! Your granddaughter Elif would love to know, did you ever meet anyone famous growing up?",
+        "How lovely. What song did the singer sing?",
+        "Thank you.",
+    ])
+    fake_stt = app.dependency_overrides[_dev_r._get_stt]()
+    wav = _make_wav_bytes(_make_silent_pcm(300))
+    async with _client(app) as c:
+        sid = (await c.post("/api/device/session/start",
+                            headers={"x-person-id": fatma.id})).json()["session_id"]
+        for _ in range(2):
+            await c.post("/api/device/turn", headers={"x-person-id": fatma.id},
+                         data={"session_id": sid}, files={"audio": ("a.wav", wav, "audio/wav")})
+
+    first, second = fake_stt.prompts[-2:]
+    assert "Names: Fatma, Elif (granddaughter)." in first
+    assert first.endswith("The question was: Your granddaughter Elif would love to know, "
+                          "did you ever meet anyone famous growing up?")
+    assert "Hello!" not in first                                            # only the question sentence
+    assert second.endswith("The question was: What song did the singer sing?")   # the latest question

@@ -13,8 +13,9 @@ Coverage:
                          for the asker and only once the asker can_see() the
                          story (pending / private / hidden keep it back);
                          a declined question looks exactly like an unanswered
-                         one (it never appears); story_published filtered by
-                         can_see(); newest first
+                         one (it never appears); audio_url is null when the
+                         session has no audio file; story_published filtered
+                         by can_see(); newest first
 """
 
 from __future__ import annotations
@@ -91,7 +92,11 @@ def test_publisher_never_publishes_hidden_stories(w, monkeypatch):
 # Feed: question_answered
 # ---------------------------------------------------------------------------
 
-def test_answer_appears_for_asker_after_publishing(w, monkeypatch):
+def test_answer_appears_for_asker_after_publishing(w, monkeypatch, tmp_path):
+    wav = tmp_path / "session.wav"
+    wav.write_bytes(b"RIFF")
+    w.sess.audio_path = str(wav)
+    w.db.commit()
     story_id = _save(w)
     _answer(w, story_id)
 
@@ -203,3 +208,18 @@ def test_feed_is_newest_first(w, monkeypatch):
     publish_due_stories(w.db)
     titles = [i["story"]["title"] for i in build_feed(w.db, w.elif_.id, w.circle.id)["items"]]
     assert titles == ["Second", "First"] and first and second
+
+
+@pytest.mark.parametrize("audio_path", [None, "data/audio/does-not-exist.wav"])
+def test_answer_card_without_audio_file_has_null_audio_url(w, monkeypatch, audio_path):
+    # e.g. a text-only chat session: there is no WAV to play.
+    w.sess.audio_path = audio_path
+    w.db.commit()
+    _answer(w, _save(w))
+    _demo_now(monkeypatch, timedelta(hours=25))
+    publish_due_stories(w.db)
+
+    card = [i for i in build_feed(w.db, w.elif_.id, w.circle.id)["items"]
+            if i["type"] == "question_answered"][0]
+    assert card["answer"]["audio_url"] is None
+    assert card["answer"]["start_ms"] == 0 and card["answer"]["end_ms"] == 10_000

@@ -29,7 +29,10 @@ decode_audio(raw_bytes) -> bytes
 from __future__ import annotations
 
 import io
+import logging
 import os
+import threading
+import time
 import wave
 from dataclasses import dataclass
 from pathlib import Path
@@ -37,6 +40,8 @@ from typing import Protocol
 
 import anyio
 import anyio.to_thread
+
+log = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -59,18 +64,43 @@ class STT(Protocol):
 
 
 class WhisperSTT:
-    """Loads faster-whisper small.en once; transcribes in a thread."""
+    """Loads faster-whisper small.en once (per process); transcribes in a thread.
+
+    Settings, measured on experiments/audio (CPU, int8, warm model):
+      beam_size=1 + vad_filter    answer1.m4a (9 s) 3.5 s, test1.m4a (73 s) 12.7 s,
+                                  and the best transcripts ("the singer", "whenever I smell")
+      beam_size=5 (old default)   3.9 s and 21.6 s
+      cpu_threads 4 / 16          no gain over the default
+      word_timestamps             about 15% of the time; kept, segments need them.
+    VAD keeps word timestamps on the original audio timeline.
+    preload() loads and warms the model at app startup, so the first turn does
+    not pay the ~3 s load.
+    """
+
+    BEAM_SIZE = 1
+    VAD_FILTER = True
 
     _model = None   # class-level singleton
+    _lock = threading.Lock()
+    loads = 0       # how many times the model was loaded (tests check it stays 1)
 
     @classmethod
     def _ensure_model(cls):
-        if cls._model is None:
-            if not os.environ.get("HF_HOME"):
-                os.environ["HF_HOME"] = str(Path("data") / "hf-cache")
-            from faster_whisper import WhisperModel
-            cls._model = WhisperModel("small.en", device="cpu", compute_type="int8")
-        return cls._model
+        with cls._lock:
+            if cls._model is None:
+                if not os.environ.get("HF_HOME"):
+                    os.environ["HF_HOME"] = str(Path("data") / "hf-cache")
+                from faster_whisper import WhisperModel
+                t0 = time.perf_counter()
+                cls._model = WhisperModel("small.en", device="cpu", compute_type="int8")
+                cls.loads += 1
+                log.info("Whisper small.en loaded in %.1f s", time.perf_counter() - t0)
+            return cls._model
+
+    @classmethod
+    def preload(cls) -> None:
+        """Load the model and run one short transcription to warm it up."""
+        cls._transcribe_sync(b"\x00\x00" * 16_000, "")
 
     async def transcribe(
         self,
@@ -85,33 +115,19 @@ class WhisperSTT:
     @classmethod
     def _transcribe_sync(cls, pcm_bytes: bytes, initial_prompt: str) -> STTResult:
         import numpy as np
-        import tempfile, wave
 
         model = cls._ensure_model()
-
-        # Write to a temp WAV file; faster-whisper accepts a file path.
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-            tmp_path = f.name
-
-        try:
-            with wave.open(tmp_path, "wb") as wf:
-                wf.setnchannels(1)
-                wf.setsampwidth(2)
-                wf.setframerate(16_000)
-                wf.writeframes(pcm_bytes)
-
-            segments, info = model.transcribe(
-                tmp_path,
-                language="en",
-                word_timestamps=True,
-                initial_prompt=initial_prompt or None,
-            )
-            segments = list(segments)
-        finally:
-            try:
-                os.unlink(tmp_path)
-            except OSError:
-                pass
+        # 16 kHz mono int16 PCM -> float32 in [-1, 1], passed in memory (no temp file).
+        audio = np.frombuffer(pcm_bytes, dtype="<i2").astype(np.float32) / 32768.0
+        segments, info = model.transcribe(
+            audio,
+            language="en",
+            beam_size=cls.BEAM_SIZE,
+            vad_filter=cls.VAD_FILTER,
+            word_timestamps=True,
+            initial_prompt=initial_prompt or None,
+        )
+        segments = list(segments)
 
         text = " ".join(s.text.strip() for s in segments)
         words = []
@@ -128,11 +144,16 @@ class WhisperSTT:
         return STTResult(text=text, words=words, duration_ms=duration_ms)
 
 
-def build_initial_prompt(members: list[dict]) -> str:
-    """Build a Whisper initial_prompt from member names and relations.
+_MAX_QUESTION_CHARS = 200   # Whisper keeps only the last ~224 tokens of a prompt
+
+
+def build_initial_prompt(members: list[dict], last_question: str | None = None) -> str:
+    """Build a Whisper initial_prompt from member names and relations, plus the
+    question the agent just asked (the person's answer usually reuses its words).
 
     Spike results: names fail without hints. Format:
-    "A family story. Names: Fatma (grandmother), Elif (granddaughter), ..."
+    "A family story. Names: Fatma (grandmother), Elif (granddaughter), ...
+     The question was: Did you ever meet anyone famous growing up?"
     """
     parts = []
     for m in members:
@@ -142,7 +163,11 @@ def build_initial_prompt(members: list[dict]) -> str:
             parts.append(f"{name} ({rel})")
         elif name:
             parts.append(name)
-    return f"A family story. Names: {', '.join(parts)}." if parts else ""
+    prompt = f"A family story. Names: {', '.join(parts)}." if parts else ""
+    if last_question:
+        question = last_question.strip()[-_MAX_QUESTION_CHARS:]
+        prompt = f"{prompt} The question was: {question}".strip()
+    return prompt
 
 
 class FakeSTT:
@@ -151,8 +176,10 @@ class FakeSTT:
     def __init__(self, text: str = "hello", duration_ms: int = 1000):
         self._text = text
         self._duration_ms = duration_ms
+        self.prompts: list[str] = []   # every initial_prompt received, for tests
 
     async def transcribe(self, pcm_bytes: bytes, initial_prompt: str = "") -> STTResult:
+        self.prompts.append(initial_prompt)
         return STTResult(
             text=self._text,
             words=[{"w": w, "start_ms": i * 200, "end_ms": i * 200 + 180}

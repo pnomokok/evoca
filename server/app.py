@@ -79,6 +79,8 @@ async def lifespan(app: FastAPI):
     # Attach live services to the app state (used by dependency overrides).
     app.state.store = _store
     app.state.stt   = WhisperSTT()
+    # Load and warm Whisper now, not on the first /turn (~3 s).
+    await anyio.to_thread.run_sync(WhisperSTT.preload)
     app.state.tts   = PollyTTS()
 
     publisher = asyncio.create_task(_publisher_loop())

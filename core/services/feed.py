@@ -11,6 +11,8 @@ Two kinds of items, newest first:
                      becomes visible. Questions in any other status never
                      appear, so a declined question looks exactly like an
                      unanswered one (docs/PROJECT.md "Hassas konular").
+                     audio_url is null when the answer's session has no audio
+                     file (e.g. a text-only session), instead of a URL that 404s.
   story_published    A published story in the viewer's circle that the viewer
                      can_see().
 
@@ -20,6 +22,7 @@ Everything is filtered by can_see() before it leaves this function.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy.orm import Session as DbSession
@@ -27,6 +30,7 @@ from sqlalchemy.orm import Session as DbSession
 from core.access import can_see
 from core.enums import QuestionStatus, StoryStatus
 from core.models import Membership, Person, Question, Story, StorySubject
+from core.models import Session as OrmSession
 
 FEED_LIMIT = 50
 
@@ -46,6 +50,14 @@ def _teller(db: DbSession, person_id: str, circle_id: str) -> dict[str, Any]:
     }
 
 
+def _audio_url(db: DbSession, ans: dict[str, Any]) -> str | None:
+    """The answer's audio URL, or None if its session has no audio file."""
+    sess = db.get(OrmSession, ans["session_id"])
+    if sess is None or not sess.audio_path or not Path(sess.audio_path).exists():
+        return None
+    return f"/api/audio/{ans['session_id']}?start={ans['start_ms']}&end={ans['end_ms']}"
+
+
 def _answer_card(db: DbSession, q: Question, story: Story) -> dict[str, Any]:
     ans = q.answer
     return {
@@ -59,9 +71,7 @@ def _answer_card(db: DbSession, q: Question, story: Story) -> dict[str, Any]:
             "session_id": ans["session_id"],
             "start_ms": ans["start_ms"],
             "end_ms": ans["end_ms"],
-            "audio_url": (
-                f"/api/audio/{ans['session_id']}?start={ans['start_ms']}&end={ans['end_ms']}"
-            ),
+            "audio_url": _audio_url(db, ans),
         },
     }
 

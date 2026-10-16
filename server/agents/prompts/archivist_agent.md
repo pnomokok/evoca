@@ -28,6 +28,9 @@ Never make up an id.
 - `summary`: one or two sentences in the third person, using the speaker's name.
   Example: "[Name] remembers [what happened] at [place] as a child."
   Use only what was said. Never add feelings, details, names, dates or places that were not said.
+- The transcript comes from speech recognition and can contain misheard words. If a word or phrase
+  makes no sense in the story (for example "she was made of sand" in a story about a singer), leave it
+  out of the title and summary; never copy it, and never guess what was really said.
 - `teller_id`: the speaker_id of the person who told the memory.
 - `subjects`: the people the memory is about, each with a `period`. Usually this is the teller.
   Use only person ids that appear as a speaker_id in the transcript. People who are only mentioned

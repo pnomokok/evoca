@@ -54,6 +54,7 @@ from server.agents.archivist_agent import (
     DEFAULT_ARCHIVIST_MODEL,
     ArchivistAgent,
     archivist_model_id,
+    checker_said_yes,
     normalize_question,
 )
 from tests.test_archive_tools import PRIVATE_TEXT, db, w  # noqa: F401  (fixtures)
@@ -630,3 +631,44 @@ async def test_declined_question_stays_declined_after_a_later_session(w):
     from core.services.session_tools import get_pending_questions_data
     offered = [q.question_id for q in get_pending_questions_data(w.db, w.fatma.id, w.circle.id, 50)]
     assert w.q_asked.id not in offered and w.q_waiting.id in offered
+
+
+# ---------------------------------------------------------------------------
+# Reading the checker's verdict (Nova answers in Markdown: "**yes**")
+# ---------------------------------------------------------------------------
+
+NOVA_YES = "**yes**" + "\n\n" + "The passage directly addresses the question"
+
+
+@pytest.mark.parametrize("verdict,expected", [
+    ("yes", True),
+    ("Yes.", True),
+    ("**yes**", True),
+    (NOVA_YES, True),   # the real Nova reply
+    ("**Yes.**", True),
+    ("no", False),
+    ("**no**", False),
+    ("", False),
+    ("unsure", False),
+    ("maybe yes", False),
+    ("Not really.", False),
+    ("yesterday she met him", False),
+])
+def test_checker_said_yes(verdict, expected):
+    assert checker_said_yes(verdict) is expected
+
+
+@pytest.mark.anyio
+async def test_markdown_yes_from_checker_records_the_answer(w):
+    checker = ScriptedLLM([NOVA_YES])
+    llm = DynamicScriptedLLM([
+        [_tool_use("save_story", _story_args(w))],
+        lambda msgs: [_tool_use("record_answer", {
+            "question_id": w.q_asked.id, "story_id": last_tool_json(msgs)["story_id"],
+            "start_ms": 0, "end_ms": 10_000,
+        })],
+        "done",
+    ])
+    agent, _ = _make_agent(w, llm, checker)
+    result = await agent.run(w.sess.id)
+    assert result.answers_recorded == [w.q_asked.id]
