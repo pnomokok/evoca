@@ -121,19 +121,24 @@ export const initialFeed = {
 };
 
 export const initialLifeline = {
-  person: { id: "person_fatma", name: "Fatma Yilmaz", birth_year: 1948, relation_to_center: null },
+  person: { id: "person_fatma", name: "Fatma Yilmaz", birth_year: 1948, relation_to_center: null, avatar_url: "/grandma_fatma.jpg" },
   periods: [
     {
       period: "childhood",
       title: "Childhood (0-12)",
-      invitationPrompt: "What was your childhood home like?",
+      era: "1948 – 1960",
+      description: "Growing up in the mountain village of Akçaabat, climbing mulberry trees, and snowy school treks.",
+      invitationPrompt: "What was your childhood home like during the winter months?",
       stories: [
         {
           id: "story_mulberry",
           title: "The Mulberry Tree",
+          year: 1956,
+          place: "Village of Akçaabat, Trabzon",
           photo_url: "/mulberry_memory.jpg",
+          photo_caption: "The village garden, 1956",
           ai_summary: "Fatma recalls climbing the mulberry tree with her sister every summer as a child in their village garden.",
-          excerpt: "Every summer my sister and I would climb to the topmost branches until our hands turned purple.",
+          excerpt: "When I was a little girl in the village, we had a big mulberry tree in the garden. Every summer we would climb it and eat until our hands turned purple.",
           teller: { id: "person_fatma", name: "Fatma Yilmaz", relation_to_center: null },
           period_source: "ai",
           status: "published",
@@ -142,33 +147,72 @@ export const initialLifeline = {
         {
           id: "story_school",
           title: "Walking to School in the Snow",
+          year: 1958,
+          place: "Highland Trail to School",
           photo_url: "/school_winter.jpg",
+          photo_caption: "Winter trail to schoolhouse, 1958",
           ai_summary: "Carrying hot baked potatoes in pockets during harsh winter treks to the one-room schoolhouse.",
-          excerpt: "Four kilometers in knee-deep snow, with hot potatoes keeping our fingers warm.",
+          excerpt: "Four kilometers in knee-deep snow. Mother would slip two hot baked potatoes straight from the wood stove into our coat pockets so our fingers wouldn't freeze on the walk.",
           teller: { id: "person_fatma", name: "Fatma Yilmaz", relation_to_center: null },
           period_source: "family",
           status: "published",
-          duration_ms: 57500
+          duration_ms: 58000
         }
       ]
     },
     {
       period: "youth",
-      title: "Youth (13-20)",
-      invitationPrompt: "What did you dream of becoming when you were sixteen?",
-      stories: []
+      title: "Youth & Discovery (13-20)",
+      era: "1961 – 1967",
+      description: "Teenage days helping at the harbor bazaar, autumn olive harvests, and seaside songs.",
+      invitationPrompt: "What music or radio programs did you and your friends love to listen to?",
+      stories: [
+        {
+          id: "story_bazaar",
+          title: "The Friday Tea Bazaar",
+          year: 1963,
+          place: "Akçaabat Port Market",
+          photo_url: "/bazaar_memory.jpg",
+          photo_caption: "Akçaabat port market, 1963",
+          ai_summary: "Visiting the lively Friday harbor market with her father to trade handpicked tea sacks and roasted hazelnuts.",
+          excerpt: "Every Friday morning before sunrise, the harbor smelled of roasted hazelnuts and fresh black tea leaves brought down from the mountain terraces.",
+          teller: { id: "person_fatma", name: "Fatma Yilmaz", relation_to_center: null },
+          period_source: "family",
+          status: "published",
+          duration_ms: 48000
+        },
+        {
+          id: "story_olive",
+          title: "Autumn Olive Harvest",
+          year: 1965,
+          place: "Hillside Olive Orchard",
+          photo_url: "/olive_memory.jpg",
+          photo_caption: "Hillside olive orchard, 1965",
+          ai_summary: "Community traditions and folk songs during the late October olive harvest on the hills overlooking the sea.",
+          excerpt: "The entire village gathered when the first autumn rains touched the branches. We sang folk melodies while spreading burlap sheets under ancient trees.",
+          teller: { id: "person_fatma", name: "Fatma Yilmaz", relation_to_center: null },
+          period_source: "ai",
+          status: "published",
+          duration_ms: 52000
+        }
+      ]
     },
     {
       period: "marriage_early_years",
       title: "Early Adulthood & Marriage",
-      invitationPrompt: "How did you and Grandpa first meet?",
+      era: "1968 – 1972",
+      description: "Leaving the inland village to build a seaside home and start a life with Grandfather Hasan.",
+      invitationPrompt: "How did you and Grandpa first meet, and who made the first move?",
       stories: [
         {
           id: "story_coast",
           title: "The Summer We Moved to the Coast",
+          year: 1968,
+          place: "Akçaabat Coastal Cottage",
           photo_url: "/coast_memory.jpg",
+          photo_caption: "Akçaabat coastal cottage, 1968",
           ai_summary: "Fatma recounts moving to the Black Sea coast after marriage, settling into their stone cottage by the shore.",
-          excerpt: "We packed two wooden trunks and left for the sea. The salt air felt like a brand new life.",
+          excerpt: "We packed two wooden trunks with olive oil tins, dried figs, and my mother's hand-embroidered curtains. The air smelled of salt and wild pine as the truck rounded the coastal bend.",
           teller: { id: "person_fatma", name: "Fatma Yilmaz", relation_to_center: null },
           period_source: "family",
           status: "published",
@@ -178,24 +222,45 @@ export const initialLifeline = {
     },
     {
       period: "raising_children",
-      title: "Raising a Family",
-      invitationPrompt: "What family tradition do you remember most when the children were small?",
-      stories: []
+      title: "Raising a Family & Veranda Days",
+      era: "1973 – 1984",
+      description: "Sundays on the stone veranda, brewing tea in the brass samovar, and raising the next generation.",
+      invitationPrompt: "What bedtime story did you tell the children most often when they were small?",
+      stories: [
+        {
+          id: "story_veranda",
+          title: "Three Generations on the Veranda",
+          year: 1974,
+          place: "The Family Stone Veranda",
+          photo_url: "/family_hero.jpg",
+          photo_caption: "Veranda tea gathering, 1974",
+          ai_summary: "Summer Sunday afternoons filled with fresh tea, laughter, and storytelling under the bougainvillea trellis.",
+          excerpt: "Sunday afternoons were sacred. Grandfather brewed fresh tea in the brass samovar, the children chased sparrows through the garden, and we talked until sunset.",
+          teller: { id: "person_fatma", name: "Fatma Yilmaz", relation_to_center: null },
+          period_source: "family",
+          status: "published",
+          duration_ms: 71000
+        }
+      ]
     },
     {
       period: "midlife",
-      title: "Midlife",
-      invitationPrompt: "What was the biggest journey you ever took?",
+      title: "Midlife & Journeys",
+      era: "1985 – 2004",
+      description: "Travels across Anatolia, family weddings, and decades of building our community.",
+      invitationPrompt: "What was the most memorable road trip or journey you and Grandfather ever took across the country?",
       stories: []
     },
     {
       period: "retirement",
-      title: "Retirement",
-      invitationPrompt: "What brings you the quietest joy these days?",
+      title: "Golden Years & Wisdom",
+      era: "2005 – Present",
+      description: "Peaceful morning coffees in Akçaabat, garden hydrangeas, and guiding grandchildren.",
+      invitationPrompt: "What quiet morning ritual or garden flower brings you the most serene joy these days?",
       stories: []
     }
   ],
-  gaps: ["youth", "raising_children", "midlife", "retirement"]
+  gaps: ["midlife", "retirement"]
 };
 
 export const initialStoryMulberry = {
