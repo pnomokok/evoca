@@ -1,5 +1,12 @@
 import React from 'react';
-import { Users, Sparkles, Mic, ArrowRight } from 'lucide-react';
+import { Maximize2, Sparkles, Mic, Plus } from 'lucide-react';
+
+const MEMBER_STYLES = {
+  person_fatma: { bg: '#B06543', defaultRelation: 'Grandmother' },
+  person_ayse:  { bg: '#5F7355', defaultRelation: 'Daughter' },
+  person_elif:  { bg: '#4C7285', defaultRelation: 'Granddaughter' },
+  person_can:   { bg: '#A85A52', defaultRelation: 'Grandson' }
+};
 
 export default function FamilyTreeCard({
   circleData,
@@ -8,227 +15,193 @@ export default function FamilyTreeCard({
   storyCount = 0,
   onOpenRecordModal,
   onOpenTreeModal,
-  onNavigateLifeline
+  onOpenAskModal
 }) {
   const circle = circleData?.circle || { name: 'The Yılmaz Family' };
   const members = circleData?.members || [
-    { id: "person_fatma", name: "Fatma Yılmaz", birth_year: 1948, role: "center", relation_to_center: null, avatar: "👵" },
-    { id: "person_ayse",  name: "Ayşe Yılmaz",  birth_year: 1975, role: "admin",  relation_to_center: "daughter", avatar: "👩" },
-    { id: "person_elif",  name: "Elif Yılmaz",  birth_year: 2003, role: "member", relation_to_center: "granddaughter", avatar: "👧" },
-    { id: "person_can",   name: "Can Yılmaz",   birth_year: 2006, role: "member", relation_to_center: "grandson", avatar: "👦" }
+    { id: "person_fatma", name: "Fatma Yılmaz", birth_year: 1948, role: "center", relation_to_center: null },
+    { id: "person_ayse",  name: "Ayşe Yılmaz",  birth_year: 1975, role: "admin",  relation_to_center: "daughter" },
+    { id: "person_elif",  name: "Elif Yılmaz",  birth_year: 2003, role: "member", relation_to_center: "granddaughter" },
+    { id: "person_can",   name: "Can Yılmaz",   birth_year: 2006, role: "member", relation_to_center: "grandson" }
   ];
 
-  // Separate generations strictly: Grandparents at top, Children in middle, Grandchildren below
-  const grandparents = members.filter(m => m.role === 'center' || m.relation_to_center === null || m.birth_year < 1960);
-  const parents = members.filter(m => m.relation_to_center === 'daughter' || m.relation_to_center === 'son' || (m.birth_year >= 1960 && m.birth_year < 1990));
-  const grandchildren = members.filter(m => m.relation_to_center === 'granddaughter' || m.relation_to_center === 'grandson' || m.birth_year >= 1990);
+  const fatma = members.find(m => m.id === 'person_fatma') || members[0];
+  const ayse  = members.find(m => m.id === 'person_ayse')  || members[1];
+  const elif  = members.find(m => m.id === 'person_elif')  || members[2];
+  const can   = members.find(m => m.id === 'person_can')   || members[3];
 
-  // Helper for initials
   const getInitials = (name) => {
     return name
-      .split(' ')
-      .map(p => p[0])
-      .join('')
-      .toUpperCase();
+      ? name.split(' ').map(p => p[0]).join('').toUpperCase()
+      : '??';
   };
 
-  // Helper for relation badge label
-  const getRelationLabel = (member) => {
-    if (member.role === 'center' || member.relation_to_center === null) return 'Grandmother · Storyteller';
-    if (member.relation_to_center === 'daughter') return 'Daughter · Archive Admin';
-    if (member.relation_to_center === 'son') return 'Son';
-    if (member.relation_to_center === 'granddaughter') return 'Granddaughter';
-    if (member.relation_to_center === 'grandson') return 'Grandson';
-    return member.relation_to_center || member.role || 'Family Member';
+  const getSub = (member) => {
+    const rel = MEMBER_STYLES[member?.id]?.defaultRelation || member?.relation_to_center || 'Family';
+    return member?.birth_year ? `b. ${member.birth_year} · ${rel}` : rel;
   };
 
   return (
-    <aside className="family-tree-preview-card" aria-labelledby="family-tree-card-heading">
-      {/* 1. Card Header */}
-      <div className="tree-card-header">
-        <div className="tree-eyebrow-row">
-          <span className="tree-botanical-ornament">❦</span>
-          <span className="tree-eyebrow">Our Family</span>
+    <aside className="family-tree-minimal-card" aria-labelledby="family-tree-minimal-title">
+      {/* 1. Header Row (Matching reference image) */}
+      <div className="minimal-tree-header">
+        <div className="tree-title-left">
+          <h2 id="family-tree-minimal-title" className="minimal-tree-title">
+            Family Tree <span className="tree-surname-tag">— {circle.name?.replace('The ', '') || 'Yılmaz'}</span>
+          </h2>
         </div>
-        <h2 id="family-tree-card-heading" className="tree-family-title">
-          {circle.name || "The Yılmaz Family"}
-        </h2>
-        <p className="tree-supporting-text">
-          Explore the people, relationships, and stories that make our family unique.
-        </p>
+
+        <button
+          type="button"
+          className="tree-full-view-pill-btn"
+          onClick={() => onOpenTreeModal && onOpenTreeModal()}
+          title="Open full family genealogical archive"
+        >
+          <Maximize2 size={13} />
+          <span>Full View</span>
+        </button>
       </div>
 
-      {/* 2. Story Counter (Dynamic & Deduplicated) */}
-      <div className="tree-story-counter-container">
+      {/* 2. Compact Story Counter Bar */}
+      <div className="minimal-tree-counter-bar">
         {storyCount > 0 ? (
-          <div className="story-counter-pill has-stories">
-            <div className="counter-main-row">
-              <span className="counter-pulse-dot" />
-              <span className="counter-count-label">
-                <strong>{storyCount}</strong> {storyCount === 1 ? 'family story preserved' : 'family stories preserved'}
-              </span>
-            </div>
-            <p className="counter-sub-quote">"Every story keeps a memory alive."</p>
+          <div className="counter-inline-row">
+            <span className="counter-dot-active" />
+            <span className="counter-count-bold">{storyCount} family stories preserved</span>
+            <span className="counter-sep">·</span>
+            <span className="counter-quote-italic">"Every story keeps a memory alive."</span>
           </div>
         ) : (
-          <div className="story-counter-pill empty-stories">
-            <div className="counter-empty-badge">
-              <Sparkles size={14} className="sparkle-icon" />
-              <span className="counter-empty-title">No family stories yet</span>
-            </div>
-            <p className="counter-empty-desc">
-              Every family has a story worth keeping. Preserve the first one today.
-            </p>
+          <div className="counter-inline-row empty">
+            <Sparkles size={13} className="sparkle-mini" />
+            <span>No family stories yet</span>
+            <span className="counter-sep">·</span>
             <button
               type="button"
-              className="tree-record-first-btn"
+              className="inline-record-link"
               onClick={() => onOpenRecordModal && onOpenRecordModal()}
             >
-              <Mic size={13} />
-              <span>Record the First Memory</span>
+              Preserve the first one today →
             </button>
           </div>
         )}
       </div>
 
-      {/* 3. Primary "View Family Tree" Button */}
-      <button
-        type="button"
-        className="view-family-tree-btn"
-        onClick={() => onOpenTreeModal ? onOpenTreeModal() : onNavigateLifeline && onNavigateLifeline()}
-        title="View full family tree and generational archive"
-      >
-        <Users size={16} />
-        <span>View Family Tree</span>
-        <ArrowRight size={14} className="tree-btn-arrow" />
-      </button>
+      {/* 3. Minimalist Visual Family Tree Diagram */}
+      <div className="minimal-tree-canvas" role="region" aria-label="Family Tree Diagram">
+        {/* Top Node: Fatma Yılmaz (Patriarch / Center) */}
+        {fatma && (
+          <div className="tree-node-unit level-1">
+            <button
+              type="button"
+              className={`minimal-avatar-circle ${fatma.id === currentViewerId ? 'active-viewer' : ''}`}
+              style={{ backgroundColor: MEMBER_STYLES[fatma.id]?.bg || '#B06543' }}
+              onClick={() => onSwitchViewer && onSwitchViewer(fatma.id)}
+              title={`Switch viewer to ${fatma.name}`}
+            >
+              <span className="avatar-initials">{getInitials(fatma.name)}</span>
+              {fatma.id === currentViewerId && <span className="active-dot-indicator" />}
+            </button>
+            <div className="node-caption">
+              <span className="node-fullname">{fatma.name}</span>
+              <span className="node-year-sub">{getSub(fatma)}</span>
+            </div>
+          </div>
+        )}
 
-      {/* 4. Compact Top-to-Bottom Vertical Family Tree */}
-      <div className="vertical-family-tree-canvas" role="region" aria-label="Generational Family Tree">
-        {/* Tier 1: Grandparents (Top) */}
-        <div className="tree-tier tier-grandparents">
-          <div className="tier-label">Grandparent Generation</div>
-          <div className="tier-nodes-row">
-            {grandparents.map(member => {
-              const isSelected = member.id === currentViewerId;
-              return (
-                <div
-                  key={member.id}
-                  className={`tree-person-node center-elder ${isSelected ? 'active-viewer' : ''}`}
-                  onClick={() => onSwitchViewer && onSwitchViewer(member.id)}
-                  title={`Click to view family archive as ${member.name}`}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => e.key === 'Enter' && onSwitchViewer && onSwitchViewer(member.id)}
-                >
-                  <div className="cameo-portrait-circle elder-cameo">
-                    <span className="cameo-monogram">{getInitials(member.name)}</span>
-                    <span className="cameo-emoji-tag" aria-hidden="true">{member.avatar || '👵'}</span>
-                  </div>
-                  <div className="node-text-content">
-                    <div className="node-name-row">
-                      <span className="node-person-name">{member.name}</span>
-                      {isSelected && <span className="viewer-active-tag">Active</span>}
-                    </div>
-                    <span className="node-relationship">{getRelationLabel(member)}</span>
-                    <span className="node-birth-year">b. {member.birth_year || 1948}</span>
-                  </div>
-                </div>
-              );
-            })}
+        {/* Stem 1: From Fatma to Ayşe */}
+        <div className="minimal-stem-single" aria-hidden="true">
+          <span className="stem-vertical-line" />
+        </div>
+
+        {/* Middle Node: Ayşe Yılmaz (Daughter) */}
+        {ayse && (
+          <div className="tree-node-unit level-2">
+            <button
+              type="button"
+              className={`minimal-avatar-circle ${ayse.id === currentViewerId ? 'active-viewer' : ''}`}
+              style={{ backgroundColor: MEMBER_STYLES[ayse.id]?.bg || '#5F7355' }}
+              onClick={() => onSwitchViewer && onSwitchViewer(ayse.id)}
+              title={`Switch viewer to ${ayse.name}`}
+            >
+              <span className="avatar-initials">{getInitials(ayse.name)}</span>
+              {ayse.id === currentViewerId && <span className="active-dot-indicator" />}
+            </button>
+            <div className="node-caption">
+              <span className="node-fullname">{ayse.name}</span>
+              <span className="node-year-sub">{getSub(ayse)}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Stem 2: Fork branching down to Elif and Can */}
+        <div className="minimal-stem-fork" aria-hidden="true">
+          <span className="fork-trunk" />
+          <span className="fork-crossbar" />
+          <div className="fork-droplines">
+            <span className="fork-drop left" />
+            <span className="fork-drop right" />
           </div>
         </div>
 
-        {/* Vertical Connector Line from Tier 1 to Tier 2 */}
-        <div className="tree-vertical-stem" aria-hidden="true">
-          <div className="stem-line" />
-          <div className="stem-leaf-node">❦</div>
-          <div className="stem-line" />
+        {/* Bottom Tier: Grandchildren (Elif and Can) */}
+        <div className="tree-nodes-tier-bottom">
+          {elif && (
+            <div className="tree-node-unit level-3">
+              <button
+                type="button"
+                className={`minimal-avatar-circle ${elif.id === currentViewerId ? 'active-viewer' : ''}`}
+                style={{ backgroundColor: MEMBER_STYLES[elif.id]?.bg || '#4C7285' }}
+                onClick={() => onSwitchViewer && onSwitchViewer(elif.id)}
+                title={`Switch viewer to ${elif.name}`}
+              >
+                <span className="avatar-initials">{getInitials(elif.name)}</span>
+                {elif.id === currentViewerId && <span className="active-dot-indicator" />}
+              </button>
+              <div className="node-caption">
+                <span className="node-fullname">
+                  {elif.name} {elif.id === currentViewerId && <em className="you-label">(You)</em>}
+                </span>
+                <span className="node-year-sub">{getSub(elif)}</span>
+              </div>
+            </div>
+          )}
+
+          {can && (
+            <div className="tree-node-unit level-3">
+              <button
+                type="button"
+                className={`minimal-avatar-circle ${can.id === currentViewerId ? 'active-viewer' : ''}`}
+                style={{ backgroundColor: MEMBER_STYLES[can.id]?.bg || '#A85A52' }}
+                onClick={() => onSwitchViewer && onSwitchViewer(can.id)}
+                title={`Switch viewer to ${can.name}`}
+              >
+                <span className="avatar-initials">{getInitials(can.name)}</span>
+                {can.id === currentViewerId && <span className="active-dot-indicator" />}
+              </button>
+              <div className="node-caption">
+                <span className="node-fullname">{can.name}</span>
+                <span className="node-year-sub">{getSub(can)}</span>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Tier 2: Children / Parents (Middle) */}
-        <div className="tree-tier tier-children">
-          <div className="tier-label">Children Generation</div>
-          <div className="tier-nodes-row">
-            {parents.map(member => {
-              const isSelected = member.id === currentViewerId;
-              return (
-                <div
-                  key={member.id}
-                  className={`tree-person-node parent-node ${isSelected ? 'active-viewer' : ''}`}
-                  onClick={() => onSwitchViewer && onSwitchViewer(member.id)}
-                  title={`Click to view family archive as ${member.name}`}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => e.key === 'Enter' && onSwitchViewer && onSwitchViewer(member.id)}
-                >
-                  <div className="cameo-portrait-circle parent-cameo">
-                    <span className="cameo-monogram">{getInitials(member.name)}</span>
-                    <span className="cameo-emoji-tag" aria-hidden="true">{member.avatar || '👩'}</span>
-                  </div>
-                  <div className="node-text-content">
-                    <div className="node-name-row">
-                      <span className="node-person-name">{member.name}</span>
-                      {isSelected && <span className="viewer-active-tag">Active</span>}
-                    </div>
-                    <span className="node-relationship">{getRelationLabel(member)}</span>
-                    <span className="node-birth-year">b. {member.birth_year || 1975}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Vertical Connector Line with Fork from Tier 2 to Tier 3 */}
-        <div className="tree-vertical-fork-stem" aria-hidden="true">
-          <div className="stem-line-upper" />
-          <div className="fork-horizontal-bar" />
-          <div className="fork-down-legs">
-            <span className="fork-leg left" />
-            <span className="fork-leg right" />
-          </div>
-        </div>
-
-        {/* Tier 3: Grandchildren (Below) */}
-        <div className="tree-tier tier-grandchildren">
-          <div className="tier-label">Grandchildren Generation</div>
-          <div className="tier-nodes-grid-split">
-            {grandchildren.map(member => {
-              const isSelected = member.id === currentViewerId;
-              return (
-                <div
-                  key={member.id}
-                  className={`tree-person-node grandchild-node ${isSelected ? 'active-viewer' : ''}`}
-                  onClick={() => onSwitchViewer && onSwitchViewer(member.id)}
-                  title={`Click to view family archive as ${member.name}`}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => e.key === 'Enter' && onSwitchViewer && onSwitchViewer(member.id)}
-                >
-                  <div className="cameo-portrait-circle grandchild-cameo">
-                    <span className="cameo-monogram">{getInitials(member.name)}</span>
-                    <span className="cameo-emoji-tag" aria-hidden="true">{member.avatar || (member.relation_to_center === 'grandson' ? '👦' : '👧')}</span>
-                  </div>
-                  <div className="node-text-content compact">
-                    <div className="node-name-row">
-                      <span className="node-person-name">{member.name.split(' ')[0]}</span>
-                      {isSelected && <span className="viewer-active-tag">You</span>}
-                    </div>
-                    <span className="node-relationship">{member.relation_to_center === 'grandson' ? 'Grandson' : 'Granddaughter'}</span>
-                    <span className="node-birth-year">b. {member.birth_year}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        {/* Circular Dashed Action Button (from reference image) */}
+        <button
+          type="button"
+          className="minimal-add-action-btn"
+          onClick={() => onOpenRecordModal && onOpenRecordModal()}
+          title="Record a family memory or add story"
+          aria-label="Add memory"
+        >
+          <Plus size={16} />
+        </button>
       </div>
 
-      {/* 5. Subtle Family Tree Footer Cue */}
-      <div className="tree-card-footer-cue">
-        <span className="cue-dot" />
-        <span className="cue-text">Click any member to view archive through their lens</span>
+      {/* 4. Subtle Clean Footer Help */}
+      <div className="minimal-tree-footer-cue">
+        <span>Click any person to view the archive from their perspective</span>
       </div>
     </aside>
   );

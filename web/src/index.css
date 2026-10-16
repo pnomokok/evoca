@@ -563,441 +563,333 @@ h1, h2, h3, h4, .serif-font {
 /* ==========================================================================
    RIGHT CARD — FAMILY TREE PREVIEW & GENERATION TIERS
    ========================================================================== */
-.family-tree-preview-card {
+/* ==========================================================================
+   RIGHT CARD — MINIMALIST FAMILY TREE DIAGRAM (Clean Circle & Branch Pedigree)
+   ========================================================================== */
+.family-tree-minimal-card {
   background: var(--bg-white);
   border: 1px solid var(--border-paper);
   border-radius: var(--radius-xl);
-  padding: 30px 26px;
+  padding: 28px 24px;
   box-shadow: var(--shadow-subtle);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 18px;
+  gap: 16px;
 }
 
 @media (max-width: 600px) {
-  .family-tree-preview-card {
-    padding: 24px 20px;
+  .family-tree-minimal-card {
+    padding: 22px 18px;
     border-radius: var(--radius-lg);
   }
 }
 
-.tree-card-header {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.tree-eyebrow-row {
+/* Header Row matching Reference */
+.minimal-tree-header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.tree-botanical-ornament {
-  font-size: 14px;
-  color: var(--accent-sage);
-}
-
-.tree-eyebrow {
-  font-size: 11.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--accent-sage);
-}
-
-.tree-family-title {
+.minimal-tree-title {
   font-family: var(--font-serif);
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--text-charcoal);
-  line-height: 1.15;
-}
-
-.tree-supporting-text {
-  font-size: 13.5px;
-  line-height: 1.5;
-  color: var(--text-charcoal-muted);
-}
-
-/* Story Counter */
-.tree-story-counter-container {
-  width: 100%;
-}
-
-.story-counter-pill {
-  border-radius: var(--radius-sm);
-  padding: 10px 14px;
-  border: 1px solid var(--border-paper);
-}
-
-.story-counter-pill.has-stories {
-  background: var(--bg-paper-light);
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.counter-main-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13.5px;
-  color: var(--text-charcoal);
-}
-
-.counter-pulse-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent-terracotta);
-  box-shadow: 0 0 0 2px rgba(169, 95, 70, 0.2);
-}
-
-.counter-count-label {
-  font-size: 13.5px;
-  font-weight: 500;
-}
-
-.counter-count-label strong {
+  font-size: 21px;
   font-weight: 700;
-  color: var(--accent-terracotta);
+  color: var(--text-charcoal);
+  margin: 0;
+  line-height: 1.2;
 }
 
-.counter-sub-quote {
-  font-size: 12px;
-  font-style: italic;
+.tree-surname-tag {
+  font-family: var(--font-serif);
+  font-weight: 400;
   color: var(--text-charcoal-muted);
-  margin-left: 16px;
+  font-size: 19px;
 }
 
-/* Empty Stories State */
-.story-counter-pill.empty-stories {
-  background: #FFFDF9;
-  border: 1px dashed var(--border-paper-dark);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  text-align: center;
-  align-items: center;
-  padding: 14px;
-}
-
-.counter-empty-badge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--accent-terracotta);
-}
-
-.counter-empty-title {
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.counter-empty-desc {
-  font-size: 12px;
-  color: var(--text-charcoal-muted);
-  line-height: 1.45;
-}
-
-.tree-record-first-btn {
-  background: var(--accent-terracotta);
-  color: var(--bg-white);
-  border: none;
-  padding: 7px 15px;
-  border-radius: var(--radius-full);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
+.tree-full-view-pill-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 3px;
-  transition: var(--transition-gentle);
-}
-
-.tree-record-first-btn:hover {
-  background: var(--accent-terracotta-hover);
-  transform: translateY(-1px);
-}
-
-/* View Family Tree Button */
-.view-family-tree-btn {
-  width: 100%;
-  padding: 11px 18px;
-  background: var(--bg-paper-light);
-  border: 1px solid var(--border-paper);
-  border-radius: var(--radius-sm);
-  color: var(--text-charcoal);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  transition: var(--transition-gentle);
-}
-
-.view-family-tree-btn:hover {
-  background: var(--accent-terracotta);
-  color: var(--bg-white);
-  border-color: var(--accent-terracotta);
-  box-shadow: 0 4px 12px rgba(169, 95, 70, 0.22);
-  transform: translateY(-1px);
-}
-
-.view-family-tree-btn:hover .tree-btn-arrow {
-  transform: translateX(3px);
-}
-
-.tree-btn-arrow {
-  transition: transform 0.2s ease;
-}
-
-/* Vertical Family Tree Canvas */
-.vertical-family-tree-canvas {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  background: var(--bg-paper-light);
-  border: 1px solid var(--border-paper);
-  border-radius: var(--radius-md);
-  padding: 14px 12px;
-}
-
-.tree-tier {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
-.tier-label {
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-charcoal-faint);
-  font-weight: 700;
-}
-
-.tier-nodes-row {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-
-.tree-person-node {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  padding: 6px 14px;
   background: var(--bg-white);
   border: 1px solid var(--border-paper);
-  border-radius: var(--radius-sm);
-  padding: 10px 14px;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-charcoal);
   cursor: pointer;
   transition: var(--transition-gentle);
-  width: 100%;
-  max-width: 320px;
-  box-shadow: var(--shadow-subtle);
-  user-select: none;
+  box-shadow: 0 1px 3px rgba(48, 47, 41, 0.04);
 }
 
-.tree-person-node:hover {
-  background: #FFFDF9;
-  border-color: var(--border-paper-dark);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-photo);
-}
-
-.tree-person-node.active-viewer {
-  border-color: var(--accent-terracotta);
-  background: #FFFDF9;
-  box-shadow: 0 0 0 2px rgba(169, 95, 70, 0.15);
-}
-
-/* Cameo Portrait Circle */
-.cameo-portrait-circle {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 2px solid var(--border-paper);
+.tree-full-view-pill-btn:hover {
   background: var(--bg-paper-light);
-  position: relative;
+  border-color: var(--border-paper-dark);
+  color: var(--accent-terracotta);
+  transform: translateY(-1px);
+}
+
+/* Minimalist Story Counter Bar */
+.minimal-tree-counter-bar {
+  padding: 8px 12px;
+  background: var(--bg-paper-light);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-paper);
+  font-size: 12.5px;
+}
+
+.counter-inline-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(48, 47, 41, 0.06);
-}
-
-.cameo-portrait-circle.elder-cameo {
-  width: 48px;
-  height: 48px;
-  border-color: var(--accent-terracotta);
-  background: rgba(169, 95, 70, 0.08);
-}
-
-.cameo-portrait-circle.grandchild-cameo {
-  width: 38px;
-  height: 38px;
-}
-
-.cameo-monogram {
-  font-family: var(--font-serif);
-  font-weight: 600;
-  font-size: 15px;
+  gap: 6px;
+  flex-wrap: wrap;
   color: var(--text-charcoal);
 }
 
-.cameo-portrait-circle.grandchild-cameo .cameo-monogram {
+.counter-dot-active {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-terracotta);
+  flex-shrink: 0;
+}
+
+.counter-count-bold {
+  font-weight: 700;
+  color: var(--text-charcoal);
+}
+
+.counter-sep {
+  color: var(--border-paper-dark);
+  margin: 0 1px;
+}
+
+.counter-quote-italic {
+  font-style: italic;
+  color: var(--text-charcoal-muted);
+}
+
+.counter-inline-row.empty {
+  color: var(--text-charcoal-muted);
+}
+
+.sparkle-mini {
+  color: var(--accent-terracotta);
+  flex-shrink: 0;
+}
+
+.inline-record-link {
+  background: transparent;
+  border: none;
+  color: var(--accent-terracotta);
+  font-weight: 600;
+  font-size: 12.5px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.inline-record-link:hover {
+  text-decoration: underline;
+}
+
+/* Minimalist Visual Family Tree Diagram */
+.minimal-tree-canvas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  position: relative;
+  padding: 20px 10px 14px 10px;
+  background: #FAF7F2;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-paper);
+}
+
+.tree-node-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 5px;
+  position: relative;
+  z-index: 2;
+}
+
+/* Minimal Avatar Circle with Initials */
+.minimal-avatar-circle {
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  position: relative;
+  user-select: none;
+  box-shadow: 0 3px 8px rgba(48, 47, 41, 0.12);
+}
+
+.level-1 .minimal-avatar-circle {
+  width: 48px;
+  height: 48px;
+  font-size: 15px;
+}
+
+.level-2 .minimal-avatar-circle {
+  width: 44px;
+  height: 44px;
+  font-size: 14px;
+}
+
+.level-3 .minimal-avatar-circle {
+  width: 40px;
+  height: 40px;
   font-size: 13px;
 }
 
-.cameo-emoji-tag {
-  position: absolute;
-  bottom: -4px;
-  right: -4px;
-  font-size: 12px;
-  line-height: 1;
+.minimal-avatar-circle:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 16px rgba(48, 47, 41, 0.2);
 }
 
-.node-text-content {
+.minimal-avatar-circle.active-viewer {
+  box-shadow: 0 0 0 3px #FAF7F2, 0 0 0 5px var(--accent-terracotta);
+}
+
+.avatar-initials {
+  font-family: var(--font-serif);
+  letter-spacing: 0.04em;
+}
+
+.active-dot-indicator {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--bg-white);
+  border: 2px solid var(--accent-terracotta);
+}
+
+.node-caption {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  flex: 1;
-  min-width: 0;
-}
-
-.node-name-row {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 6px;
+  gap: 1px;
+  max-width: 140px;
 }
 
-.node-person-name {
-  font-family: var(--font-serif);
-  font-size: 15px;
+.node-fullname {
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--text-charcoal);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.25;
 }
 
-.viewer-active-tag {
-  font-size: 10px;
+.you-label {
+  font-style: normal;
   font-weight: 700;
-  text-transform: uppercase;
-  background: rgba(169, 95, 70, 0.12);
   color: var(--accent-terracotta);
-  padding: 2px 6px;
-  border-radius: var(--radius-full);
-}
-
-.node-relationship {
-  font-size: 12px;
-  color: var(--text-charcoal-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.node-birth-year {
   font-size: 11px;
-  color: var(--text-charcoal-faint);
+  margin-left: 2px;
 }
 
-/* Vertical Stems */
-.tree-vertical-stem {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  height: 22px;
-  justify-content: center;
-  gap: 1px;
+.node-year-sub {
+  font-size: 11.5px;
+  color: var(--text-charcoal-muted);
+  line-height: 1.2;
 }
 
-.stem-line {
+/* Stems & Connecting Lines */
+.minimal-stem-single {
   width: 1.5px;
-  height: 8px;
-  background: var(--border-paper-dark);
-}
-
-.stem-leaf-node {
-  font-size: 9px;
-  color: var(--accent-sage);
-  line-height: 1;
-}
-
-.tree-vertical-fork-stem {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 60%;
   height: 20px;
+  background: #D4CABC;
+  margin: 0 auto;
+  z-index: 1;
+}
+
+.minimal-stem-fork {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 62%;
   position: relative;
+  z-index: 1;
+  margin: 0 auto;
 }
 
-.stem-line-upper {
+.fork-trunk {
   width: 1.5px;
-  height: 7px;
-  background: var(--border-paper-dark);
+  height: 12px;
+  background: #D4CABC;
 }
 
-.fork-horizontal-bar {
+.fork-crossbar {
   width: 100%;
   height: 1.5px;
-  background: var(--border-paper-dark);
+  background: #D4CABC;
 }
 
-.fork-down-legs {
+.fork-droplines {
   width: 100%;
   display: flex;
   justify-content: space-between;
-  height: 11px;
+  height: 14px;
 }
 
-.fork-leg {
+.fork-drop {
   width: 1.5px;
-  height: 11px;
-  background: var(--border-paper-dark);
+  height: 14px;
+  background: #D4CABC;
 }
 
-/* Grandchildren Split Tier */
-.tier-nodes-grid-split {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  width: 100%;
+/* Bottom Tier: Grandchildren Side-by-Side */
+.tree-nodes-tier-bottom {
+  display: flex;
+  justify-content: space-between;
+  width: 86%;
+  gap: 16px;
+  margin-top: -1px;
 }
 
-.tier-nodes-grid-split .tree-person-node {
-  padding: 8px 10px;
-  gap: 8px;
-}
-
-.tree-card-footer-cue {
+/* Subtle Dashed Add Memory Action Button */
+.minimal-add-action-btn {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1.5px dashed var(--border-paper-dark);
+  background: transparent;
+  color: var(--text-charcoal-muted);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--text-charcoal-faint);
-  text-align: center;
+  cursor: pointer;
+  transition: var(--transition-gentle);
 }
 
-.cue-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--accent-sage);
+.minimal-add-action-btn:hover {
+  background: var(--bg-white);
+  border-color: var(--accent-terracotta);
+  color: var(--accent-terracotta);
+  transform: scale(1.08);
+  box-shadow: var(--shadow-subtle);
+}
+
+.minimal-tree-footer-cue {
+  font-size: 11.5px;
+  color: var(--text-charcoal-faint);
+  text-align: center;
+  margin-top: 2px;
 }
 
 /* ==========================================================================
