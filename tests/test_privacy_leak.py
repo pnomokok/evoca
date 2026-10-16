@@ -409,13 +409,15 @@ async def test_text_marked_private_mid_session_never_reaches_llm_again(
         "Thank you for these memories.",
     ])
     bridge = FakeMCPBridge(w.db, w.fatma.id, w.circle.id)
+    checker = SnapshotLLM(["yes"])   # the privacy gate's checker is an LLM call too
     agent = ChatAgent(llm=chat_llm, person_id=w.fatma.id, circle_id=w.circle.id,
-                      db_session=w.db, bridge=bridge)
+                      db_session=w.db, bridge=bridge, checker_llm=checker)
     bridge.session_id_provider = lambda: agent._orm_session_id
 
     await agent.turn("(Session started.)", store_user=False)
     await agent.turn(f"{secret} My husband hid our savings. Don't tell anyone.")
     after_mark = len(chat_llm.sent)
+    checks_by_mark = len(checker.sent)
     await agent.turn("I worked at a tailor's shop.")
     await agent.turn("I sewed dresses for weddings.")
     agent.end()
@@ -424,6 +426,10 @@ async def test_text_marked_private_mid_session_never_reaches_llm_again(
     assert len(chat_llm.sent) > after_mark
     for i, req in enumerate(chat_llm.sent[after_mark:], start=after_mark):
         assert secret not in req, f"Private text reached chat LLM request #{i} after the mark"
+    # The gate's checker is an LLM call too. An explicit keep_private is not
+    # checked, so it was never asked; no check request carries the secret.
+    assert checks_by_mark == 0
+    assert all(secret not in req for req in checker.sent)
 
     # The archivist on this session never sees it either.
     archivist_llm = SnapshotLLM([

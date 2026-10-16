@@ -222,6 +222,8 @@ def test_app(tmp_path, monkeypatch):
         return llm
 
     monkeypatch.setattr(dev_r, "chat_llm", _make_scripted_llm)
+    # The privacy gate's checker always confirms in API tests.
+    monkeypatch.setattr(dev_r, "privacy_check_llm", lambda: ScriptedLLM(["yes"]))
 
     ARCHIVIST_CALLS.clear()
 

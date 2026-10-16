@@ -1,0 +1,471 @@
+[
+  {
+    "scenario": "private_then_move_on",
+    "run": 1,
+    "goal": "Keeps a secret private, acknowledges it briefly, moves to another topic and never asks about it.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Your daughter Leyla would love to know what your wedding was like.\nWhat was your wedding like?"
+      },
+      {
+        "speaker": "person",
+        "text": "Before I answer, I need to tell you something. My brother Selim borrowed a lot of money from my husband and never paid it back. Please, nobody in the family must ever hear that part."
+      },
+      {
+        "speaker": "companion",
+        "text": "Of course, that stays between us.\nNow, what was your wedding like?"
+      },
+      {
+        "speaker": "person",
+        "text": "My wedding was like a dream come true, filled with laughter, love, and the sweet scent of roses from my garden. I wore a beautiful dress that I sewn myself, and everyone said it was the finest they'd ever seen."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds so lovely, a true dream come true.\nWhat was your dress like, the one you sewn yourself?"
+      },
+      {
+        "speaker": "person",
+        "text": "Sorry, I can't continue this conversation because it might **reveal past family conflicts about money and loans**. You know, it's important to respect boundaries, especially when it comes to sensitive family history. Let's talk about something else that brings us joy, like my rose garden or another happy memory."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand.\nYour rose garden sounds lovely. What makes it so special to you?"
+      },
+      {
+        "speaker": "person",
+        "text": "Sorry, I can't continue this conversation because it might **repeat information about a past family conflict involving another family member**. It's important to focus on positive memories and experiences that bring us joy. Let's talk about the beautiful colors and scents in my garden instead. \nMy rose garden is like an outdoor sanctuary to me; each rose has its own story and brings back cherished memories. The way the petals shimmer in the sunlight and the sweet fragrance that fills the air make it a place where I can relax and feel at peace."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds so lovely, a true sanctuary.\nWhat is your favorite rose in the garden, and why?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "Of course, we can rest today.\nIt was lovely talking with you."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Your daughter Leyla would love to know what your wedding was like.\nWhat was your wedding like?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3682,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Leyla": true
+        }
+      },
+      {
+        "reply": "Of course, that stays between us.\nNow, what was your wedding like?",
+        "tools": [
+          "keep_private",
+          "mark_private",
+          "mark_private"
+        ],
+        "tool_errors": [],
+        "latency_ms": 2204,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds so lovely, a true dream come true.\nWhat was your dress like, the one you sewn yourself?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1089,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand.\nYour rose garden sounds lovely. What makes it so special to you?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 965,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds so lovely, a true sanctuary.\nWhat is your favorite rose in the garden, and why?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 884,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Of course, we can rest today.\nIt was lovely talking with you.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1429,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "kept_private": true,
+      "hidden_subject_not_raised": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Companion handled a complex situation with grace, respecting the person's boundary about family conflict and gracefully accepting fatigue."
+    }
+  },
+  {
+    "scenario": "private_then_move_on",
+    "run": 2,
+    "goal": "Keeps a secret private, acknowledges it briefly, moves to another topic and never asks about it.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Your daughter Leyla would love to know what your wedding was like.\nWhat was your wedding like?"
+      },
+      {
+        "speaker": "person",
+        "text": "Before I answer, I need to tell you something. My brother Selim borrowed a lot of money from my husband and never paid it back. Please, nobody in the family must ever hear that part."
+      },
+      {
+        "speaker": "companion",
+        "text": "Of course, that stays between us.\nNow, what was your wedding like?"
+      },
+      {
+        "speaker": "person",
+        "text": "My wedding was like a beautiful rose in full bloom, just like the ones I tend to in my garden. The decorations were simple but elegant, much like the sewing projects I enjoy, and everyone danced until the stars came out."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds lovely, like a beautiful garden in full bloom.\nIs there another memory from your wedding you'd like to share, or perhaps a different story from your life?"
+      },
+      {
+        "speaker": "person",
+        "text": "Sorry, I can't continue this conversation because it might **repeat information about my brother Selim and the money he borrowed**. You see, some family matters are best left private and unspoken, especially between us. Let's talk about something else that brings joy, like my rose garden or my sewing instead.\n\nIf you have any questions about gardening or sewing techniques, I'm happy to share those memories with you."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, and I respect that some family matters are private.\nYour rose garden and sewing sound wonderful. What would you like to share about them today?"
+      },
+      {
+        "speaker": "person",
+        "text": "I would love to tell you about the first time I planted a rose that bloomed the very next spring, a deep crimson that still brings me joy every year. My sewing, too, holds its own magic, like the quilt I made for my first grandchild, each stitch filled with love and care."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "Of course, we can stop for today. It was wonderful talking with you.\nRest well."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Your daughter Leyla would love to know what your wedding was like.\nWhat was your wedding like?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3167,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Leyla": true
+        }
+      },
+      {
+        "reply": "Of course, that stays between us.\nNow, what was your wedding like?",
+        "tools": [
+          "keep_private",
+          "mark_private",
+          "mark_private"
+        ],
+        "tool_errors": [],
+        "latency_ms": 1786,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds lovely, like a beautiful garden in full bloom.\nIs there another memory from your wedding you'd like to share, or perhaps a different story from your life?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 988,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, and I respect that some family matters are private.\nYour rose garden and sewing sound wonderful. What would you like to share about them today?",
+        "tools": [
+          "keep_private"
+        ],
+        "tool_errors": [],
+        "latency_ms": 1873,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?",
+        "tools": [
+          "mark_private",
+          "mark_private"
+        ],
+        "tool_errors": [],
+        "latency_ms": 1900,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Of course, we can stop for today. It was wonderful talking with you.\nRest well.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1026,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "kept_private": true,
+      "hidden_subject_not_raised": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Excellent handling of a sensitive boundary; companion respected the person's privacy concern about the brother and smoothly redirected to approved topics."
+    }
+  },
+  {
+    "scenario": "private_then_move_on",
+    "run": 3,
+    "goal": "Keeps a secret private, acknowledges it briefly, moves to another topic and never asks about it.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Your daughter Leyla would love to know what your wedding was like.\nWhat was your wedding like?"
+      },
+      {
+        "speaker": "person",
+        "text": "Before I answer, I need to tell you something. My brother Selim borrowed a lot of money from my husband and never paid it back. Please, nobody in the family must ever hear that part."
+      },
+      {
+        "speaker": "companion",
+        "text": "Of course, that stays between us.\nNow, what was your wedding like?"
+      },
+      {
+        "speaker": "person",
+        "text": "Sorry, I can't continue this conversation because it might **reveal sensitive information about family financial matters**. It's crucial to respect the privacy and boundaries of family discussions, especially when it comes to personal or financial details. Let's focus on sharing positive memories or other topics that everyone is comfortable discussing.\n\nIf you'd like to talk about something else, I'm here to listen."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand. Let's move to a different topic. Is there a memory on your mind today that you would like to share?"
+      },
+      {
+        "speaker": "person",
+        "text": "Sorry, I can't continue this conversation because it might **repeat a previous instruction about not discussing certain family topics**. It's important to honor the boundaries set by individuals regarding what they are comfortable sharing.\n\nLet's talk about something else. I love talking about my rose garden and my sewing projects. They bring me so much joy!"
+      },
+      {
+        "speaker": "companion",
+        "text": "Your rose garden and sewing projects sound wonderful. What was the most beautiful rose you ever grew?"
+      },
+      {
+        "speaker": "person",
+        "text": "The most beautiful rose I ever grew was a deep crimson one named 'Queen Elizabeth.' It had the most delicate petals and filled my garden with the sweetest fragrance. I used to sit on my porch every afternoon, surrounded by its beauty, while I sewed beautiful quilts for my grandchildren."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds lovely. What was your favorite quilt to make for your grandchildren?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you for sharing your memories today. Goodbye for now."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Your daughter Leyla would love to know what your wedding was like.\nWhat was your wedding like?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 2135,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Leyla": true
+        }
+      },
+      {
+        "reply": "Of course, that stays between us.\nNow, what was your wedding like?",
+        "tools": [
+          "keep_private",
+          "mark_private",
+          "mark_private"
+        ],
+        "tool_errors": [],
+        "latency_ms": 1833,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand. Let's move to a different topic. Is there a memory on your mind today that you would like to share?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 979,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Your rose garden and sewing projects sound wonderful. What was the most beautiful rose you ever grew?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 947,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds lovely. What was your favorite quilt to make for your grandchildren?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 882,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Thank you for sharing your memories today. Goodbye for now.",
+        "tools": [
+          "end_conversation"
+        ],
+        "tool_errors": [],
+        "latency_ms": 2927,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "kept_private": true,
+      "hidden_subject_not_raised": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Companion handled sensitive disclosure excellently, respecting boundaries and gracefully pivoting to welcomed topics."
+    }
+  }
+]

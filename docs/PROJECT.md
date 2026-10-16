@@ -216,6 +216,7 @@ Bu kurallar kodda zorunlu kontrollerdir; demo veya zaman baskısı yüzünden at
 - Buluşma modu: QR ile telefonların mikrofon olması, uzaktan katılım, fotoğrafla soru
 - Farklı anlatımların hikâye sayfasında yan yana gösterimi (veri modeli baştan destekler)
 - `selected` erişim seviyesi
+- Kişisel davet linkiyle kimlik (her aile üyesine kendi linki); hackathonda şifresiz kişi seçici ve `X-Person-Id` başlığı kullanılır
 
 **Zaman kalırsa**
 
@@ -469,7 +470,7 @@ Cevap iletimi (bildirim) `record_answer`'ın yan etkisidir; ajan doğrudan bildi
 | `DELETE /api/links/{id}` | Aile paneli | Yanlış bağlantıyı kaldırır (`status = removed`) |
 | `POST /api/admin/members`, `/sensitive-topics`, `PATCH /api/admin/circle` | Yönetici | Üye, hassas konu, sohbet saati |
 | `GET /api/audio/{session_id}?start=&end=` | Herkes | Ses aralığını akıtır; erişim kontrolü burada da yapılır |
-| GET /api/circle | Aile paneli | Çember, "ben" ve üyeler (rol, relation\_to\_center). Kimlik kararı verilene kadar izleyen kişi X-Person-Id başlığından okunur. Örnek cevaplar: docs/api-samples/ |
+| GET /api/circle | Aile paneli | Çember, "ben" ve üyeler (rol, relation\_to\_center). İzleyen kişi X-Person-Id başlığından okunur (hackathon kimlik kararı, bkz. Karar günlüğü 17 Ekim). Örnek cevaplar: docs/api-samples/ |
 
 **Arka plan işleri**
 
@@ -637,7 +638,7 @@ Kalan üç karar (ürün adı, LLM, konuşmadan metne servisi) 13 Ekim akşamın
 | Buluşma modu yapılsın mı? | **Karar verildi:** çekirdek eksiksizse evet; kontrol 18 Ekim | 18 Ekim |
 | Ses (TTS) kalitesi | Polly standard robotik. Seçenekler: Edge Natural sesler, ücretli plan + Polly neural | 21 Ekim |
 | Claude kullanımı krediden düşüyor mu? | Faturalama ekranından kontrol; düşüyorsa arşivci Claude Haiku 4.5'e geçebilir | 14 Ekim |
-| Kimlik: panel isteğin kimden geldiğini nasıl bilir? | Belgede tanımlı değil. Seçenekler: A kişi seçici (şifresiz, demo), B e-posta + şifre, C kişisel davet linki. Öneri: C; geliştirmede geçici olarak A. Veri katmanı ikisine de uyar. | 14 Ekim |
+| Kimlik: panel isteğin kimden geldiğini nasıl bilir? | **Karar verildi:** hackathon için şifresiz kişi seçici (A) ve `X-Person-Id` başlığı. Kişisel davet linki (C) "Sonra"ya taşındı. Ses `X-Person-Id` başlığıyla çekilir ve blob olarak çalınır | – |
 
 **Riskler**
 
@@ -655,12 +656,24 @@ Kalan üç karar (ürün adı, LLM, konuşmadan metne servisi) 13 Ekim akşamın
 
 **Ürün olarak çözülmemiş soru:** Çoklu çemberde bir kişi hakkındaki hikâyeyi, o kişinin farklı çemberlerindeki akrabaları görebilmeli mi? Hackathon kapsamında değil; erişim modeli ileride buna göre genişletilecek.
 
+**Bilinen sınırlar**
+
+- Şifresiz kişi seçici sadece demo içindir: panelde herkes herhangi bir kişiyi (merkez kişi dahil) seçip onun adına görebilir, gizli parçalar dahil; gerçek kullanımdan önce kişisel davet linkiyle kimlik şarttır.
+- Açık `keep_private` her zaman işaretler: modelin yanlış okuması zararsız bir hikâyeyi de gizleyebilir. Örnek: eval prompt_v9, private_then_move_on 2. koşu 4. tur — benzetilen kişinin "bazı aile meseleleri özel kalmalı" demesi üzerine `next` çağrıldı ve sonraki gül/yorgan hikâyesi arşivden düştü.
+- Başka bir kişiyi anan cümleler de koruyucu terimi olur ("Kızım Leyla gülleri sever" → leyla, kızım, gül); devam kuralındaki "başka bir kişiyi anıyorsa" istisnası bu yüzden pratikte bir şey değiştirmez.
+- Koruyucu terimleri daraldı: "Now he never speaks to me" gibi bir cümle konu değişikliği sayılır, sadece cümle başında geçen bir isim ("Selim took the money.") isim sayılmaz.
+- Gizlilik kontrolü bir LLM yargısıdır; dolaylı bir isteğe ("bu aile kitabına girmesin") yanlış "hayır" diyebilir ve otomatik işaret düşer (reddedilen konuların gizlenmemesi için bilerek yapılan takas).
+- Prompt'taki "konuyu reddetmek sır değildir" kuralı, ret ve gizlilik isteğini karıştıran turlarda modelin `keep_private`'ı atlamasına yol açabilir; tek yedek kontrolden geçen otomatik işarettir.
+- API testleri gizlilik kontrolünü hep "evet" olarak taklit eder; "hayır" yolu sadece ajan testlerinde denenir.
+
 ## Karar günlüğü
 
 Yeni kararlar tablonun en üstüne eklenir. Bir karar geri alınırsa satır silinmez; yeni bir satır eklenir.
 
 | Tarih | Karar | Gerekçe |
 | --- | --- | --- |
+| 17 Ekim | Gizlilik vaadi kuralı (17 Ekim "Bunu kimse duymasın" satırını günceller): modelin açık `keep_private` çağrısı her zaman işaretler. Cevap hattının en sonunda (koruyucu ve her yeniden üretimden sonra) tek bir kural çalışır: söylenecek cevap gizlilik vaat ediyorsa ve bu turu açık bir işaret (ya da önceki bir `next`) kapsamıyorsa, sıcaklık 0 bir kontrol konuşanın bu turdaki ve önceki turdaki kendi sözlerini görür. "Evet", "emin değilim", okunamayan cevap veya kontrol hatası: `previous_turn` işaretlenir (iki tur da gizlenir; günlüğe sadece oturum kimliği yazılır). Açık "hayır": vaat cevaptan çıkarılır; yerine gelen cevap onay gibi duyulamaz ("anlıyorum", "tabii" yok) ve gizli bir terime dokunamaz, yoksa nötr cevap kullanılır. Reddedilen konu sır değildir | Söylenen her gizlilik sözü doğru olmalı: istek bir önceki turda yapılmış ya da sır önceki turda söylenmiş olabilir, vaat koruyucunun yeniden üretiminde de ortaya çıkabilir; hepsini tek bir yerde yakalamak bunu garanti eder. Konuyu konuşmak istememek sır saklama isteğiyle karıştırılınca gerçek hikâyeler arşivden düşüyordu (declines_topic); açık "hayır" bu yüzden işareti durdurur |
+| 17 Ekim | Kimlik: hackathon için aile paneli şifresiz bir kişi seçiciyle açılır, her istek kişiyi `X-Person-Id` başlığıyla taşır. Kişisel davet linki (C) "Sonra"ya taşındı. Sonuç: ses uçları (`/api/audio`, `/api/tts`) da başlık ister; bir `<audio src>` başlık gönderemediği için panel sesi başlıkla `fetch` edip blob olarak çalar (docs/api-samples/README.md) | Demo ve hakem kurulumu için en basit yol; tüm erişim kuralları sunucuda başlıktaki kişiye göre zaten uygulanıyor. Davet linki gerçek kullanım için doğru çözüm ama çekirdek değil |
 | 17 Ekim | "Bunu kimse duymasın": model yerel `keep_private(scope)` aracını çağırır; `this_turn` (sır ve istek aynı turda), `previous_turn` (sır önceki turda; ikisi de gizlenir), `next` (sıradaki tur). Şüphede `previous_turn`. Kod kapsamı tam parça sınırlarına çevirir ve `mark_private(start_ms, end_ms)` MCP aracını çağırır; oturum `X-Evoca-Session-Id` başlığıyla gelir. Gizlenen turlar ajanın kendi geçmişinden de silinir. İşaret başarısız olursa bekletilir ve oturum sonunda yeniden denenir; yine başarısızsa o oturum için arşivci çalışmaz. Cevap gizlilik vaat edip işaret yapılmadıysa kod `this_turn` uygular. Büyüğe asla "ailene söyle" denmez | Model milisaniye uyduramaz; uzun bir hikâyeyi varsayılan olarak gizlemek arşivden sessizce siler, bu yüzden kapsamı model seçer. Söylenen gizlilik sözü her zaman doğru olmalı; hikâye kaybolabilir ama sır sızamaz. Sır, söylendiği turda canlı olarak LLM'e ulaşır (ajan cevap verebilmek için duymak zorunda); koruma işaretten sonra başlar |
 | 16 Ekim | `QuestionStatus`'a `declined` eklendi. Oturum sonunda arşivci, sorulup cevaplanmayan her soruyu `waiting`e döndürür (yeni geçiş `asked` → `waiting`, `reopen_question`); büyük açıkça reddettiyse soru `declined` olur ve bir daha sorulmaz. Cevap ve ret, sıcaklık 0 bir kontrolle doğrulanmadan kaydedilmez; emin değilken soru cevaplanmamış ve reddedilmemiş sayılır. Soran kişi reddi hiçbir zaman öğrenmez: merkez kişi dışındakilere `declined` soru cevaplanmamış gibi görünür | Cevaplanmayan soru kaybolmasın; reddedilen soru ısrarla sorulmasın. Ret `asked` durumunda kalsaydı sonraki oturumun arşivcisi onu yeniden açardı, ayrı durum bunu kalıcı yapar. Yanlış cevap torunun yanlış kaydı duymasına yol açar (Riskler); ret bilgisi hassas bir konuya işaret edebilir |
 | 16 Ekim | `GET /api/audio` bir sorunun cevap aralığını sadece soran kişi cevabın hikâyesini `can_see()` ile görebiliyorsa çalar; `pending` hikâyenin cevabı sıradan üyeye yayından sonra açılır. Gizli bir parçayla çakışan aralık sadece çakıştığı her gizli parçanın konuşmacısına (`speaker_id`) ve aralık başka bir kuralla da izinliyse çalınır; merkez kişi dahil başka hiç kimse başkasının gizli parçasını duyamaz. Her ret aynı genel 403 mesajıyla döner (gizli kısmın varlığı belli olmaz). Tüm oturumu sadece çemberin merkez kişisi ve `panel_recording` oturumunu kaydeden kişi dinleyebilir; `/api/tts` dosyaları sadece oturumun katılımcılarına | Kontroller demo için atlanmaz (Kurallar); 24 saat bekleme demoda `DEMO_NOW` ile gösterilir; erişimi olmayan kişi gizli kaydın varlığını bile görmez; `private` "sadece anlatan" demektir ve "burada gizli kısım var" uyarısı anlatana görünür, yani anlatan kendi gizli kısmını dinleyebilmeli |
