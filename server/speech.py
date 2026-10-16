@@ -256,13 +256,16 @@ def _decode_audio_sync(raw_bytes: bytes) -> bytes:
         rate=16_000,
     )
 
+    # A plane's buffer is padded for alignment; copy only the real samples
+    # (s16 mono = 2 bytes per sample), or junk lands between frames and the
+    # audio comes out about 25% too long.
     pcm_chunks: list[bytes] = []
     for frame in container.decode(audio=0):
         for resampled in resampler.resample(frame):
-            pcm_chunks.append(bytes(resampled.planes[0]))
+            pcm_chunks.append(bytes(resampled.planes[0])[: resampled.samples * 2])
 
     for resampled in resampler.resample(None):
-        pcm_chunks.append(bytes(resampled.planes[0]))
+        pcm_chunks.append(bytes(resampled.planes[0])[: resampled.samples * 2])
 
     container.close()
     return b"".join(pcm_chunks)

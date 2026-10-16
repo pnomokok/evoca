@@ -13,14 +13,18 @@ CORS: http://localhost:5173 (web client dev server).
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
+
+import anyio
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from core.db import SessionLocal, init_db
 from core.models import Session as OrmSession
+from core.services.publisher import publish_due_stories
 from server.session_store import SessionStore
 from server.speech import PollyTTS, WhisperSTT
 
@@ -32,6 +36,25 @@ log = logging.getLogger(__name__)
 
 # Module-level singletons (injected into routers via overrides).
 _store = SessionStore()
+
+PUBLISH_INTERVAL_S = 60
+
+
+def _publish_once() -> int:
+    with SessionLocal() as db:
+        return len(publish_due_stories(db))
+
+
+async def _publisher_loop() -> None:
+    """Publish due stories once at startup, then every minute (PROJECT.md "Arka plan işleri")."""
+    while True:
+        try:
+            count = await anyio.to_thread.run_sync(_publish_once)
+            if count:
+                log.info("Publisher: published %d stories", count)
+        except Exception:
+            log.exception("Publisher run failed")
+        await asyncio.sleep(PUBLISH_INTERVAL_S)
 
 
 @asynccontextmanager
@@ -58,7 +81,11 @@ async def lifespan(app: FastAPI):
     app.state.stt   = WhisperSTT()
     app.state.tts   = PollyTTS()
 
+    publisher = asyncio.create_task(_publisher_loop())
+
     yield
+
+    publisher.cancel()
 
     # Shutdown: close the DB sessions of live sessions (MCP clients are per request).
     for live in _store.all():

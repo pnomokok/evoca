@@ -2,6 +2,7 @@
 Panel REST endpoints.
 
 GET  /api/circle
+GET  /api/feed
 POST /api/questions
 """
 
@@ -17,6 +18,7 @@ from core.clock import now_utc
 from core.db import SessionLocal
 from core.enums import LifePeriod, QuestionSource, QuestionStatus
 from core.models import Circle, Membership, Person, Question, SensitiveTopic
+from core.services.feed import build_feed
 from core.services.session_tools import _matches_sensitive_topic
 
 log = logging.getLogger(__name__)
@@ -104,6 +106,23 @@ async def get_circle(
             },
             "members": members,
         }
+
+
+# ---------------------------------------------------------------------------
+# GET /api/feed
+# ---------------------------------------------------------------------------
+
+@router.get("/api/feed")
+async def get_feed(
+    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
+):
+    """Answers to the viewer's own questions and published stories, newest first.
+
+    Matches GET_feed.json; filtered by can_see() in core.services.feed.
+    """
+    with SessionLocal() as db:
+        person_id, circle_id = _resolve_panel_viewer(x_person_id, db)
+        return build_feed(db, person_id, circle_id)
 
 
 # ---------------------------------------------------------------------------
