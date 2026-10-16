@@ -15,6 +15,9 @@ Coverage:
   record_answer           — happy path, status rules (waiting, answered),
                             story from another circle, private-overlap rejection
   add_question            — waiting vs filtered, invalid source, center target
+  mark_question_declined  — asked -> declined; status rules; range checks
+  reopen_question         — asked -> waiting; status rules
+  get_session_transcript  — a declined question is no longer listed as asked
 """
 
 from __future__ import annotations
@@ -38,7 +41,9 @@ from core.models import (
 from core.services.archive_tools import (
     add_question_data,
     get_session_transcript_data,
+    mark_question_declined_data,
     record_answer_data,
+    reopen_question_data,
     save_story_data,
 )
 
@@ -419,3 +424,44 @@ def test_add_question_rejects_family_source(w):
 def test_add_question_rejects_invalid_period(w):
     with pytest.raises(ValueError, match="Invalid period"):
         add_question_data(w.db, w.fatma.id, w.circle.id, "Anything?", "gap", "old_age")
+
+
+# ---------------------------------------------------------------------------
+# mark_question_declined / reopen_question
+# ---------------------------------------------------------------------------
+
+def test_mark_question_declined(w):
+    mark_question_declined_data(w.db, w.fatma.id, w.circle.id, w.q_asked.id, w.sess.id, 20_000, 30_000)
+    w.db.commit()
+    assert w.db.get(Question, w.q_asked.id).status == QuestionStatus.declined
+    r = get_session_transcript_data(w.db, w.fatma.id, w.circle.id, w.sess.id)
+    assert r.asked_questions == []
+
+
+def test_mark_question_declined_status_and_range_rules(w):
+    with pytest.raises(ValueError, match="expected 'asked'"):
+        mark_question_declined_data(w.db, w.fatma.id, w.circle.id, w.q_waiting.id,
+                                    w.sess.id, 20_000, 30_000)
+    with pytest.raises(ValueError, match="overlaps a private part"):
+        mark_question_declined_data(w.db, w.fatma.id, w.circle.id, w.q_asked.id,
+                                    w.sess.id, 10_000, 25_000)
+    with pytest.raises(ValueError, match="not found in this circle"):
+        mark_question_declined_data(w.db, w.fatma.id, w.circle.id, w.q_asked.id,
+                                    w.other_sess.id, 0, 10)
+    assert w.db.get(Question, w.q_asked.id).status == QuestionStatus.asked
+
+
+def test_reopen_question(w):
+    reopen_question_data(w.db, w.fatma.id, w.circle.id, w.q_asked.id)
+    w.db.commit()
+    assert w.db.get(Question, w.q_asked.id).status == QuestionStatus.waiting
+    with pytest.raises(ValueError, match="expected 'asked'"):
+        reopen_question_data(w.db, w.fatma.id, w.circle.id, w.q_asked.id)   # now waiting
+
+
+def test_reopen_refuses_declined_and_answered(w):
+    mark_question_declined_data(w.db, w.fatma.id, w.circle.id, w.q_asked.id, w.sess.id, 20_000, 30_000)
+    w.db.commit()
+    with pytest.raises(ValueError, match="expected 'asked'"):
+        reopen_question_data(w.db, w.fatma.id, w.circle.id, w.q_asked.id)
+    assert w.db.get(Question, w.q_asked.id).status == QuestionStatus.declined

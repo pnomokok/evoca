@@ -10,6 +10,8 @@ They are a **draft contract**: when the real API differs, update the sample and 
 - IDs are opaque strings. The samples use readable IDs (`person_elif`); the real API returns UUIDs. Never parse them.
 - Times are UTC ISO 8601 strings. Audio positions are integer milliseconds.
 - Audio is never embedded. Play it from `/api/audio/{session_id}?start=<ms>&end=<ms>`.
+- Until the identity decision is made, the panel must fetch audio with the `X-Person-Id` header and play it as a blob (a plain `<audio src>` cannot send the header).
+- In `GET /api/feed`, `answer.audio_url` is `null` when the answer's session has no audio file (for example a text-only test session). Show the answer without a play button.
 - Errors always look like `ERROR_example.json`, with a matching HTTP status (400, 403, 404).
 - Every response is already filtered by `can_see()`. The client never hides things itself; if a story is missing, the viewer may not see it.
 

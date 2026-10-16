@@ -182,6 +182,7 @@ Bu kurallar kodda zorunlu kontrollerdir; demo veya zaman baskısı yüzünden at
 - Yönetici konu ekler (ör. "1977 trafik kazası").
 - Aile sorusu eklenirken ve ajan soru seçerken kontrol edilir. Kontrol LLM ile anlamsal yapılır; şüphede soru sorulmaz.
 - Takılan soru silinmez, `filtered` durumunda kalır.
+- Büyük bir soruyu cevaplamayı reddederse soru `declined` olur ve bir daha sorulmaz. Soran kişi bunu **hiçbir zaman öğrenmez:** merkez kişi dışında herkese her API cevabında `declined` soru cevaplanmamış (`waiting`/`asked`) gibi görünür; reddetmek hassas bir konuya işaret edebilir (filtrelenen soru mesajıyla aynı ilke). Şu an soru durumunu dönen bir REST ucu yok; aile panelinin soru listesi ve bildirim akışı bu kurala uyar.
 
 ## Kapsam
 
@@ -317,7 +318,8 @@ LinkReason    = "same_place" | "same_event" | "continuation" | "answer_to"
 LinkSource    = "ai" | "family"
 LinkStatus    = "suggested" | "confirmed" | "removed"
 QuestionSource = "family" | "follow_up" | "gap"
-QuestionStatus = "waiting" | "asked" | "answered" | "filtered"
+QuestionStatus = "waiting" | "asked" | "answered" | "filtered" | "declined"
+                                                 # declined = büyük cevaplamayı reddetti; bir daha sorulmaz
 InvitationStatus = "sent" | "accepted" | "postponed" | "declined" | "skipped"
 Emoji         = "heart" | "laugh" | "sad" | "pray"
 ```
@@ -369,7 +371,9 @@ StoryLink:
 Question:
   id, circle_id, target_person_id, asker_id | None,   # None = ajan
   text, source: QuestionSource, period: LifePeriod | None,
-  status: QuestionStatus,
+  status: QuestionStatus,                       # waiting → asked (sohbet ajanı) → answered | declined
+                                                # | waiting (arşivci: sorulup cevaplanmayan soru tekrar beklemeye döner)
+                                                # merkez kişi dışındakilere declined, cevaplanmamış gibi görünür
   answer: {story_id, session_id, start_ms, end_ms} | None,
   created_at
 
@@ -428,7 +432,9 @@ Gizli `Segment`'ler (`is_private = true`) hiçbir hikâyenin `sources` alanına,
 | `mark_reactions_delivered` | Sohbet ajanı | `story_ids` | ok | Tepkiler söylendikten sonra |
 | `get_session_transcript` | Arşivci ajan | `session_id` | gizli olmayan parçalar + kelime zamanları | İşlemenin girdisi |
 | `save_story` | Arşivci ajan | `title, summary, teller_id, subjects: [{person_id, period}], sources, place?, stated_year?, original_story_id?` | `story_id` | `status = pending`, erişim varsayılan `circle` |
-| `record_answer` | Arşivci ajan | `question_id, story_id, start_ms, end_ms` | ok | Soru `answered` olur, cevap iletimi tetiklenir |
+| `record_answer` | Arşivci ajan | `question_id, story_id, start_ms, end_ms` | ok | Soru `answered` olur, cevap iletimi tetiklenir. Ajan önce sıcaklık 0 bir kontrolle konuşmacının o aralıktaki sözlerinin soruyu gerçekten cevapladığını doğrular; emin değilse kaydetmez |
+| `mark_question_declined` | Arşivci ajan | `question_id, session_id, start_ms, end_ms` | ok | Büyük açıkça reddettiyse soru `declined` olur; aynı kontrolle doğrulanır, emin değilse reddedilmiş sayılmaz |
+| `reopen_question` | Arşivci ajanın kodu (model değil) | `question_id` | ok | Oturum sonunda sorulup cevaplanmayan ve reddedilmeyen soru `waiting`e döner |
 | `link_stories` | Arşivci ajan | `from_story_id, to_story_id, reason` | `link_id` | `source = ai, status = suggested` |
 | `find_gaps` | Arşivci ajan | `person_id` | boş dönemler | Sonra `add_question(source = gap)` |
 
@@ -436,9 +442,10 @@ Gizli `Segment`'ler (`is_private = true`) hiçbir hikâyenin `sources` alanına,
 
 1. `get_session_transcript` ile oturumu okur.
 2. Hikâyeleri ayıklar; her biri için `save_story` (mevcut bir hikâyenin yeniden anlatımıysa `original_story_id` ile).
-3. Sorulan her soru için cevap aralığını bulur; `record_answer`.
+3. Sorulan her soru için cevap aralığını bulur; `record_answer`. Büyük açıkça reddettiyse `mark_question_declined`.
 4. İlgili hikâyeler için `link_stories` (aynı yer, aynı olay, devamı).
 5. `find_gaps` ve gerekirse `add_question(source = gap)`.
+6. Kalan her `asked` soru (cevaplanmamış, reddedilmemiş) `reopen_question` ile `waiting`e döner; sonraki oturumda yeniden sorulur.
 
 Cevap iletimi (bildirim) `record_answer`'ın yan etkisidir; ajan doğrudan bildirim göndermez.
 
@@ -446,6 +453,7 @@ Cevap iletimi (bildirim) `record_answer`'ın yan etkisidir; ajan doğrudan bildi
 
 | Uç | Kim | Ne yapar |
 | --- | --- | --- |
+| `POST /api/device/session/start` | Cihaz ekranı | Oturumu başlatır (davet varsa `invitation`, yoksa `spontaneous`), MCPBridge ve ChatAgent açar, açılış turunu çalıştırır; `POST /api/device/turn` ile aynı şekli döner |
 | `POST /api/device/turn` | Cihaz ekranı | Ses yükler; cevap metni + TTS sesi + gösterilecek kartlar döner |
 | `POST /api/device/session/end` | Cihaz ekranı | Oturumu kapatır, işlemeyi başlatır |
 | `GET /api/device/invitation` | Cihaz ekranı | Işık yansın mı? |
@@ -653,6 +661,9 @@ Yeni kararlar tablonun en üstüne eklenir. Bir karar geri alınırsa satır sil
 
 | Tarih | Karar | Gerekçe |
 | --- | --- | --- |
+| 16 Ekim | `QuestionStatus`'a `declined` eklendi. Oturum sonunda arşivci, sorulup cevaplanmayan her soruyu `waiting`e döndürür (yeni geçiş `asked` → `waiting`, `reopen_question`); büyük açıkça reddettiyse soru `declined` olur ve bir daha sorulmaz. Cevap ve ret, sıcaklık 0 bir kontrolle doğrulanmadan kaydedilmez; emin değilken soru cevaplanmamış ve reddedilmemiş sayılır. Soran kişi reddi hiçbir zaman öğrenmez: merkez kişi dışındakilere `declined` soru cevaplanmamış gibi görünür | Cevaplanmayan soru kaybolmasın; reddedilen soru ısrarla sorulmasın. Ret `asked` durumunda kalsaydı sonraki oturumun arşivcisi onu yeniden açardı, ayrı durum bunu kalıcı yapar. Yanlış cevap torunun yanlış kaydı duymasına yol açar (Riskler); ret bilgisi hassas bir konuya işaret edebilir |
+| 16 Ekim | `GET /api/audio` bir sorunun cevap aralığını sadece soran kişi cevabın hikâyesini `can_see()` ile görebiliyorsa çalar; `pending` hikâyenin cevabı sıradan üyeye yayından sonra açılır. Gizli bir parçayla çakışan aralık sadece çakıştığı her gizli parçanın konuşmacısına (`speaker_id`) ve aralık başka bir kuralla da izinliyse çalınır; merkez kişi dahil başka hiç kimse başkasının gizli parçasını duyamaz. Her ret aynı genel 403 mesajıyla döner (gizli kısmın varlığı belli olmaz). Tüm oturumu sadece çemberin merkez kişisi ve `panel_recording` oturumunu kaydeden kişi dinleyebilir; `/api/tts` dosyaları sadece oturumun katılımcılarına | Kontroller demo için atlanmaz (Kurallar); 24 saat bekleme demoda `DEMO_NOW` ile gösterilir; erişimi olmayan kişi gizli kaydın varlığını bile görmez; `private` "sadece anlatan" demektir ve "burada gizli kısım var" uyarısı anlatana görünür, yani anlatan kendi gizli kısmını dinleyebilmeli |
+| 16 Ekim | `POST /api/device/session/start` eklendi: oturumu başlatır (davet varsa `invitation` ve davet `accepted` olur), MCPBridge ve ChatAgent açar, açılış turunu çalıştırır; `/turn` ile aynı şekli döner. `/turn` ve `/session/end` sadece oturumu başlatan kişiye açık | Cihaz ekranının açılış selamını ve araç izini sohbet başlamadan göstermesi gerekiyor |
 | 15 Ekim | Kapsamdan kısılmıyor; üç kalite eki eklendi (sızıntı testi, araç izi, gecikme ölçümü); Kiro görevleri büyütüldü (ajan + araçları bir arada) | Kazanmaya oynuyoruz; temel kalıplar oturduğu için büyük görevler güvenli |
 | 13 Ekim | REST cevap şekilleri docs/api-samples/ altında taslak sözleşme; GET /api/circle eklendi; geçici kimlik X-Person-Id başlığı | Aleyna backend'i beklemeden sahte veriyle çalışabilsin; panelin isim ve rol listesine ihtiyacı var |
 | 13 Ekim | Membership'e relation\_to\_center eklendi; uygulamayı kullanmayan kişiler (ör. vefat etmiş dede) sadece hikâye metninde isim olarak geçer | Ajan sıcak hitap eder ("torununuz Elif"), arşivci "kızım"ı doğru kişiye bağlar; değeri yönetici girdiği için soy ağacı riski yok |

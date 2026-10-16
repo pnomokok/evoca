@@ -41,6 +41,7 @@ import anyio
 from core.clock import now_utc
 from core.db import SessionLocal
 from core.enums import SessionStart
+from core.models import Segment
 from core.services.sessions import add_segment, end_session, start_session
 from server.llm import LLM, BedrockLLM, strip_thinking
 from server.mcp_bridge import MCPBridge
@@ -167,7 +168,8 @@ def clean_reply(text: str, ending: bool) -> str:
 class ToolTrace:
     tool: str
     input: dict[str, Any]
-    result_preview: str      # first 300 chars of the serialised result
+    result: Any              # full structured result (not sent to the client)
+    result_preview: str      # first 300 chars of the serialised result (for API responses)
     ms: int
     is_error: bool
 
@@ -203,6 +205,7 @@ class ChatAgent:
         circle_id: str,
         db_session: Any,
         bridge: Any,
+        session_id: str | None = None,
     ) -> None:
         self._llm = llm
         self._person_id = person_id
@@ -214,9 +217,12 @@ class ChatAgent:
         self._history: list[dict[str, Any]] = []
         self._tool_config: dict[str, Any] | None = None
 
-        # Session row — created on first turn.
-        self._orm_session_id: str | None = None
-        self._session_wall_start: float | None = None
+        # Session row — created on first turn unless the caller already made it
+        # (the FastAPI backend passes session_id).
+        self._orm_session_id: str | None = session_id
+        self._session_wall_start: float | None = time.monotonic() if session_id else None
+        # The agent's latest Segment, so its span can be set once TTS audio exists.
+        self._last_agent_segment_id: str | None = None
 
     # ------------------------------------------------------------------
     # Session helpers
@@ -246,16 +252,34 @@ class ChatAgent:
         text: str,
         start_ms: int,
         end_ms: int,
-    ) -> None:
-        add_segment(
+        words: list[dict] | None = None,
+    ) -> str:
+        seg = add_segment(
             self._db,
             self._ensure_session(),
             speaker_id,
             text,
             start_ms,
             end_ms,
+            words=words or [],
         )
         self._db.commit()
+        return seg.id
+
+    def set_last_agent_span(self, start_ms: int, end_ms: int) -> None:
+        """Set the real audio span of the agent's latest reply (after TTS)."""
+        if self._last_agent_segment_id is None:
+            return
+        seg = self._db.get(Segment, self._last_agent_segment_id)
+        if seg is not None:
+            seg.start_ms = start_ms
+            seg.end_ms = end_ms
+            self._db.commit()
+
+    def set_bridge(self, bridge: Any) -> None:
+        """Swap the MCP bridge. The FastAPI backend opens one per request (an MCP
+        client must be closed in the task that opened it) and sets it here."""
+        self._bridge = bridge
 
     def end(self) -> None:
         """Mark the session finished."""
@@ -267,8 +291,24 @@ class ChatAgent:
     # Main entry point
     # ------------------------------------------------------------------
 
-    async def turn(self, user_text: str, store_user: bool = True) -> TurnResult:
-        """Process one user utterance and return reply + diagnostics."""
+    async def turn(
+        self,
+        user_text: str,
+        store_user: bool = True,
+        user_start_ms: int | None = None,
+        user_end_ms: int | None = None,
+        user_words: list[dict] | None = None,
+    ) -> TurnResult:
+        """Process one user utterance and return reply + diagnostics.
+
+        Optional real-span arguments (set by the FastAPI backend after STT):
+          user_start_ms / user_end_ms   – the user's audio position in the
+                                           session WAV.
+          user_words                    – Whisper word timestamps shifted to WAV
+                                           positions.
+        The agent's reply gets a placeholder span; once its TTS audio is in the
+        WAV the backend calls set_last_agent_span().
+        """
         total_start = time.monotonic()
 
         # Lazy-fetch the tool config once per agent lifetime, limited to CHAT_TOOLS.
@@ -363,6 +403,7 @@ class ChatAgent:
                     ToolTrace(
                         tool=tool_name,
                         input=tool_input,
+                        result=result,
                         result_preview=preview,
                         ms=tool_ms,
                         is_error=is_error,
@@ -402,8 +443,15 @@ class ChatAgent:
         # Store segments.
         seg_end = self._elapsed_ms()
         if store_user:
-            self._store_segment(self._person_id, user_text, seg_start, seg_start + 100)
-        self._store_segment(None, reply_text, seg_end, seg_end + 100)
+            u_start = user_start_ms if user_start_ms is not None else seg_start
+            u_end   = user_end_ms   if user_end_ms   is not None else seg_start + 100
+            self._store_segment(
+                self._person_id, user_text, u_start, u_end,
+                words=user_words or [],
+            )
+        self._last_agent_segment_id = self._store_segment(
+            None, reply_text, seg_end, seg_end + 100
+        )
 
         total_ms = int((time.monotonic() - total_start) * 1000)
         return TurnResult(

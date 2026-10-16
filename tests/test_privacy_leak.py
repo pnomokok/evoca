@@ -350,10 +350,11 @@ async def test_private_segments_never_reach_archivist_llm(world_for_archivist):
     ]
 
     recording_llm = RecordingLLM(DynamicScriptedLLM(script))
+    recording_checker = RecordingLLM(ScriptedLLM(["yes"]))   # the answer check
     bridge = FakeArchiveBridge(w.db, w.fatma.id, w.circle.id)
     agent = ArchivistAgent(
         llm=recording_llm, person_id=w.fatma.id,
-        circle_id=w.circle.id, bridge=bridge,
+        circle_id=w.circle.id, bridge=bridge, checker_llm=recording_checker,
     )
     result = await agent.run(w.sess.id)
 
@@ -367,7 +368,8 @@ async def test_private_segments_never_reach_archivist_llm(world_for_archivist):
     # Sanity: the public transcript did reach the LLM, so the check is meaningful.
     assert any("stone house by the sea" in _all_text_in_request(r)
                for r in recording_llm.requests)
-    for i, req in enumerate(recording_llm.requests):
+    assert len(recording_checker.requests) == 1
+    for i, req in enumerate(recording_llm.requests + recording_checker.requests):
         serialised = _all_text_in_request(req)
         for private_text in w.private_texts:
             assert private_text not in serialised, (

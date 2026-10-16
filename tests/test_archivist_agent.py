@@ -19,6 +19,13 @@ Coverage
 - Tool errors (e.g. private overlap) are recorded in the trace and fed back.
 - max-rounds guard: loop exits after _MAX_TOOL_ROUNDS.
 - Model id comes from EVOCA_ARCHIVIST_MODEL.
+- Answer check: record_answer goes through only when the checker says the
+  speaker's words in the range answer the question ("anyone famous" vs the
+  Uncle Ahmed story is rejected; a real answer is accepted).
+- Declines and reopening: a confirmed decline sets "declined" and is never
+  reopened; an unconfirmed decline is not recorded; every other asked,
+  unanswered question goes back to "waiting" at the end of the run; a declined
+  question stays declined after a later session.
 """
 
 from __future__ import annotations
@@ -31,12 +38,14 @@ from typing import Any
 import pytest
 
 from core.enums import QuestionStatus, StoryStatus
-from core.models import Question, Story
+from core.models import Question, Segment, Story
 from core.services.session_tools import get_pending_questions_data
 from core.services.archive_tools import (
     add_question_data,
     get_session_transcript_data,
+    mark_question_declined_data,
     record_answer_data,
+    reopen_question_data,
     save_story_data,
 )
 from server.agents.archivist_agent import (
@@ -45,6 +54,7 @@ from server.agents.archivist_agent import (
     DEFAULT_ARCHIVIST_MODEL,
     ArchivistAgent,
     archivist_model_id,
+    checker_said_yes,
     normalize_question,
 )
 from tests.test_archive_tools import PRIVATE_TEXT, db, w  # noqa: F401  (fixtures)
@@ -94,7 +104,7 @@ class FakeArchiveBridge:
     async def bedrock_tool_config(self) -> dict:
         return {"tools": [_spec(n) for n in (
             "get_session_transcript", "save_story", "record_answer",
-            "add_question", "mark_question_asked",
+            "add_question", "mark_question_declined", "mark_question_asked",
         )]}
 
     async def call_tool(self, name: str, arguments: dict) -> Any:
@@ -118,13 +128,21 @@ class FakeArchiveBridge:
             # Used internally by the duplicate guard; the real server wraps a list.
             items = get_pending_questions_data(db, pid, cid, arguments.get("limit", 5))
             return {"result": [asdict(i) for i in items]}
+        if name == "mark_question_declined":
+            mark_question_declined_data(db, pid, cid, **arguments)
+            db.commit()
+            return {"status": "ok", "question_id": arguments["question_id"]}
+        if name == "reopen_question":
+            reopen_question_data(db, pid, cid, **arguments)
+            db.commit()
+            return {"status": "ok", "question_id": arguments["question_id"]}
         raise RuntimeError(f"Unknown tool: {name}")
 
 
-def _make_agent(w, llm) -> tuple[ArchivistAgent, FakeArchiveBridge]:
+def _make_agent(w, llm, checker=None) -> tuple[ArchivistAgent, FakeArchiveBridge]:
     bridge = FakeArchiveBridge(w.db, w.fatma.id, w.circle.id)
     agent = ArchivistAgent(llm=llm, person_id=w.fatma.id,
-                           circle_id=w.circle.id, bridge=bridge)
+                           circle_id=w.circle.id, bridge=bridge, checker_llm=checker)
     return agent, bridge
 
 
@@ -165,7 +183,7 @@ def full_script(w) -> list:
 @pytest.mark.anyio
 async def test_full_run_creates_story_answer_and_question(w):
     llm = DynamicScriptedLLM(full_script(w))
-    agent, bridge = _make_agent(w, llm)
+    agent, bridge = _make_agent(w, llm, checker=ScriptedLLM(["yes"]))
     result = await agent.run(w.sess.id)
 
     assert result.session_id == w.sess.id
@@ -205,7 +223,9 @@ async def test_chat_tools_are_not_offered(w):
     agent, _ = _make_agent(w, llm)
     await agent.run(w.sess.id)
     names = {t["toolSpec"]["name"] for t in llm.calls[0]["tools"]["tools"]}
-    assert names == {"get_session_transcript", "save_story", "record_answer", "add_question"}
+    assert names == {"get_session_transcript", "save_story", "record_answer", "add_question",
+                     "mark_question_declined"}
+    assert "reopen_question" not in names   # called by the agent's own code, never by the model
 
 
 @pytest.mark.anyio
@@ -217,7 +237,7 @@ async def test_chat_tool_call_is_rejected(w):
     agent, bridge = _make_agent(w, llm)
     result = await agent.run(w.sess.id)
     assert result.trace[0].is_error
-    assert bridge.tool_calls == []
+    assert "mark_question_asked" not in [n for n, _ in bridge.tool_calls]
     assert w.db.get(Question, w.q_waiting.id).status == QuestionStatus.waiting
 
 
@@ -328,7 +348,7 @@ async def test_question_equal_to_waiting_or_asked_rejected(w):
     assert all("already waiting or asked" in t.result_preview for t in result.trace)
     assert _added_questions(w) == []
     # The guard looked up the transcript and waiting questions itself.
-    assert [n for n, _ in bridge.tool_calls] == ["get_session_transcript", "get_pending_questions"]
+    assert [n for n, _ in bridge.tool_calls][:2] == ["get_session_transcript", "get_pending_questions"]
 
 
 @pytest.mark.anyio
@@ -352,3 +372,303 @@ async def test_new_question_passes_guard(w):
     result = await agent.run(w.sess.id)
     assert not result.trace[0].is_error
     assert _added_questions(w) == ["What did your father do?"]
+
+
+# ---------------------------------------------------------------------------
+# Answer check
+# ---------------------------------------------------------------------------
+
+FAMOUS_Q = "Did you ever meet anyone famous growing up?"
+UNCLE_AHMED = (
+    "My uncle had just bought an old stone house in a small village. We were lost for "
+    "two hours. Uncle Ahmed was standing on the porch with a big smile, holding an old "
+    "glass lantern. It was probably one of the best summers of my life."
+)
+
+
+def _answer_world(w):
+    """The real-check case: an asked 'anyone famous' question, a session whose
+    speaker segment is the Uncle Ahmed story, and a saved story for it."""
+    from core.enums import QuestionSource
+    q = Question(circle_id=w.circle.id, target_person_id=w.fatma.id, asker_id=w.elif_.id,
+                 text=FAMOUS_Q, source=QuestionSource.family, status=QuestionStatus.asked,
+                 created_at=w.q_asked.created_at)
+    w.db.add(q)
+    seg = w.db.query(Segment).filter(Segment.session_id == w.sess.id,
+                                     Segment.start_ms == 20_000).one()
+    seg.transcript = UNCLE_AHMED
+    w.db.commit()
+    story_id = save_story_data(w.db, w.fatma.id, w.circle.id, **_story_args(w, 20_000, 30_000))
+    w.db.commit()
+    return q, story_id
+
+
+def _checker_input(checker) -> str:
+    return checker.calls[0]["messages"][0]["content"][0]["text"]
+
+
+@pytest.mark.anyio
+async def test_answer_check_rejects_unrelated_story(w):
+    q, story_id = _answer_world(w)
+    checker = ScriptedLLM(["no"])
+    llm = DynamicScriptedLLM([
+        [_tool_use("get_session_transcript", {"session_id": w.sess.id})],
+        [_tool_use("record_answer", {"question_id": q.id, "story_id": story_id,
+                                     "start_ms": 20_000, "end_ms": 30_000})],
+        "done",
+    ])
+    agent, bridge = _make_agent(w, llm, checker)
+    result = await agent.run(w.sess.id)
+
+    assert result.answers_recorded == []
+    assert result.trace[-1].tool == "record_answer" and result.trace[-1].is_error
+    assert "do not answer the question" in result.trace[-1].result_preview
+    assert "record_answer" not in [n for n, _ in bridge.tool_calls]
+    w.db.expire_all()
+    # Not answered, so it goes back to "waiting" to be asked again later.
+    assert w.db.get(Question, q.id).status == QuestionStatus.waiting
+    assert w.db.get(Question, q.id).answer is None
+    # The checker saw exactly this question and the speaker's words in that range.
+    seen = _checker_input(checker)
+    assert FAMOUS_Q in seen and "Uncle Ahmed was standing on the porch" in seen
+    assert checker.calls[0]["tools"] is None
+
+
+@pytest.mark.anyio
+async def test_answer_check_accepts_real_answer(w):
+    # "Where did you grow up?" vs "I grew up next to the river." (segment 0-10000).
+    checker = ScriptedLLM(["Yes."])
+    llm = DynamicScriptedLLM([
+        [_tool_use("get_session_transcript", {"session_id": w.sess.id})],
+        [_tool_use("save_story", _story_args(w))],
+        lambda msgs: [_tool_use("record_answer", {
+            "question_id": w.q_asked.id, "story_id": last_tool_json(msgs)["story_id"],
+            "start_ms": 0, "end_ms": 10_000,
+        })],
+        "done",
+    ])
+    agent, _ = _make_agent(w, llm, checker)
+    result = await agent.run(w.sess.id)
+
+    assert result.answers_recorded == [w.q_asked.id]
+    w.db.expire_all()
+    assert w.db.get(Question, w.q_asked.id).status == QuestionStatus.answered
+    seen = _checker_input(checker)
+    assert "Where did you grow up?" in seen and "I grew up next to the river." in seen
+    # The companion's own words in a range are never part of the passage.
+    assert "What did you do by the river?" not in seen
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("verdict", ["", "unsure", "Not really.", "maybe yes"])
+async def test_answer_check_anything_but_yes_rejects(w, verdict):
+    llm = DynamicScriptedLLM([
+        [_tool_use("save_story", _story_args(w))],
+        lambda msgs: [_tool_use("record_answer", {
+            "question_id": w.q_asked.id, "story_id": last_tool_json(msgs)["story_id"],
+            "start_ms": 0, "end_ms": 10_000,
+        })],
+        "done",
+    ])
+    agent, _ = _make_agent(w, llm, ScriptedLLM([verdict]))
+    result = await agent.run(w.sess.id)
+    assert result.answers_recorded == []
+
+
+@pytest.mark.anyio
+async def test_answer_check_rejects_range_without_speech(w):
+    # 12000-20000 is only the private segment, which the archivist never sees.
+    checker = ScriptedLLM(["yes"])
+    llm = DynamicScriptedLLM([
+        [_tool_use("save_story", _story_args(w))],
+        lambda msgs: [_tool_use("record_answer", {
+            "question_id": w.q_asked.id, "story_id": last_tool_json(msgs)["story_id"],
+            "start_ms": 12_000, "end_ms": 20_000,
+        })],
+        "done",
+    ])
+    agent, _ = _make_agent(w, llm, checker)
+    result = await agent.run(w.sess.id)
+    assert result.answers_recorded == []
+    assert "nobody speaks in that range" in result.trace[-1].result_preview
+    assert checker.calls == []
+
+
+# ---------------------------------------------------------------------------
+# Declined questions and reopening at the end of the run
+# ---------------------------------------------------------------------------
+# Segment 20000-30000 is the speaker's; here it holds a refusal.
+
+DECLINE_TEXT = "I'd rather not talk about where I grew up. Let us talk about something else."
+
+
+def _set_speaker_text(w, text):
+    seg = w.db.query(Segment).filter(Segment.session_id == w.sess.id,
+                                     Segment.start_ms == 20_000).one()
+    seg.transcript = text
+    w.db.commit()
+
+
+def _decline_call(w, question_id=None):
+    return [_tool_use("mark_question_declined", {
+        "question_id": question_id or w.q_asked.id, "session_id": w.sess.id,
+        "start_ms": 20_000, "end_ms": 30_000,
+    })]
+
+
+def _status(w, question_id):
+    w.db.expire_all()
+    return w.db.get(Question, question_id).status
+
+
+@pytest.mark.anyio
+async def test_confirmed_decline_sets_declined_and_is_not_reopened(w):
+    _set_speaker_text(w, DECLINE_TEXT)
+    checker = ScriptedLLM(["yes"])
+    llm = DynamicScriptedLLM([
+        [_tool_use("get_session_transcript", {"session_id": w.sess.id})],
+        _decline_call(w),
+        "done",
+    ])
+    agent, bridge = _make_agent(w, llm, checker)
+    result = await agent.run(w.sess.id)
+
+    assert result.questions_declined == [w.q_asked.id]
+    assert result.questions_reopened == []
+    assert _status(w, w.q_asked.id) == QuestionStatus.declined
+    assert "reopen_question" not in [n for n, _ in bridge.tool_calls]
+    seen = _checker_input(checker)
+    assert "Where did you grow up?" in seen and DECLINE_TEXT in seen
+
+
+@pytest.mark.anyio
+async def test_unanswered_question_is_reopened(w):
+    llm = DynamicScriptedLLM([
+        [_tool_use("get_session_transcript", {"session_id": w.sess.id})],
+        "Nothing to record.",
+    ])
+    agent, bridge = _make_agent(w, llm, ScriptedLLM(["yes"]))
+    result = await agent.run(w.sess.id)
+
+    assert result.questions_reopened == [w.q_asked.id]
+    assert _status(w, w.q_asked.id) == QuestionStatus.waiting
+    assert _status(w, w.q_waiting.id) == QuestionStatus.waiting   # untouched
+    assert ("reopen_question", {"question_id": w.q_asked.id}) in bridge.tool_calls
+
+
+@pytest.mark.anyio
+async def test_answered_question_is_not_reopened(w):
+    llm = DynamicScriptedLLM(full_script(w))
+    agent, _ = _make_agent(w, llm, ScriptedLLM(["yes"]))
+    result = await agent.run(w.sess.id)
+    assert result.questions_reopened == []
+    assert _status(w, w.q_asked.id) == QuestionStatus.answered
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("verdict", ["no", "unsure", ""])
+async def test_unconfirmed_decline_is_not_recorded_and_question_reopened(w, verdict):
+    _set_speaker_text(w, "We fished there every summer.")   # not a refusal
+    llm = DynamicScriptedLLM([
+        [_tool_use("get_session_transcript", {"session_id": w.sess.id})],
+        _decline_call(w),
+        "done",
+    ])
+    agent, _ = _make_agent(w, llm, ScriptedLLM([verdict]))
+    result = await agent.run(w.sess.id)
+
+    decline = [t for t in result.trace if t.tool == "mark_question_declined"][0]
+    assert decline.is_error and "Decline not recorded" in decline.result_preview
+    assert result.questions_declined == []
+    assert result.questions_reopened == [w.q_asked.id]
+    assert _status(w, w.q_asked.id) == QuestionStatus.waiting
+
+
+@pytest.mark.anyio
+async def test_decline_in_another_session_is_rejected(w):
+    llm = DynamicScriptedLLM([[_tool_use("mark_question_declined", {
+        "question_id": w.q_asked.id, "session_id": w.other_sess.id, "start_ms": 0, "end_ms": 1,
+    })], "done"])
+    checker = ScriptedLLM(["yes"])
+    agent, _ = _make_agent(w, llm, checker)
+    result = await agent.run(w.sess.id)
+    assert "must be in the session being archived" in result.trace[0].result_preview
+    assert checker.calls == []
+    assert _status(w, w.q_asked.id) == QuestionStatus.waiting
+
+
+@pytest.mark.anyio
+async def test_declined_question_stays_declined_after_a_later_session(w):
+    # Session 1: the speaker declines.
+    _set_speaker_text(w, DECLINE_TEXT)
+    llm1 = DynamicScriptedLLM([[_tool_use("get_session_transcript", {"session_id": w.sess.id})],
+                               _decline_call(w), "done"])
+    agent1, _ = _make_agent(w, llm1, ScriptedLLM(["yes"]))
+    await agent1.run(w.sess.id)
+    assert _status(w, w.q_asked.id) == QuestionStatus.declined
+
+    # Session 2: another question is asked and not answered; nothing about the first.
+    from core.enums import QuestionSource, SessionKind, SessionStart
+    from core.models import Session as OrmSession
+    sess2 = OrmSession(circle_id=w.circle.id, kind=SessionKind.solo,
+                       started_by=SessionStart.spontaneous, participant_ids=[w.fatma.id],
+                       started_at=w.sess.started_at, ended_at=w.sess.ended_at)
+    w.db.add(sess2); w.db.flush()
+    w.db.add(Segment(session_id=sess2.id, speaker_id=w.fatma.id, start_ms=0, end_ms=5_000,
+                     transcript="My father mended nets on the steps.", words=[], is_private=False))
+    w.q_waiting.status = QuestionStatus.asked
+    w.db.commit()
+
+    llm2 = DynamicScriptedLLM([[_tool_use("get_session_transcript", {"session_id": sess2.id})],
+                               "Nothing to record."])
+    agent2, _ = _make_agent(w, llm2, ScriptedLLM(["yes"]))
+    result2 = await agent2.run(sess2.id)
+
+    assert result2.questions_reopened == [w.q_waiting.id]
+    assert _status(w, w.q_waiting.id) == QuestionStatus.waiting
+    assert _status(w, w.q_asked.id) == QuestionStatus.declined     # still declined
+    # A declined question is never offered again.
+    from core.services.session_tools import get_pending_questions_data
+    offered = [q.question_id for q in get_pending_questions_data(w.db, w.fatma.id, w.circle.id, 50)]
+    assert w.q_asked.id not in offered and w.q_waiting.id in offered
+
+
+# ---------------------------------------------------------------------------
+# Reading the checker's verdict (Nova answers in Markdown: "**yes**")
+# ---------------------------------------------------------------------------
+
+NOVA_YES = "**yes**" + "\n\n" + "The passage directly addresses the question"
+
+
+@pytest.mark.parametrize("verdict,expected", [
+    ("yes", True),
+    ("Yes.", True),
+    ("**yes**", True),
+    (NOVA_YES, True),   # the real Nova reply
+    ("**Yes.**", True),
+    ("no", False),
+    ("**no**", False),
+    ("", False),
+    ("unsure", False),
+    ("maybe yes", False),
+    ("Not really.", False),
+    ("yesterday she met him", False),
+])
+def test_checker_said_yes(verdict, expected):
+    assert checker_said_yes(verdict) is expected
+
+
+@pytest.mark.anyio
+async def test_markdown_yes_from_checker_records_the_answer(w):
+    checker = ScriptedLLM([NOVA_YES])
+    llm = DynamicScriptedLLM([
+        [_tool_use("save_story", _story_args(w))],
+        lambda msgs: [_tool_use("record_answer", {
+            "question_id": w.q_asked.id, "story_id": last_tool_json(msgs)["story_id"],
+            "start_ms": 0, "end_ms": 10_000,
+        })],
+        "done",
+    ])
+    agent, _ = _make_agent(w, llm, checker)
+    result = await agent.run(w.sess.id)
+    assert result.answers_recorded == [w.q_asked.id]

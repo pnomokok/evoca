@@ -85,6 +85,8 @@ class ReactionItem:
     relation_to_center: str | None
     story_title: str
     emoji: str
+    story_id: str = ""
+    person_id: str = ""
 
 
 @dataclass
@@ -192,6 +194,8 @@ def get_session_context_data(
                 relation_to_center=relation,
                 story_title=visible_story_map[r.story_id],
                 emoji=r.emoji,
+                story_id=r.story_id,
+                person_id=r.person_id,
             )
         )
 
@@ -293,6 +297,7 @@ class QuestionItem:
     asker_name: str | None          # None when asker_id is None (agent)
     asker_relation_to_center: str | None
     created_at: str
+    asker_id: str | None = None
 
 
 def get_pending_questions_data(
@@ -377,6 +382,7 @@ def get_pending_questions_data(
                 asker_name=asker_name,
                 asker_relation_to_center=asker_rel,
                 created_at=q.created_at,
+                asker_id=q.asker_id,
             )
         )
 

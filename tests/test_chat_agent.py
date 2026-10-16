@@ -711,3 +711,11 @@ async def test_no_stop_request_and_no_question_does_not_end(world):
     agent = _make_agent(world, llm)
     result = await agent.turn("We swam in the river every day.")
     assert result.session_should_end is False
+
+
+def test_answer_check_llm_is_archivist_model_at_temperature_zero(monkeypatch):
+    from server.agents.archivist_agent import answer_check_llm
+    monkeypatch.setenv("EVOCA_ARCHIVIST_MODEL", "us.amazon.nova-2-lite-v1:0")
+    llm = answer_check_llm()
+    assert llm.model_id == "us.amazon.nova-2-lite-v1:0"
+    assert llm.temperature == 0.0

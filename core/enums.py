@@ -89,6 +89,7 @@ class QuestionStatus(str, Enum):
     asked = "asked"
     answered = "answered"
     filtered = "filtered"
+    declined = "declined"  # the center declined to answer; never offered again
 
 
 class InvitationStatus(str, Enum):

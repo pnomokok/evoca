@@ -32,7 +32,9 @@ from core.db import SessionLocal, init_db
 from core.services.archive_tools import (
     add_question_data,
     get_session_transcript_data,
+    mark_question_declined_data,
     record_answer_data,
+    reopen_question_data,
     save_story_data,
 )
 from core.services.session_tools import (
@@ -245,6 +247,42 @@ def add_question(
         result = add_question_data(db, viewer_id, circle_id, text, source, period)
         db.commit()
         return result
+
+
+@mcp.tool()
+def mark_question_declined(
+    ctx: Context,
+    question_id: str,
+    session_id: str,
+    start_ms: int,
+    end_ms: int,
+) -> dict[str, str]:
+    """Record that the speaker declined to answer an asked question.
+
+    Only when the speaker clearly refused to talk about it ("I'd rather not
+    talk about that"). start_ms / end_ms is where they decline. The question
+    is never offered again. When unsure, do not call this.
+    """
+    with SessionLocal() as db, tool_errors():
+        viewer_id, circle_id = get_viewer(ctx, db)
+        mark_question_declined_data(
+            db, viewer_id, circle_id, question_id, session_id, start_ms, end_ms
+        )
+        db.commit()
+        return {"status": "ok", "question_id": question_id}
+
+
+@mcp.tool()
+def reopen_question(ctx: Context, question_id: str) -> dict[str, str]:
+    """Return an asked but unanswered question to 'waiting' so it is asked again.
+
+    Called by the archivist's own code at the end of a session, not by the model.
+    """
+    with SessionLocal() as db, tool_errors():
+        viewer_id, circle_id = get_viewer(ctx, db)
+        reopen_question_data(db, viewer_id, circle_id, question_id)
+        db.commit()
+        return {"status": "ok", "question_id": question_id}
 
 
 # ---------------------------------------------------------------------------

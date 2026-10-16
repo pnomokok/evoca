@@ -27,7 +27,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core.db import SessionLocal, init_db
 from core.models import Circle, Question, Session as OrmSession, Story, StorySubject
-from server.agents.archivist_agent import ArchivistAgent, archivist_llm
+from server.agents.archivist_agent import ArchivistAgent, answer_check_llm, archivist_llm
 from server.mcp_bridge import MCPBridge
 
 
@@ -69,7 +69,8 @@ async def main(argv: list[str]) -> None:
     print(f"MCP server: {os.environ.get('EVOCA_MCP_URL', 'http://localhost:8000/mcp')}\n")
 
     async with MCPBridge(person_id, circle_id) as bridge:
-        agent = ArchivistAgent(llm=llm, person_id=person_id, circle_id=circle_id, bridge=bridge)
+        agent = ArchivistAgent(llm=llm, person_id=person_id, circle_id=circle_id, bridge=bridge,
+                               checker_llm=answer_check_llm())
         result = await agent.run(session_id)
 
     print("Trace:")
