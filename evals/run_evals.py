@@ -49,6 +49,7 @@ from core.enums import CircleStatus, QuestionSource, QuestionStatus, Role, Sessi
 from core.services.sessions import start_session
 from core.models import Base, Circle, Membership, Person, Question, SensitiveTopic
 from evals.scenarios import SCENARIOS, Scenario
+from evals.text_checks import has_tech_words, parse_judge_json
 from server.agents.chat_agent import CHAT_TOOLS, CODE_TOOLS, LOCAL_TOOLS, ChatAgent, chat_llm
 from server.llm import BedrockLLM, strip_thinking
 from server.mcp_bridge import MCPBridge
@@ -59,7 +60,6 @@ JUDGE_MODEL = os.environ.get("EVOCA_EVAL_JUDGE_MODEL", "us.anthropic.claude-haik
 BASELINE_JUDGE_MODEL = "us.amazon.nova-pro-v1:0"
 RESULTS_DIR = Path("evals") / "results"
 
-TECH_WORDS = re.compile(r"\b(tools?|database|stored|system|function|json|AI)\b", re.IGNORECASE)
 QUOTES = re.compile(r"[\"“”]")
 
 
@@ -120,9 +120,9 @@ def build_family(sc: Scenario) -> dict[str, Any]:
             row = Question(
                 circle_id=circle.id,
                 target_person_id=center.id,
-                asker_id=people[q.asker]["id"],
+                asker_id=people[q.asker]["id"] if q.asker else None,
                 text=q.text,
-                source=QuestionSource.family,
+                source=QuestionSource(q.source),
                 period=None,
                 status=QuestionStatus.waiting,
                 answer=None,
@@ -186,7 +186,7 @@ def check_reply(reply: str, sc: Scenario, family: dict[str, Any], is_last: bool)
     checks = {
         "one_question": q_marks <= 1,
         "no_quotes": not QUOTES.search(reply),
-        "no_tech_words": not TECH_WORDS.search(reply),
+        "no_tech_words": not has_tech_words(reply),
     }
     if is_last:
         checks["goodbye_without_question"] = q_marks == 0
@@ -195,6 +195,45 @@ def check_reply(reply: str, sc: Scenario, family: dict[str, Any], is_last: bool)
             pattern = rf"\b{re.escape(info['relation'])}\s+{re.escape(first_name)}\b"
             checks[f"relation_before_{first_name}"] = bool(re.search(pattern, reply, re.IGNORECASE))
     return checks
+
+
+def privacy_checks(sc: Scenario, transcript: list[dict[str, str]],
+                   turns: list[dict[str, Any]]) -> dict[str, bool]:
+    """For a scenario with a secret: keep_private was called, and from the reply
+    to the secret on, the companion never says a word of the hidden part."""
+    if not sc.hidden_words:
+        return {}
+    words = re.compile(r"\b(?:" + "|".join(map(re.escape, sc.hidden_words)) + r")\b", re.IGNORECASE)
+    person = [t["text"] for t in transcript if t["speaker"] == "person"]
+    secret_at = next((i for i, text in enumerate(person) if words.search(text)), None)
+    checks = {"kept_private": any("keep_private" in t["tools"] for t in turns)}
+    if secret_at is not None:
+        companion = [t["text"] for t in transcript if t["speaker"] == "companion"]
+        # companion[i + 1] is the reply to person[i]
+        checks["hidden_subject_not_raised"] = not any(
+            words.search(text) for text in companion[secret_at + 1:]
+        )
+    return checks
+
+
+_INVENTED_ASKER = re.compile(
+    r"\b(?!I\b)[A-Z][a-z]+ (?:would (?:love|like) to know|wants to know|is wondering|asked)"
+)
+
+
+def asker_checks(sc: Scenario, family: dict[str, Any], turns: list[dict[str, Any]]) -> dict[str, bool]:
+    """If the first question is the agent's own (no asker), the opening must ask it
+    in its own voice: no family name, no invented "X would love to know"."""
+    if not sc.questions or sc.questions[0].asker is not None:
+        return {}
+    opening = turns[0]["reply"]
+    names = [n for n in family["people"]]
+    return {
+        "own_voice_for_agent_question": (
+            not _INVENTED_ASKER.search(opening)
+            and not any(re.search(rf"\b{re.escape(n)}\b", opening) for n in names)
+        ),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -228,13 +267,7 @@ def judge(judge_llm: BedrockLLM, sc: Scenario, family: dict[str, Any], transcrip
     for block in response["output"]["message"]["content"]:
         if "text" in block:
             text += strip_thinking(block["text"])
-    match = re.search(r"\{.*\}", text, re.DOTALL)
-    if not match:
-        return {"error": "judge returned no JSON", "raw": text[:300]}
-    try:
-        return json.loads(match.group(0))
-    except json.JSONDecodeError:
-        return {"error": "judge returned invalid JSON", "raw": text[:300]}
+    return parse_judge_json(text)
 
 
 # ---------------------------------------------------------------------------
@@ -310,6 +343,8 @@ async def run_scenario(
     }
     if not ended_early:
         scenario_checks["ended_on_goodbye"] = turns[-1]["session_should_end"]
+    scenario_checks.update(privacy_checks(sc, transcript, turns))
+    scenario_checks.update(asker_checks(sc, family, turns))
     if family["question_ids"]:
         first_q = family["question_ids"][0]
         scenario_checks["first_question_marked_in_opening"] = "mark_question_asked" in opening_tools
@@ -499,7 +534,7 @@ async def main(selected: list[Scenario], repeat: int, pause: float, label: str) 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluate the Evoca chat agent.")
-    parser.add_argument("--scenario", help="run only this scenario (by name)")
+    parser.add_argument("--scenario", help="run only these scenarios (names, comma-separated)")
     parser.add_argument("--repeat", type=int, default=1, help="runs per scenario (default 1)")
     parser.add_argument("--chat-model", help="model id of the chat agent under test (overrides EVOCA_CHAT_MODEL)")
     parser.add_argument("--label", default="latest",
@@ -511,7 +546,8 @@ if __name__ == "__main__":
         sys.exit("--repeat must be at least 1")
     if args.pause < 0:
         sys.exit("--pause must not be negative")
-    chosen = [s for s in SCENARIOS if not args.scenario or s.name == args.scenario]
+    wanted = set(args.scenario.split(",")) if args.scenario else None
+    chosen = [s for s in SCENARIOS if wanted is None or s.name in wanted]
     if not chosen:
         sys.exit(f"Unknown scenario. Choose from: {', '.join(s.name for s in SCENARIOS)}")
     if not re.fullmatch(r"[A-Za-z0-9_.-]+", args.label):

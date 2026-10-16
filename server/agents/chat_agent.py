@@ -41,6 +41,14 @@ Privacy ("don't let anyone hear that")
   backend retries at session end and does not run the archivist if it still
   fails. If a reply promises privacy without any mark, the code applies
   "this_turn" itself so the promise is true.
+- Privacy guard: the salient terms of hidden user turns (names, kinship
+  words, content nouns, minus stopwords and words the speaker also used in
+  turns that are not hidden) are kept in this object only, never in an LLM
+  request. From the turn keep_private is requested on, a reply that contains
+  one is regenerated once with a generic instruction; if it still does, a
+  fixed safe reply that changes the subject is used. Blocks are logged with
+  the session id, never with the terms.
+- Spoken replies lose parenthetical asides ("(When you are ready, ...)").
 - Reactions: after a reply that names every person who reacted to a story,
   the code calls mark_reactions_delivered for that story, so it is not
   announced again in the next session.
@@ -219,12 +227,149 @@ def asks_to_stop(text: str) -> bool:
     return bool(_STOP_PHRASES.search(text.lower().replace("\u2019", "'")))
 
 
+_PARENTHETICAL = re.compile(r"\s*\([^()]*\)")
+
+
+def strip_parentheticals(text: str) -> str:
+    """Remove "(...)" asides; they are not meant to be spoken."""
+    stripped = _PARENTHETICAL.sub("", text)
+    stripped = re.sub(r"[ \t]+", " ", stripped)
+    stripped = re.sub(r"\s*\n\s*", "\n", stripped).strip()
+    # A reply that was only an aside keeps its words, without the brackets.
+    return stripped or text.replace("(", "").replace(")", "").strip()
+
+
 def clean_reply(text: str, ending: bool) -> str:
     """Apply the reply guards. A goodbye (ending=True) keeps no question at all."""
-    text = keep_last_question(strip_quotes(text).strip())
+    text = keep_last_question(strip_parentheticals(strip_quotes(text).strip()))
     if ending:
         text = remove_questions(text) or GOODBYE_FALLBACK
     return text
+
+
+# ---------------------------------------------------------------------------
+# Privacy guard: salient terms of hidden turns (kept in memory, never sent)
+# ---------------------------------------------------------------------------
+
+_WORD = re.compile(r"[^\W\d_]+(?:'[^\W\d_]+)?", re.UNICODE)
+
+# Function words, everyday verbs and the words of a privacy request itself
+# ("please don't let anyone hear that part"). Kinship words are NOT here:
+# "brother", "sister", ... are exactly what must not come back.
+_GUARD_STOPWORDS = frozenset("""
+a about above after again against all also always am an and any anyone anybody anything are around as
+at away back be because been before being below between both but by can cannot could did do does doing
+done down during each either else enough even ever every everyone everything few for from further get
+gets getting go goes going gone got had has have having he her here hers herself him himself his how i
+if in into is it its itself just keep kept know knew known last later least less let lets like little
+long lot lots made make many may me might mine more most much must my myself never no nobody none nor
+not nothing now of off often on once one only or other our ours ourselves out over own part please
+private quite rather really said same say says secret see seen shall she should since so some someone
+something still such tell telling than that the their theirs them themselves then there these they
+thing things think this those though through to told too under until up upon us very want wanted was
+we well were what when where whether which while who whom whose why will with without would yes yet
+you your yours yourself yourselves hear hears heard heard listen anyone's day days year years time
+times way ago old young many today yesterday tomorrow really maybe okay oh ah well
+dont don't won't can't isn't wasn't didn't i'm i've i'll i'd it's that's there's let's
+family between alone only also just
+""".split())
+
+
+def _norm(word: str) -> str:
+    word = word.lower()
+    if word.endswith("'s"):
+        word = word[:-2]
+    if len(word) > 4 and word.endswith("s"):
+        word = word[:-1]
+    return word
+
+
+def _words(text: str) -> set[str]:
+    return {_norm(w) for w in _WORD.findall(text)}
+
+
+_KINSHIP = frozenset("""
+brother sister mother father mom mum mama dad papa husband wife son daughter uncle aunt auntie
+cousin grandmother grandfather grandma grandpa granny niece nephew granddaughter grandson
+child children parent sibling stepmother stepfather stepson stepdaughter fiance fiancee
+boyfriend girlfriend in-law
+""".split())
+# Capitalised words that start sentences without being names.
+_NOT_NAMES = _GUARD_STOPWORDS | frozenset("""
+now oh ah well yes no please sure thank thanks sorry let let's dear honey anyway actually
+""".split())
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+|\n+")
+
+
+def _sentences(text: str) -> list[str]:
+    return [p.strip() for p in _SENTENCE_END.split(text) if p.strip()]
+
+
+def _names_a_person(sentence: str) -> bool:
+    """A kinship word, or a capitalised word that is not a common sentence starter."""
+    for raw_word in _WORD.findall(sentence):
+        word = raw_word.lower()
+        if word.endswith("'s"):
+            word = word[:-2]
+        if word in _KINSHIP or (word.endswith("s") and word[:-1] in _KINSHIP):
+            return True
+        if raw_word[0].isupper() and raw_word != "I" and len(word) >= 3 and word not in _NOT_NAMES:
+            return True
+    return False
+
+
+def _secret_sentences(text: str) -> list[str]:
+    """Sentences that name a person or relative, plus the sentence right after
+    each ("...my brother Selim. He borrowed..."). The whole turn if none does."""
+    sentences = _sentences(text)
+    keep: set[int] = set()
+    for i, sentence in enumerate(sentences):
+        if _names_a_person(sentence):
+            keep.update({i, i + 1})
+    if not keep:
+        return sentences
+    return [sentences[i] for i in sorted(keep) if i < len(sentences)]
+
+
+def salient_terms(hidden_texts: list[str], other_texts: list[str]) -> set[str]:
+    """Names, kinship words and content words of the hidden part, minus
+    stopwords and anything the speaker also said in turns that are not hidden.
+
+    Only the sentences about a person (and the sentence after each) count, so
+    the rest of a long turn (her wedding, her garden) does not block replies.
+    """
+    used_elsewhere = set().union(*(_words(t) for t in other_texts)) if other_texts else set()
+    terms: set[str] = set()
+    for text in hidden_texts:
+        for sentence in _secret_sentences(text):
+            for word in _words(sentence):
+                if len(word) >= 3 and word not in _GUARD_STOPWORDS and word not in used_elsewhere:
+                    terms.add(word)
+    return terms
+
+
+def mentions_any(text: str, terms: set[str]) -> bool:
+    return bool(terms and _words(text) & terms)
+
+
+_GUARD_INSTRUCTION = (
+    "System note, not from the person: your last reply touched the part the person asked to keep "
+    "private. Write a new reply now. Do not mention or ask about the private part; change the subject "
+    "to something else they told you, or invite a new memory."
+)
+_REMOVED_REPLY = "[A reply was removed.]"
+GUARD_SAFE_REPLY = (
+    "Thank you for sharing that with me. Let us talk about something else. "
+    "What is a happy memory from your childhood that you would like to tell me about?"
+)
+# Used in turn, so the same safe reply is never spoken twice in a row.
+GUARD_SAFE_REPLIES = (
+    GUARD_SAFE_REPLY,
+    "I am glad you told me. Shall we turn to something new? "
+    "What is a place you loved to visit when you were young?",
+    "Thank you. Let us talk about a different memory. "
+    "What was a favourite meal at home when you were a child?",
+)
 
 
 # ---------------------------------------------------------------------------
@@ -248,6 +393,7 @@ class TurnResult:
     latency: dict[str, int]  # llm_ms, tools_ms, total_ms
     session_should_end: bool = False  # the model called end_conversation
     marked_private: bool = False      # this turn was hidden (its text left the history)
+    privacy_guard: str | None = None  # "regenerated" or "safe_reply" if a reply touched a hidden part
 
 
 # ---------------------------------------------------------------------------
@@ -261,6 +407,7 @@ class _TurnRecord:
     assistant_blocks: list[dict[str, Any]]    # history blocks with the agent's words
     segment_ids: list[str]                    # the user's and the agent's segments
     hidden: bool = False
+    user_text: str | None = None              # original words, kept in memory only
 
 
 class ChatAgent:
@@ -310,6 +457,13 @@ class ChatAgent:
         self._hide_next = False
         self.pending_private: list[str] = []
         self._flush_marks_in_turn = flush_marks_in_turn
+
+        # Original words of hidden user turns, for the privacy guard. Memory only.
+        self._hidden_user_texts: list[str] = []
+        self._safe_reply_index = -1   # rotates through GUARD_SAFE_REPLIES
+
+        # End of the last placeholder span (see turn()); keeps placeholders apart.
+        self._placeholder_end = 0
 
         # Reactions told in this session: story_id -> first names of reactors.
         self._undelivered: dict[str, set[str]] = {}
@@ -377,6 +531,8 @@ class ChatAgent:
 
     def _hide(self, record: _TurnRecord) -> None:
         """Scrub a turn from the history and queue its segments to be marked private."""
+        if record.user_text:
+            self._hidden_user_texts.append(record.user_text)
         if record.user_block is not None:
             record.user_block["text"] = PRIVATE_PLACEHOLDER
         for block in record.assistant_blocks:
@@ -412,6 +568,56 @@ class ChatAgent:
                 ms=int((time.monotonic() - t0) * 1000), is_error=is_error,
             ))
         return traces
+
+    def _guard_terms(self, hiding_now: list[str], current_user_text: str | None) -> set[str]:
+        """Salient terms of everything hidden so far plus what this turn will hide."""
+        hidden = self._hidden_user_texts + hiding_now
+        if not hidden:
+            return set()
+        others = [t.user_text for t in self._turns
+                  if t.user_text and not t.hidden and t.user_text not in hiding_now]
+        if current_user_text and current_user_text not in hiding_now:
+            others.append(current_user_text)
+        return salient_terms(hidden, others)
+
+    async def _regenerate_without(
+        self, terms: set[str], text_blocks: list[dict[str, Any]], ending: bool
+    ) -> tuple[str, str, int]:
+        """Ask once for a reply that leaves the private part alone; else the safe reply.
+
+        The offending text is removed from the history first, and the
+        instruction is generic, so no request carries the terms.
+        Returns (reply, "regenerated" | "safe_reply", llm_ms).
+        """
+        for block in text_blocks:
+            if mentions_any(block.get("text", ""), terms):
+                block["text"] = _REMOVED_REPLY
+        messages = list(self._history)
+        note = {"text": _GUARD_INSTRUCTION}
+        if messages and messages[-1]["role"] == "user":
+            messages[-1] = {"role": "user", "content": list(messages[-1]["content"]) + [note]}
+        else:
+            messages.append({"role": "user", "content": [note]})
+
+        t0 = time.monotonic()
+        response = await anyio.to_thread.run_sync(
+            lambda: self._llm.converse(self._system, messages, self._tool_config)
+        )
+        llm_ms = int((time.monotonic() - t0) * 1000)
+        text = " ".join(
+            strip_thinking(b["text"])
+            for b in response["output"]["message"].get("content", []) if "text" in b
+        ).strip()
+        text = clean_reply(text, ending) if text else ""
+        if text and not mentions_any(text, terms):
+            log.warning("Reply touched a private part; regenerated it (session %s)", self._orm_session_id)
+            return text, "regenerated", llm_ms
+        log.warning("Reply touched a private part twice; used the safe reply (session %s)",
+                    self._orm_session_id)
+        if ending:
+            return GOODBYE_FALLBACK, "safe_reply", llm_ms
+        self._safe_reply_index = (self._safe_reply_index + 1) % len(GUARD_SAFE_REPLIES)
+        return GUARD_SAFE_REPLIES[self._safe_reply_index], "safe_reply", llm_ms
 
     def _remember_reactions(self, context: Any) -> None:
         if not isinstance(context, dict):
@@ -617,27 +823,54 @@ class ChatAgent:
         if not ending and asks_to_stop(user_text) and "?" not in reply_text:
             # The model said goodbye without calling end_conversation.
             ending = True
+
+        # Privacy guard: from the turn keep_private is requested on, a reply
+        # must not touch the hidden part.
+        hiding_now: list[str] = []
+        if store_user and (self._hide_next or requested_scope in ("this_turn", "previous_turn")):
+            hiding_now.append(user_text)
+        if requested_scope == "previous_turn":
+            prev = next((t for t in reversed(self._turns) if t.user_text and not t.hidden), None)
+            if prev is not None:
+                hiding_now.append(prev.user_text)
+        guard: str | None = None
+        terms = self._guard_terms(hiding_now, user_text if store_user else None)
+        if mentions_any(reply_text, terms):
+            reply_text, guard, extra_ms = await self._regenerate_without(terms, text_blocks, ending)
+            llm_ms_total += extra_ms
+
         if reply_block is not None:
             # Keep the history in line with what was actually spoken.
             reply_block["text"] = reply_text
 
         # Store segments.
         seg_end = self._elapsed_ms()
+        # Without real audio (CLI, evals, tests) spans are placeholders. They must
+        # never overlap, because mark_private works by range: an overlap would
+        # hide a neighbouring turn. The backend passes real WAV positions for
+        # the user and sets the agent's span after TTS (set_last_agent_span).
         segment_ids: list[str] = []
         if store_user:
-            u_start = user_start_ms if user_start_ms is not None else seg_start
-            u_end   = user_end_ms   if user_end_ms   is not None else seg_start + 100
+            if user_start_ms is not None and user_end_ms is not None:
+                u_start, u_end = user_start_ms, user_end_ms
+            else:
+                u_start = max(seg_start, self._placeholder_end)
+                u_end = u_start + 100
+                self._placeholder_end = u_end
             segment_ids.append(self._store_segment(
                 self._person_id, user_text, u_start, u_end,
                 words=user_words or [],
             ))
+        a_start = max(seg_end, self._placeholder_end)
+        self._placeholder_end = a_start + 100
         self._last_agent_segment_id = self._store_segment(
-            None, reply_text, seg_end, seg_end + 100
+            None, reply_text, a_start, a_start + 100
         )
         segment_ids.append(self._last_agent_segment_id)
 
         # Privacy: turn the scope into turns to hide (code, not the model).
-        record = _TurnRecord(user_block if store_user else None, text_blocks, segment_ids)
+        record = _TurnRecord(user_block if store_user else None, text_blocks, segment_ids,
+                             user_text=user_text if store_user else None)
         previous = next((t for t in reversed(self._turns) if t.user_block is not None), None)
         self._turns.append(record)
         to_hide: list[_TurnRecord] = []
@@ -676,4 +909,5 @@ class ChatAgent:
             },
             session_should_end=ending,
             marked_private=record.hidden,
+            privacy_guard=guard,
         )
