@@ -280,6 +280,15 @@ def strip_parentheticals(text: str) -> str:
     return stripped or text.replace("(", "").replace(")", "").strip()
 
 
+def first_names_only(text: str, full_names: set[str]) -> str:
+    """Say every known person by first name: "Elif Yilmaz" becomes "Elif"."""
+    for name in sorted(full_names, key=len, reverse=True):
+        parts = name.split()
+        if len(parts) > 1:
+            text = re.sub(rf"\b{re.escape(name)}\b", parts[0], text)
+    return text
+
+
 def clean_reply(text: str, ending: bool) -> str:
     """Apply the reply guards. A goodbye (ending=True) keeps no question at all."""
     text = keep_last_question(strip_parentheticals(strip_quotes(text).strip()))
@@ -559,6 +568,9 @@ class ChatAgent:
         # Reactions told in this session: story_id -> first names of reactors.
         self._undelivered: dict[str, set[str]] = {}
 
+        # Full names from the tools; the reply says only their first names.
+        self._full_names: set[str] = set()
+
     # ------------------------------------------------------------------
     # Session helpers
     # ------------------------------------------------------------------
@@ -774,6 +786,17 @@ class ChatAgent:
         self._safe_reply_index = (self._safe_reply_index + 1) % len(GUARD_SAFE_REPLIES)
         return GUARD_SAFE_REPLIES[self._safe_reply_index], "safe_reply", llm_ms
 
+    def _remember_names(self, tool_name: str, result: Any) -> None:
+        if tool_name == "get_session_context" and isinstance(result, dict):
+            names = [result.get("center_person_name")]
+            names += [r.get("person_name") for r in result.get("undelivered_reactions", [])]
+        elif tool_name == "get_pending_questions":
+            items = result.get("result", []) if isinstance(result, dict) else result
+            names = [q.get("asker_name") for q in items or [] if isinstance(q, dict)]
+        else:
+            return
+        self._full_names.update(n for n in names if isinstance(n, str) and n.strip())
+
     def _remember_reactions(self, context: Any) -> None:
         if not isinstance(context, dict):
             return
@@ -933,6 +956,7 @@ class ChatAgent:
                         result_content = [{"json": result}]
                         if tool_name == "get_session_context":
                             self._remember_reactions(result)
+                        self._remember_names(tool_name, result)
                     except Exception as exc:
                         result = {"error": str(exc)}
                         result_content = [{"text": str(exc)}]
@@ -974,7 +998,7 @@ class ChatAgent:
             # Exhausted max rounds without a text reply.
             reply_text = reply_text or "I'm sorry, I ran into a problem. Please try again."
 
-        reply_text = clean_reply(reply_text, ending)
+        reply_text = first_names_only(clean_reply(reply_text, ending), self._full_names)
         if not ending and asks_to_stop(user_text) and "?" not in reply_text:
             # The model said goodbye without calling end_conversation.
             ending = True

@@ -31,6 +31,7 @@ from core.enums import LifePeriod, QuestionSource, QuestionStatus, TopicSource
 from core.models import Circle, Membership, Person, Question, SensitiveTopic
 from core.services import stories as story_svc
 from core.services.feed import build_feed
+from core.services.questions import find_duplicate
 from core.services.session_tools import _matches_sensitive_topic
 
 log = logging.getLogger(__name__)
@@ -187,7 +188,10 @@ async def post_question(
     topic the center refused herself (source "speaker") matches, the response
     is the normal accepted one with status "waiting": a filtered message would
     tell the asker that the center refused something (like a declined question,
-    it looks unanswered).
+    it looks unanswered). The asker's own open question with the same text
+    (case, punctuation and a leading "Grandma,"/"Grandpa," aside; waiting,
+    asked, declined or speaker-filtered, all shown as waiting) is returned
+    instead of a new copy.
     """
     if not body.text.strip():
         raise HTTPException(status_code=400, detail="Question text is required.")
@@ -211,6 +215,10 @@ async def post_question(
                 status_code=400,
                 detail="Target person is not in your circle.",
             )
+
+        duplicate = find_duplicate(db, circle_id, person_id, body.target_person_id, body.text)
+        if duplicate is not None:
+            return _accepted(duplicate)
 
         # Sensitive-topic check — reuse the same matcher from session_tools.
         topics = (
@@ -247,21 +255,25 @@ async def post_question(
                 ),
             }
 
-        return {
-            "status": "waiting",
-            "question": {
-                "id": q.id,
-                "circle_id": q.circle_id,
-                "target_person_id": q.target_person_id,
-                "asker_id": q.asker_id,
-                "text": q.text,
-                "source": q.source,
-                "period": q.period,
-                "status": QuestionStatus.waiting,   # even when filtered by a speaker topic
-                "answer": q.answer,
-                "created_at": q.created_at,
-            },
-        }
+        return _accepted(q)
+
+
+def _accepted(q: Question) -> dict:
+    return {
+        "status": "waiting",
+        "question": {
+            "id": q.id,
+            "circle_id": q.circle_id,
+            "target_person_id": q.target_person_id,
+            "asker_id": q.asker_id,
+            "text": q.text,
+            "source": q.source,
+            "period": q.period,
+            "status": QuestionStatus.waiting,   # even when filtered by a speaker topic
+            "answer": q.answer,
+            "created_at": q.created_at,
+        },
+    }
 
 
 # ---------------------------------------------------------------------------

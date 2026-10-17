@@ -42,6 +42,7 @@ from core.services.archive_tools import (
     add_question_data,
     get_session_transcript_data,
     mark_question_declined_data,
+    extend_session_answers,
     merge_stories_data,
     record_answer_data,
     reopen_question_data,
@@ -525,6 +526,62 @@ def test_merge_stories_unions_sources_and_moves_the_answer(w):
     assert w.db.get(Story, second) is None
     assert w.db.get(Question, w.q_asked.id).answer["story_id"] == first
     assert w.db.query(StorySubject).filter(StorySubject.story_id == second).count() == 0
+
+
+def _two_part_story_answered(w, *, merged: bool) -> str:
+    """Fatma's answer is 0-10 000; the rest of her answer is 20 000-30 000."""
+    if merged:
+        first = _save(w)
+        second = _save(w, title="Fishing",
+                       sources=[{"session_id": w.sess.id, "start_ms": 20_000, "end_ms": 30_000}])
+        record_answer_data(w.db, w.fatma.id, w.circle.id, w.q_asked.id, first, 0, 10_000)
+        _merge(w, [first, second])
+    else:
+        first = _save(w, sources=[{"session_id": w.sess.id, "start_ms": 0, "end_ms": 10_000},
+                                  {"session_id": w.sess.id, "start_ms": 20_000, "end_ms": 30_000}])
+        record_answer_data(w.db, w.fatma.id, w.circle.id, w.q_asked.id, first, 0, 10_000)
+    w.db.commit()
+    return first
+
+
+def _answer_range(w):
+    ans = w.db.get(Question, w.q_asked.id).answer
+    return ans["start_ms"], ans["end_ms"]
+
+
+def _agent_only_gap(w):
+    w.seg_private.speaker_id, w.seg_private.is_private = None, False   # 10 000-20 000: the agent
+    w.db.commit()
+
+
+def test_merge_stories_extends_the_answer_to_the_merged_story(w):
+    _agent_only_gap(w)
+    first = _two_part_story_answered(w, merged=True)
+    assert w.db.get(Question, w.q_asked.id).answer["story_id"] == first
+    assert _answer_range(w) == (0, 30_000)
+
+
+def test_merge_stories_never_extends_the_answer_over_a_private_part(w):
+    _two_part_story_answered(w, merged=True)        # 12 000-20 000 is private
+    assert _answer_range(w) == (0, 10_000)
+
+
+def test_merge_stories_never_extends_the_answer_over_speech_left_out_of_the_story(w):
+    # 12 000-20 000 is Fatma speaking (another story, a refused topic...):
+    # the answer range must not let the asker hear it.
+    w.seg_private.is_private = False
+    w.db.commit()
+    _two_part_story_answered(w, merged=True)
+    assert _answer_range(w) == (0, 10_000)
+
+
+def test_extend_session_answers_repairs_older_answers(w):
+    _agent_only_gap(w)
+    _two_part_story_answered(w, merged=False)
+    assert extend_session_answers(w.db, w.other_sess.id) == []
+    assert extend_session_answers(w.db, w.sess.id) == [w.q_asked.id]
+    assert _answer_range(w) == (0, 30_000)
+    assert extend_session_answers(w.db, w.sess.id) == []    # idempotent
 
 
 def test_merge_stories_rejects_a_published_story(w):
