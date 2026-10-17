@@ -13,6 +13,8 @@ Tool table from docs/PROJECT.md:
   mark_question_declined   — the center declined to answer: "asked" -> "declined"
   reopen_question          — asked but not answered: "asked" -> "waiting"
   add_refused_topic        — the center refused a topic: a SensitiveTopic with source "speaker"
+  link_stories             — an ai-suggested link from a story of this session to a related one
+  find_gaps                — life periods of the center with no story yet
 
 Private segments (is_private = True) never appear in any output here, and no
 story source or answer range may overlap one.
@@ -27,9 +29,13 @@ from typing import Any
 from sqlalchemy.orm import Session as DbSession
 
 from core.clock import now_utc
+from core.access import can_see
 from core.enums import (
     AccessType,
     LifePeriod,
+    LinkReason,
+    LinkSource,
+    LinkStatus,
     PeriodSource,
     QuestionSource,
     QuestionStatus,
@@ -47,6 +53,7 @@ from core.models import (
     SensitiveTopic,
     Session as OrmSession,
     Story,
+    StoryLink,
     StorySubject,
 )
 from core.services.session_tools import _matches_sensitive_topic, _meaningful_words
@@ -238,11 +245,16 @@ def save_story_data(
     place: str | None = None,
     stated_year: int | None = None,
     original_story_id: str | None = None,
+    session_id: str | None = None,
 ) -> str:
     """Create a pending Story with its StorySubjects and return its id.
 
     Raises ValueError if any person, period, session, range or original story
-    is invalid, or if a source range overlaps a private segment.
+    is invalid, or if a source range overlaps a private segment. With
+    session_id (the X-Evoca-Session-Id header of the archivist's connection),
+    every source must be in that session: a story never borrows the audio of
+    another session, e.g. of a private story found with search_archive. The
+    original story must be one the viewer can see.
     """
     if not title or not title.strip():
         raise ValueError("title must not be empty.")
@@ -272,13 +284,15 @@ def save_story_data(
         start_ms, end_ms = src.get("start_ms"), src.get("end_ms")
         if not isinstance(start_ms, int) or not isinstance(end_ms, int):
             raise ValueError("Every source needs integer start_ms and end_ms.")
+        if session_id and sid != session_id:
+            raise ValueError("Sources must be ranges of the session being archived.")
         _require_session_in_circle(db, sid, circle_id)
         _check_range(db, sid, start_ms, end_ms)
         clean_sources.append({"session_id": sid, "start_ms": start_ms, "end_ms": end_ms})
 
     if original_story_id is not None:
         original: Story | None = db.get(Story, original_story_id)
-        if original is None or original.circle_id != circle_id:
+        if original is None or original.circle_id != circle_id or not can_see(db, viewer_id, original):
             raise ValueError(f"Original story '{original_story_id}' not found in this circle.")
 
     now = now_utc()
@@ -393,6 +407,22 @@ def add_question_data(
     circle: Circle | None = db.get(Circle, circle_id)
     if circle is None:
         raise ValueError(f"Circle '{circle_id}' not found.")
+
+    if source == QuestionSource.gap.value:
+        if period is None:
+            raise ValueError("A gap question needs the period it is about.")
+        waiting_gap = (
+            db.query(Question.id)
+            .filter(
+                Question.circle_id == circle_id,
+                Question.source == QuestionSource.gap,
+                Question.period == period,
+                Question.status == QuestionStatus.waiting,
+            )
+            .first()
+        )
+        if waiting_gap is not None:
+            raise ValueError(f"A gap question about '{period}' is already waiting. Add no other.")
 
     topics = db.query(SensitiveTopic).filter(SensitiveTopic.circle_id == circle_id).all()
     sensitive = any(_matches_sensitive_topic(text, t.text) for t in topics)
@@ -545,3 +575,152 @@ def add_refused_topic_data(
     db.add(row)
     db.flush()
     return {"topic_id": row.id, "added": True}
+
+
+# ---------------------------------------------------------------------------
+# link_stories
+# ---------------------------------------------------------------------------
+
+_AI_LINK_REASONS = {r.value for r in LinkReason} - {LinkReason.answer_to.value}
+MAX_LINKS_PER_STORY = 3
+
+
+def _visible_live_links(db: DbSession, viewer_id: str, story_id: str) -> int:
+    """Live links of a story whose other story the viewer can see (a link to
+    a story they cannot see is not even counted, so the cap reveals nothing)."""
+    count = 0
+    for link in (
+        db.query(StoryLink)
+        .filter(
+            (StoryLink.from_story_id == story_id) | (StoryLink.to_story_id == story_id),
+            StoryLink.status != LinkStatus.removed,
+        )
+        .all()
+    ):
+        other = db.get(Story, link.to_story_id if link.from_story_id == story_id else link.from_story_id)
+        if other is not None and can_see(db, viewer_id, other):
+            count += 1
+    return count
+
+
+def link_stories_data(
+    db: DbSession,
+    viewer_id: str,
+    circle_id: str,
+    session_id: str,
+    from_story_id: str,
+    to_story_id: str,
+    reason: str,
+) -> dict[str, Any]:
+    """Suggest a link (source "ai", status "suggested") from a story saved in
+    the session being archived to a related story of the same circle.
+
+    session_id is the X-Evoca-Session-Id header, never a model argument. The
+    viewer (the session's teller: the center, or the recorder of a panel
+    recording) must be able to see both stories. A link between the same two
+    stories, in either direction, is not added twice: its id is returned.
+    Neither story may already have MAX_LINKS_PER_STORY live links (counting
+    only links to stories the viewer can see). Returns {link_id, added}.
+    """
+    if reason not in _AI_LINK_REASONS:
+        raise ValueError(
+            f"Invalid reason '{reason}'. Use one of: {', '.join(sorted(_AI_LINK_REASONS))}."
+        )
+    if from_story_id == to_story_id:
+        raise ValueError("A story cannot be linked to itself.")
+    if not session_id:
+        raise ValueError("No session: from_story_id must be a story saved in the session being archived.")
+
+    stories: dict[str, Story] = {}
+    for story_id in (from_story_id, to_story_id):
+        story: Story | None = db.get(Story, story_id)
+        # The same message for missing, other circle and not visible.
+        if story is None or story.circle_id != circle_id or not can_see(db, viewer_id, story):
+            raise ValueError(f"Story '{story_id}' not found in this circle.")
+        stories[story_id] = story
+    if not any(src.get("session_id") == session_id for src in stories[from_story_id].sources or []):
+        raise ValueError("from_story_id must be a story saved in the session being archived.")
+
+    existing = (
+        db.query(StoryLink)
+        .filter(
+            ((StoryLink.from_story_id == from_story_id) & (StoryLink.to_story_id == to_story_id))
+            | ((StoryLink.from_story_id == to_story_id) & (StoryLink.to_story_id == from_story_id))
+        )
+        .first()
+    )
+    if existing is not None:
+        # A link the family removed stays removed: the AI does not suggest it again.
+        return {"link_id": existing.id, "added": False}
+
+    for story_id in (from_story_id, to_story_id):
+        if _visible_live_links(db, viewer_id, story_id) >= MAX_LINKS_PER_STORY:
+            raise ValueError(f"Story '{story_id}' already has {MAX_LINKS_PER_STORY} links. Add no more.")
+
+    link = StoryLink(
+        from_story_id=from_story_id,
+        to_story_id=to_story_id,
+        reason=reason,
+        source=LinkSource.ai,
+        status=LinkStatus.suggested,
+    )
+    db.add(link)
+    db.flush()
+    return {"link_id": link.id, "added": True}
+
+
+# ---------------------------------------------------------------------------
+# find_gaps
+# ---------------------------------------------------------------------------
+
+# Earliest plausible age for each period. A period the center cannot have
+# reached yet (age below this) is not a gap. Nothing else is skipped: an
+# older center may well have stories of every period.
+_PERIOD_START_AGE = {
+    LifePeriod.childhood.value: 0,
+    LifePeriod.youth.value: 13,
+    LifePeriod.marriage_early_years.value: 18,
+    LifePeriod.raising_children.value: 18,
+    LifePeriod.midlife.value: 40,
+    LifePeriod.retirement.value: 55,
+}
+
+
+def find_gaps_data(
+    db: DbSession,
+    viewer_id: str,
+    circle_id: str,
+    person_id: str,
+) -> list[str]:
+    """Life periods of the circle's center with no story about her yet, in
+    LifePeriod order.
+
+    Only for the center (person_id and the viewer). Counts every story of the
+    circle where she is a subject, in any status except hidden, whoever told
+    it and whatever its access: only period names leave this function, never
+    a story.
+    """
+    circle: Circle | None = db.get(Circle, circle_id)
+    if circle is None:
+        raise ValueError(f"Circle '{circle_id}' not found.")
+    if person_id != circle.center_person_id or viewer_id != circle.center_person_id:
+        raise ValueError("find_gaps is only for the center person of the circle.")
+
+    covered = {
+        period
+        for (period,) in db.query(StorySubject.period)
+        .join(Story, Story.id == StorySubject.story_id)
+        .filter(
+            Story.circle_id == circle_id,
+            Story.status != StoryStatus.hidden,
+            StorySubject.person_id == person_id,
+        )
+        .all()
+    }
+
+    person = db.get(Person, person_id)
+    age = now_utc().year - person.birth_year if person and person.birth_year else None
+    return [
+        p.value for p in LifePeriod
+        if p.value not in covered and (age is None or age >= _PERIOD_START_AGE[p.value])
+    ]

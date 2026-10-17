@@ -144,8 +144,9 @@ def search_archive_data(
     """Stories the viewer can_see(), best keyword match first (at most 5).
 
     Matches query words against title, summary and place. Returns the story's
-    id, title, AI summary, place, subject periods and audio sources; never
-    transcript text.
+    id, title, AI summary, place, subject periods, audio sources, teller,
+    access type and status; never transcript text. (The archivist narrows and
+    trims these before its model sees them.)
     """
     words = _meaningful_words(query)
     results: list[tuple[int, str, dict[str, Any]]] = []
@@ -168,6 +169,9 @@ def search_archive_data(
             "place": story.place,
             "periods": [{"person_id": s.person_id, "period": s.period} for s in subjects],
             "sources": list(story.sources or []),
+            "teller_id": story.teller_id,
+            "access": (story.access or {}).get("type"),
+            "status": story.status,
         }))
     results.sort(key=lambda r: (r[0], r[1]), reverse=True)
     return [r[2] for r in results[:SEARCH_LIMIT]]

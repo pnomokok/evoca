@@ -161,7 +161,8 @@ async def _process_recording(
     log.info("Archivist started for recording session %s", session_id)
     try:
         members = await anyio.to_thread.run_sync(lambda: _members(circle_id))
-        async with MCPBridge(person_id, circle_id) as bridge:
+        # The session header lets link_stories link only stories of this recording.
+        async with MCPBridge(person_id, circle_id, session_id=session_id) as bridge:
             agent = ArchivistAgent(llm=archivist_llm(), person_id=person_id, circle_id=circle_id,
                                    bridge=bridge, panel_recording=True, members=members,
                                    story_access=access)

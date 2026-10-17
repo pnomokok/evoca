@@ -32,6 +32,8 @@ from core.db import SessionLocal, init_db
 from core.services.archive_tools import (
     add_question_data,
     add_refused_topic_data,
+    find_gaps_data,
+    link_stories_data,
     get_session_transcript_data,
     mark_question_declined_data,
     record_answer_data,
@@ -206,7 +208,8 @@ def save_story(
     sources: audio ranges {session_id, start_ms, end_ms} where the story is told.
     stated_year only if the teller said the year. original_story_id only for a
     retelling of an existing story. The story starts as pending, visible to the
-    circle after 24 hours.
+    circle after 24 hours. When the connection names a session (the archivist's
+    X-Evoca-Session-Id), every source must be in that session.
     """
     with SessionLocal() as db, tool_errors():
         viewer_id, circle_id = get_viewer(ctx, db)
@@ -217,6 +220,7 @@ def save_story(
             sources=[dict(s) for s in sources],
             place=place, stated_year=stated_year,
             original_story_id=original_story_id,
+            session_id=get_session_id(ctx) or None,
         )
         db.commit()
         return {"story_id": story_id}
@@ -317,6 +321,43 @@ def add_refused_topic(ctx: Context, text: str, start_ms: int, end_ms: int) -> di
         )
         db.commit()
         return {"status": "ok", **result}
+
+
+@mcp.tool()
+def link_stories(
+    ctx: Context,
+    from_story_id: str,
+    to_story_id: str,
+    reason: Literal["same_place", "same_event", "continuation"],
+) -> dict[str, Any]:
+    """Suggest a link between a story saved in this session and a related story.
+
+    from_story_id: a story you saved in the session being archived. to_story_id:
+    a story found with search_archive. reason: same_place, same_event or
+    continuation. Only for a clear connection; when unsure, do not link. A
+    retelling of an existing story is not a link: save it with
+    original_story_id instead. At most 3 links per story. Returns {link_id, added}.
+    """
+    with SessionLocal() as db, tool_errors():
+        viewer_id, circle_id = get_viewer(ctx, db)
+        result = link_stories_data(
+            db, viewer_id, circle_id, get_session_id(ctx), from_story_id, to_story_id, reason
+        )
+        db.commit()
+        return {"status": "ok", **result}
+
+
+@mcp.tool()
+def find_gaps(ctx: Context, person_id: str) -> list[str]:
+    """Return the life periods of the center person that have no story yet.
+
+    person_id must be the center person of the circle. Periods she is too
+    young to have lived are left out. Use one to add at most one gap question
+    (add_question with source 'gap' and that period).
+    """
+    with SessionLocal() as db, tool_errors():
+        viewer_id, circle_id = get_viewer(ctx, db)
+        return find_gaps_data(db, viewer_id, circle_id, person_id)
 
 
 # ---------------------------------------------------------------------------
