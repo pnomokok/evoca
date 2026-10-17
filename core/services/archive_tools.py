@@ -16,6 +16,7 @@ Tool table from docs/PROJECT.md:
   link_stories             — an ai-suggested link from a story of this session to a related one
   find_gaps                — life periods of the center with no story yet
   merge_stories            — one memory saved as several stories in one run becomes one story
+  extend_session_answers   — repair: answers of a session cover their whole story (see merge_stories)
 
 Private segments (is_private = True) never appear in any output here, and no
 story source or answer range may overlap one.
@@ -465,6 +466,8 @@ def merge_stories_data(
     for q in db.query(Question).filter(Question.circle_id == circle_id).all():
         if q.answer and q.answer.get("story_id") in other_ids:
             q.answer = {**q.answer, "story_id": survivor.id}
+    answered = [q for q in db.query(Question).filter(Question.circle_id == circle_id).all()
+                if q.answer and q.answer.get("story_id") == survivor.id]
 
     seen_links: set[tuple[str, str, str]] = set()
     links = db.query(StoryLink).filter(
@@ -499,11 +502,82 @@ def merge_stories_data(
         survivor.stated_year = next((s.stated_year for s in others if s.stated_year is not None), None)
     if survivor.place is None:
         survivor.place = next((s.place for s in others if s.place), None)
+    for q in answered:
+        _extend_answer(db, q, survivor)
     db.flush()
     for s in others:
         db.delete(s)
     db.flush()
     return {"story_id": survivor.id, "merged_ids": other_ids}
+
+
+def _extend_answer(db: DbSession, q: Question, story: Story) -> None:
+    """Widen q's answer range over the story's neighbouring pieces in its session.
+
+    The checker confirms one range of the answer, but the speaker's answer
+    often goes on in later segments that end up in the same story (or in a
+    part merged into it). The range grows piece by piece, and only across a
+    gap that holds nothing but the agent's turns: any speech left out of the
+    story (another story, a refused topic) or any private segment stops it,
+    because GET /api/audio lets the asker hear every part of the answer range.
+    """
+    ans = q.answer or {}
+    session_id = ans.get("session_id")
+    start, end = ans.get("start_ms"), ans.get("end_ms")
+    srcs = sorted((src for src in story.sources or [] if src.get("session_id") == session_id),
+                  key=lambda src: src["start_ms"])
+    if not srcs or start is None or end is None or _overlaps_private(db, session_id, start, end):
+        return
+    for src in srcs:                                  # forwards
+        if src["end_ms"] <= end:
+            continue
+        if src["start_ms"] > end and not _agent_only_gap(db, session_id, end, src["start_ms"]):
+            break
+        end = src["end_ms"]
+    for src in reversed(srcs):                        # backwards
+        if src["start_ms"] >= start:
+            continue
+        if src["end_ms"] < start and not _agent_only_gap(db, session_id, src["end_ms"], start):
+            break
+        start = src["start_ms"]
+    if (start, end) != (ans["start_ms"], ans["end_ms"]):
+        q.answer = {**ans, "start_ms": start, "end_ms": end}
+
+
+def _agent_only_gap(db: DbSession, session_id: str, start_ms: int, end_ms: int) -> bool:
+    """True if [start_ms, end_ms) overlaps no person's segment and no private segment."""
+    hit = (
+        db.query(Segment.id)
+        .filter(
+            Segment.session_id == session_id,
+            (Segment.speaker_id.isnot(None)) | (Segment.is_private == True),  # noqa: E712
+            Segment.start_ms < end_ms,
+            Segment.end_ms > start_ms,
+        )
+        .first()
+    )
+    return hit is None
+
+
+def extend_session_answers(db: DbSession, session_id: str) -> list[str]:
+    """Repair for answers recorded before merge_stories widened them.
+
+    Every answered question whose answer comes from session_id gets the range
+    merge_stories would now give it. Returns the ids of the changed questions.
+    """
+    changed: list[str] = []
+    for q in db.query(Question).filter(Question.status == QuestionStatus.answered).all():
+        if not q.answer or q.answer.get("session_id") != session_id:
+            continue
+        story: Story | None = db.get(Story, q.answer.get("story_id"))
+        if story is None:
+            continue
+        before = dict(q.answer)
+        _extend_answer(db, q, story)
+        if q.answer != before:
+            changed.append(q.id)
+    db.flush()
+    return changed
 
 
 # ---------------------------------------------------------------------------

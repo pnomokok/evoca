@@ -13,7 +13,11 @@ They are a **draft contract**: when the real API differs, update the sample and 
 - The panel fetches audio with the `X-Person-Id` header and plays it as a blob (a plain `<audio src>` cannot send the header).
   Photos work the same way: fetch `photo_url` with the header and show it as a blob URL (a plain `<img src>` cannot send it).
 - The backend runs on port 8080 (`uvicorn server.app:app --port 8080`); the MCP server on port 8000 is not called by the web client.
-- In `GET /api/feed`, `answer.audio_url` is `null` when the answer's session has no audio file (for example a text-only test session). Show the answer without a play button.
+- In `GET /api/feed`, an answer card's `answer.audio` is the answer as a list of pieces, like `audio` on the story page:
+  the answer story's own pieces, with the agent's turns and private parts cut out. Play the pieces in
+  order; `duration_ms` is their total. `audio_url` is the first piece only, kept for older clients.
+  `audio` is `[]` and `audio_url` is `null` when the answer's session has no audio file (for example a text-only test
+  session). Show the answer without a play button.
 - Errors always look like `ERROR_example.json` (`{"detail": "..."}`, FastAPI's shape), with a matching HTTP status (400, 403, 404).
 - Every response is already filtered by `can_see()`. The client never hides things itself; if a story is missing, the viewer may not see it.
 
@@ -56,6 +60,8 @@ Because Elif is a plain member, these samples also show what access control hide
 
 ## Requests
 
+- `GET /api/device/invitation`: `now` is the server's current time (UTC ISO 8601). It follows the demo clock
+  (`DEMO_NOW`), so show the device clock from it, in the circle's timezone, not from the browser's clock.
 - `POST /api/device/turn`: `multipart/form-data` with `audio` (the recorded clip) and `session_id`, the one returned by
   `POST /api/device/session/start` (call that first; it also runs the opening turn).
   `heard_text` in the response is what speech-to-text understood, for showing on screen.
@@ -65,6 +71,7 @@ Because Elif is a plain member, these samples also show what access control hide
   one story can have several items (its audio continues across them). The card appears only in the turn where the
   agent picked the stories.
 - `POST /api/questions`: JSON `{"target_person_id": "...", "text": "...", "period": null}`.
+  Sending the same question again (case, punctuation and a leading "Grandma,"/"Grandpa," aside) while it is unanswered returns the first question (same `id`), not a new one.
   A blocked question returns HTTP 200 with `status: "filtered"`; the message never reveals the sensitive topic itself.
   A question blocked only by a topic the center refused herself returns the normal accepted response (`status: "waiting"`); it is never asked, like an unanswered question.
 - `POST /api/stories/{id}/reactions`: JSON `{"emoji": "heart", "action": "add"}` or `"remove"`. Idempotent.

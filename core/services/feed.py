@@ -11,8 +11,14 @@ Two kinds of items, newest first:
                      becomes visible. Questions in any other status never
                      appear, so a declined question looks exactly like an
                      unanswered one (docs/PROJECT.md "Hassas konular").
-                     audio_url is null when the answer's session has no audio
-                     file (e.g. a text-only session), instead of a URL that 404s.
+                     audio is the answer as pieces: the answer story's own
+                     pieces in that session, like the story page, so the
+                     agent's turns, private parts and anything outside the
+                     story are skipped.
+                     duration_ms is their total; audio_url is the first piece
+                     (kept for older clients). audio is [] and audio_url null
+                     when the answer's session has no audio file (e.g. a
+                     text-only session), instead of URLs that 404.
                      photo_url / photo_caption are the answer story's photo.
   story_published    A published story in the viewer's circle that the viewer
                      can_see(), with its photo_url / photo_caption (or nulls).
@@ -52,16 +58,26 @@ def _teller(db: DbSession, person_id: str, circle_id: str) -> dict[str, Any]:
     }
 
 
-def _audio_url(db: DbSession, ans: dict[str, Any]) -> str | None:
-    """The answer's audio URL, or None if its session has no audio file."""
-    sess = db.get(OrmSession, ans["session_id"])
+def _answer_audio(db: DbSession, ans: dict[str, Any], story: Story) -> list[dict[str, Any]]:
+    """The answer's audio pieces, or [] if its session has no audio file.
+
+    The answer is its story: every piece of the story in the answer's session,
+    private parts cut (the story page's audio), so the agent's turns in between
+    and anything outside the story are skipped. The asker can_see() the story,
+    so GET /api/audio lets them hear each piece.
+    """
+    from core.services.stories import _audio_ranges  # stories imports this module
+
+    session_id = ans["session_id"]
+    sess = db.get(OrmSession, session_id)
     if sess is None or not sess.audio_path or not Path(sess.audio_path).exists():
-        return None
-    return f"/api/audio/{ans['session_id']}?start={ans['start_ms']}&end={ans['end_ms']}"
+        return []
+    return [r for r in _audio_ranges(db, story) if r["session_id"] == session_id]
 
 
 def _answer_card(db: DbSession, q: Question, story: Story) -> dict[str, Any]:
     ans = q.answer
+    audio = _answer_audio(db, ans, story)
     return {
         "type": "question_answered",
         "created_at": story.publish_at,
@@ -73,7 +89,9 @@ def _answer_card(db: DbSession, q: Question, story: Story) -> dict[str, Any]:
             "session_id": ans["session_id"],
             "start_ms": ans["start_ms"],
             "end_ms": ans["end_ms"],
-            "audio_url": _audio_url(db, ans),
+            "audio_url": audio[0]["url"] if audio else None,
+            "audio": audio,
+            "duration_ms": sum(p["end_ms"] - p["start_ms"] for p in audio),
             **photo_fields(db, story),
         },
     }

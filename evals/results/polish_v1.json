@@ -1,0 +1,263 @@
+[
+  {
+    "scenario": "grandmother_basic",
+    "run": 1,
+    "goal": "Delivers the family question naturally, with the relation, and follows up on a concrete detail.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Leyla! Your grandson Ali has a question for you: how did you learn to cook?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, hello dear Ali. I learned to cook from my dear Aunt Sabiha. We used to cook in a tiny kitchen in our little house in Bursa, using a wood stove that always smelled of smoke and warmth. My favorite dish she taught me was stuffed peppers, and I remember how we'd carefully stuff each pepper with rice and ground meat, laughing as we worked together."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds so warm and lovely, Leyla. What was Aunt Sabiha like?"
+      },
+      {
+        "speaker": "person",
+        "text": "Aunt Sabiha was the kindest soul you'd ever meet, always with a smile and a story. She had a way of making even the simplest meal feel special. I can still hear her humming old Turkish tunes while she worked, and her patience was endless, especially when I spilled flour all over the floor. She taught me that cooking wasn't just about following recipes, but about loving the people you share the food with."
+      },
+      {
+        "speaker": "companion",
+        "text": "She sounds truly special. Do you still make stuffed peppers the way she taught you?"
+      },
+      {
+        "speaker": "person",
+        "text": "I do, Ali, almost every Sunday for family dinners. I still use the same wooden spoon she gave me, and I can almost hear her guiding me as I stuff each pepper. It's a tradition I cherish, and every time I make them, I feel like she's right there with me, sharing her love through every bite. It's our little connection, past and present."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s beautiful, Leyla. What other traditions or recipes did Aunt Sabiha pass on to you?"
+      },
+      {
+        "speaker": "person",
+        "text": "Aunt Sabiha passed on many traditions, but I think the most special one besides stuffed peppers was her yogurt making. Every spring, we'd gather wildflowers and make a special floral yogurt. She'd tell me stories from our ancestors while we stirred the pot, and I'd listen, fascinated. She also taught me how to make Turkish delight, sprinkling a little bit of cinnamon on top, a secret she swore made it extra special. These recipes are more than just food; they're pieces of our history."
+      },
+      {
+        "speaker": "companion",
+        "text": "Those traditions sound wonderful. Do you have any memories of making the floral yogurt together?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Leyla. We can talk more another time. Goodbye for now."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Leyla! Your grandson Ali has a question for you: how did you learn to cook?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 4561,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Ali": true
+        }
+      },
+      {
+        "reply": "That sounds so warm and lovely, Leyla. What was Aunt Sabiha like?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 872,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "She sounds truly special. Do you still make stuffed peppers the way she taught you?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 929,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s beautiful, Leyla. What other traditions or recipes did Aunt Sabiha pass on to you?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 952,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Those traditions sound wonderful. Do you have any memories of making the floral yogurt together?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1001,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Leyla. We can talk more another time. Goodbye for now.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 819,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Excellent conversation; companion could have offered to save the floral yogurt topic for next time to maintain continuity."
+    }
+  },
+  {
+    "scenario": "asks_to_listen",
+    "run": 1,
+    "goal": "Plays a story the person asks to hear, introduces it briefly without retelling it, and never mentions a linked story she cannot see.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Zeliha! Is there a memory on your mind today that you would like to share?"
+      },
+      {
+        "speaker": "person",
+        "text": "Could you play me what I told you about the village house?"
+      },
+      {
+        "speaker": "companion",
+        "text": "Zeliha, I found your story about the village house and the one about bread day at the village oven. They will play now."
+      },
+      {
+        "speaker": "person",
+        "text": "Alright, playing those now. \n\n[later]\n\nIt was lovely to hear my own voice again. I wish my grandchildren in Ankara could hear these stories, too."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Zeliha. Your grandchildren will be able to hear these stories too, once I finish saving them. Would you like to tell me another memory today?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "Goodbye, Zeliha. We can talk again soon."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Zeliha! Is there a memory on your mind today that you would like to share?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions"
+        ],
+        "tool_errors": [],
+        "latency_ms": 2097,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Zeliha, I found your story about the village house and the one about bread day at the village oven. They will play now.",
+        "tools": [
+          "search_archive",
+          "get_linked_playlist"
+        ],
+        "tool_errors": [],
+        "latency_ms": 2791,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Zeliha. Your grandchildren will be able to hear these stories too, once I finish saving them. Would you like to tell me another memory today?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1100,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Goodbye, Zeliha. We can talk again soon.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 741,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "playlist_called": true,
+      "playlist_not_in_opening": true,
+      "playlist_reply_does_not_retell": true,
+      "unseen_story_not_mentioned": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": false,
+      "respected_declined_topic": null,
+      "warmth": 4,
+      "notes": "Companion could have engaged more specifically with Zeliha's mention of grandchildren in Ankara—a concrete detail worth exploring."
+    }
+  }
+]

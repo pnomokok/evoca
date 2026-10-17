@@ -13,8 +13,10 @@ Coverage:
                          for the asker and only once the asker can_see() the
                          story (pending / private / hidden keep it back);
                          a declined question looks exactly like an unanswered
-                         one (it never appears); audio_url is null when the
-                         session has no audio file; story_published filtered
+                         one (it never appears); the answer's audio is the
+                         answer story's pieces (agent turns and private parts
+                         skipped); audio_url is null
+                         when the session has no audio file; story_published filtered
                          by can_see(); newest first
 """
 
@@ -121,6 +123,9 @@ def test_answer_appears_for_asker_after_publishing(w, monkeypatch, tmp_path):
             "start_ms": 0,
             "end_ms": 10_000,
             "audio_url": f"/api/audio/{w.sess.id}?start=0&end=10000",
+            "audio": [{"session_id": w.sess.id, "start_ms": 0, "end_ms": 10_000,
+                       "url": f"/api/audio/{w.sess.id}?start=0&end=10000"}],
+            "duration_ms": 10_000,
             "photo_url": None,
             "photo_caption": None,
         },
@@ -224,4 +229,25 @@ def test_answer_card_without_audio_file_has_null_audio_url(w, monkeypatch, audio
     card = [i for i in build_feed(w.db, w.elif_.id, w.circle.id)["items"]
             if i["type"] == "question_answered"][0]
     assert card["answer"]["audio_url"] is None
+    assert card["answer"]["audio"] == [] and card["answer"]["duration_ms"] == 0
     assert card["answer"]["start_ms"] == 0 and card["answer"]["end_ms"] == 10_000
+
+
+def test_answer_audio_is_the_whole_answer_story(w, monkeypatch, tmp_path):
+    # Fatma's story has two pieces with the agent and a private part between;
+    # the answer range covers only the first. The card plays both pieces only.
+    wav = tmp_path / "session.wav"
+    wav.write_bytes(b"RIFF")
+    w.sess.audio_path = str(wav)
+    w.db.commit()
+    story_id = _save(w, sources=[{"session_id": w.sess.id, "start_ms": 0, "end_ms": 10_000},
+                                 {"session_id": w.sess.id, "start_ms": 20_000, "end_ms": 30_000}])
+    _answer(w, story_id)
+    _demo_now(monkeypatch, timedelta(hours=25))
+    publish_due_stories(w.db)
+
+    card = [i for i in build_feed(w.db, w.elif_.id, w.circle.id)["items"]
+            if i["type"] == "question_answered"][0]["answer"]
+    assert [(p["start_ms"], p["end_ms"]) for p in card["audio"]] == [(0, 10_000), (20_000, 30_000)]
+    assert card["duration_ms"] == 20_000
+    assert card["audio_url"] == card["audio"][0]["url"] == f"/api/audio/{w.sess.id}?start=0&end=10000"

@@ -558,10 +558,13 @@ async def session_end(
 async def get_invitation(
     x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
 ):
+    """Is the light on? "now" is the demo-aware current time (now_utc(), so
+    DEMO_NOW moves it), for the device clock."""
+    now = now_utc()
     with SessionLocal() as db:
         _, circle_id = _resolve_center(x_person_id, db)
         circle = db.get(Circle, circle_id)
-        today_str = now_utc().astimezone(ZoneInfo(circle.timezone)).strftime("%Y-%m-%d")
+        today_str = now.astimezone(ZoneInfo(circle.timezone)).strftime("%Y-%m-%d")
         inv = (
             db.query(Invitation)
             .filter(
@@ -572,9 +575,10 @@ async def get_invitation(
             .first()
         )
         if inv is None:
-            return {"active": False, "invitation": None}
+            return {"active": False, "invitation": None, "now": now.isoformat()}
         return {
             "active": True,
+            "now": now.isoformat(),
             "invitation": {
                 "id": inv.id,
                 "person_id": inv.person_id,

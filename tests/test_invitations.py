@@ -308,7 +308,9 @@ async def test_device_invitation_is_active_after_a_pass(test_app, monkeypatch):
         before = (await c.get("/api/device/invitation", headers={"x-person-id": fatma.id})).json()
         run_invitations(db)
         after = (await c.get("/api/device/invitation", headers={"x-person-id": fatma.id})).json()
-    assert before == {"active": False, "invitation": None}
+    assert {k: before[k] for k in ("active", "invitation")} == {"active": False, "invitation": None}
+    for body in (before, after):            # the device clock follows DEMO_NOW
+        assert body["now"].startswith("2026-10-20T08:00")
     assert after["active"] is True
     assert after["invitation"]["date"] == "2026-10-20"
     assert after["invitation"]["reason"] == "Elif has a question for you"
