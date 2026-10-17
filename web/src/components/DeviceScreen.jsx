@@ -1,48 +1,82 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { apiClient } from '../api/client';
-import { Mic, MicOff, Volume2, Sparkles, MessageSquare, Heart, CheckCircle2, XSquare } from 'lucide-react';
+import { Mic, MicOff, Volume2, Sparkles, MessageSquare, Heart, CheckCircle2, XSquare, Play, RefreshCw } from 'lucide-react';
 
 export default function DeviceScreen() {
-  const { invitationData, showToast } = useApp();
+  const { invitationData, centerPersonId, showToast, circleData } = useApp();
   const [isRecording, setIsRecording] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [currentTurn, setCurrentTurn] = useState(null);
-  const [sessionActive, setSessionActive] = useState(true);
+  const [sessionId, setSessionId] = useState(null);
+  const [sessionActive, setSessionActive] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [deviceError, setDeviceError] = useState(null);
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const audioPlayerRef = useRef(null);
 
-  // Fetch initial turn from mock
-  useEffect(() => {
-    async function loadTurn() {
-      try {
-        const turn = await apiClient.postDeviceTurn(null, "Alexa, what's new?");
-        setCurrentTurn(turn);
-      } catch (err) {
-        console.error(err);
+  const centerName = circleData?.members?.find(m => m.id === centerPersonId)?.name || 'Fatma';
+
+  // Play audio reply using blob URL with X-Person-Id = center
+  const playAudioReply = async (audioUrl) => {
+    if (!audioUrl) return;
+    try {
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
       }
+      const blobUrl = await apiClient.fetchAudioBlobUrl(audioUrl, centerPersonId);
+      if (blobUrl) {
+        const audio = new Audio(blobUrl);
+        audioPlayerRef.current = audio;
+        audio.onplay = () => setIsPlayingAudio(true);
+        audio.onended = () => setIsPlayingAudio(false);
+        audio.onerror = () => setIsPlayingAudio(false);
+        await audio.play();
+      }
+    } catch (err) {
+      console.warn("Could not play reply audio:", err);
+      // If 403 or unavailable, silent as per requirements
     }
-    loadTurn();
-  }, []);
-
-  // Speak agent reply aloud via SpeechSynthesis
-  const speakReply = (text) => {
-    if (!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.95;
-    utterance.pitch = 1.0;
-    utterance.lang = 'en-US';
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-    window.speechSynthesis.speak(utterance);
   };
 
-  // Start real browser microphone recording or fallback
+  // Start new device session (POST /api/device/session/start with X-Person-Id = center)
+  const startSession = async () => {
+    setLoading(true);
+    setDeviceError(null);
+    try {
+      const turn = await apiClient.postDeviceSessionStart(centerPersonId);
+      setCurrentTurn(turn);
+      setSessionId(turn.session_id);
+      setSessionActive(turn.session_open !== false);
+      if (turn.reply_audio_url) {
+        playAudioReply(turn.reply_audio_url);
+      }
+    } catch (err) {
+      console.error("Device session start failed:", err);
+      setDeviceError(err.message || "Cihaz oturumu başlatılamadı.");
+      showToast(err.message || "Cihaz oturumu başlatılamadı.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Automatically start device session on mount
+  useEffect(() => {
+    startSession();
+    return () => {
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
+      }
+    };
+  }, [centerPersonId]);
+
+  // Start real microphone recording
   const startRecording = async () => {
+    if (!sessionActive && !sessionId) {
+      await startSession();
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
@@ -56,82 +90,109 @@ export default function DeviceScreen() {
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         stream.getTracks().forEach(track => track.stop());
-        await submitTurn(audioBlob, "I remember walking by the creek with my brother...");
+        await submitTurn(audioBlob);
       };
 
       mediaRecorder.start();
       setIsRecording(true);
-      showToast("Listening... (Speak your story)", "info");
+      showToast("Dinleniyor... (Konuşmanızı yapın)", "info");
     } catch {
-      // Microphone fallback
       setIsRecording(true);
-      showToast("Mic access denied or unavailable. Simulating voice...", "info");
+      showToast("Mikrofon erişimi alınamadı. Lütfen mikrofon iznini kontrol edin.", "error");
       setTimeout(() => {
-        stopRecording("I remember walking by the creek with my brother...");
-      }, 3000);
+        setIsRecording(false);
+      }, 2000);
     }
   };
 
-  const stopRecording = (fallbackText) => {
-    setIsRecording(false);
+  const stopRecording = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.stop();
-    } else {
-      submitTurn(null, fallbackText || "I was just thinking about our summer garden.");
     }
+    setIsRecording(false);
   };
 
-  const submitTurn = async (audioBlob, text) => {
+  // Submit spoken turn (POST /api/device/turn multipart: audio + session_id, no text field)
+  const submitTurn = async (audioBlob) => {
+    if (!audioBlob || audioBlob.size === 0) return;
     setLoading(true);
     try {
-      const turn = await apiClient.postDeviceTurn(audioBlob, text);
+      const turn = await apiClient.postDeviceTurn(audioBlob, sessionId, centerPersonId);
       setCurrentTurn(turn);
-      setSessionActive(true);
-      speakReply(turn.reply_text);
-      showToast("Agent responded!", "info");
+      if (turn.session_id) setSessionId(turn.session_id);
+      if (turn.session_open === false) {
+        setSessionActive(false);
+        showToast("Oturum tamamlandı.", "info");
+      } else {
+        setSessionActive(true);
+      }
+
+      if (turn.reply_audio_url) {
+        playAudioReply(turn.reply_audio_url);
+      }
     } catch (err) {
       console.error(err);
-      showToast("Failed to process spoken turn", "error");
+      showToast(err.message || "Konuşma iletilemedi", "error");
     } finally {
       setLoading(false);
     }
   };
 
+  // End session (POST /api/device/session/end {"session_id": ...})
   const handleEndSession = async () => {
+    if (!sessionId) return;
     try {
-      await apiClient.postDeviceSessionEnd(currentTurn?.session_id);
+      await apiClient.postDeviceSessionEnd(sessionId, centerPersonId);
       setSessionActive(false);
-      showToast("Session closed. Archivist Agent triggered to extract stories.", "info");
+      showToast("Oturum sonlandırıldı. Anılar arşivleniyor.", "info");
     } catch (err) {
       console.error(err);
+      showToast(err.message || "Oturum sonlandırılamadı", "error");
     }
   };
 
   return (
     <div className="device-wrapper">
       {/* Echo Show Notification Light Bar (Glows when family invitation is waiting) */}
-      {invitationData?.active && <div className="device-ambient-glow" title="Invitation active: Light is glowing" />}
+      {invitationData?.active && (
+        <div className="device-ambient-glow" title="Aile daveti aktif: Işık yanıyor" />
+      )}
 
       <div className="device-header">
         <div>
-          <div className="device-time">10:00 AM</div>
-          <div className="device-date">Wednesday, October 14 · Istanbul</div>
+          <div className="device-time">10:00</div>
+          <div className="device-date">Çarşamba · İstanbul · Living Room Echo</div>
         </div>
 
         {invitationData?.active && (
           <div className="device-invitation-banner">
             <Sparkles size={16} />
-            <span>Invitation: "{invitationData.invitation?.reason}"</span>
+            <span>Davet: "{invitationData.invitation?.reason || 'Ailenizden yeni bir soru var'}"</span>
           </div>
         )}
       </div>
 
       <div className="device-content">
         <div className="device-speech-bubble-area">
-          {/* Elder Heard Speech Bubble */}
+          {deviceError && (
+            <div className="elder-heard-card" style={{ borderColor: 'rgba(239, 68, 68, 0.4)' }}>
+              <div className="elder-label" style={{ color: '#fca5a5' }}>Cihaz Bildirimi</div>
+              <div className="elder-text">{deviceError}</div>
+              <button
+                type="button"
+                className="quick-prompt-chip"
+                style={{ marginTop: '12px' }}
+                onClick={startSession}
+              >
+                <RefreshCw size={14} /> Yeniden Başlat
+              </button>
+            </div>
+          )}
+
+          {/* Center Person Heard Speech Bubble */}
           {currentTurn?.heard_text && (
             <div className="elder-heard-card">
-              <div className="elder-label">Fatma (Spoken)</div>
+              <div className="elder-label">{centerName} (Duyulan Sözler)</div>
               <div className="elder-text">"{currentTurn.heard_text}"</div>
             </div>
           )}
@@ -141,8 +202,12 @@ export default function DeviceScreen() {
             <div className="agent-reply-card">
               <div className="agent-label">
                 <Sparkles size={14} />
-                Evoca Agent
-                {isSpeaking && <span style={{ color: 'var(--accent-gold)', marginLeft: '8px' }}>● Speaking...</span>}
+                Evoca Asistan
+                {isPlayingAudio && (
+                  <span style={{ color: 'var(--accent-gold)', marginLeft: '8px' }}>
+                    ● Seslendiriliyor...
+                  </span>
+                )}
               </div>
               <div className="agent-text">{currentTurn.reply_text}</div>
 
@@ -152,16 +217,18 @@ export default function DeviceScreen() {
                   {currentTurn.cards.map((card, i) => (
                     <div key={i} className="device-subcard">
                       <div className="subcard-emoji">
-                        {card.type === 'reaction' ? (card.emoji === 'laugh' ? '😂' : '❤️') : '❓'}
+                        {card.type === 'reaction' ? (
+                          card.emoji === 'laugh' ? '😂' : card.emoji === 'heart' ? '❤️' : card.emoji === 'sad' ? '😢' : '🙏'
+                        ) : '❓'}
                       </div>
                       <div>
                         <div className="subcard-title">
                           {card.type === 'reaction'
-                            ? `Reaction from ${card.from?.name}`
-                            : `Question from ${card.asker?.name}`}
+                            ? `${card.from?.name || 'Aile üyesi'} tepki bıraktı`
+                            : `${card.asker?.name || 'Aile üyesi'} sordu`}
                         </div>
                         <div className="subcard-desc">
-                          {card.type === 'reaction' ? `On "${card.story_title}"` : card.text}
+                          {card.type === 'reaction' ? `"${card.story_title || 'Hikâye'}" üzerine` : card.text}
                         </div>
                       </div>
                     </div>
@@ -170,67 +237,55 @@ export default function DeviceScreen() {
               )}
             </div>
           )}
+
+          {loading && (
+            <div style={{ textAlign: 'center', padding: '16px', color: 'var(--accent-gold)' }}>
+              Ses işleniyor ve yanıt hazırlanıyor...
+            </div>
+          )}
         </div>
 
         {/* Push-to-Talk and Session Action Bar */}
         <div className="device-bottom-action">
-          <div className="device-quick-prompts">
-            <button
-              className="quick-prompt-chip"
-              onClick={() => submitTurn(null, "Alexa, what's new?")}
-            >
-              "Alexa, what's new?"
-            </button>
-            <button
-              className="quick-prompt-chip"
-              onClick={() => submitTurn(null, "Elif, what was school like? It was very snowy in Akçaabat...")}
-            >
-              "School was 4 kilometers away in the snow..."
-            </button>
-            <button
-              className="quick-prompt-chip"
-              onClick={() => submitTurn(null, "Alexa, I remembered the big mulberry tree!")}
-            >
-              "I remembered the mulberry tree!"
-            </button>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
             <button
               className={`push-to-talk-btn ${isRecording ? 'recording' : ''}`}
               onMouseDown={startRecording}
-              onMouseUp={() => stopRecording()}
+              onMouseUp={stopRecording}
               onTouchStart={startRecording}
-              onTouchEnd={() => stopRecording()}
-              title="Press and hold to talk (Simulates Echo Show push-to-talk)"
+              onTouchEnd={stopRecording}
+              disabled={loading}
+              title="Basılı tutarak konuşun (Echo Show simülasyonu)"
             >
               {isRecording ? <MicOff className="ptt-icon" /> : <Mic className="ptt-icon" />}
-              <span className="ptt-label">{isRecording ? "Listening" : "Hold to Talk"}</span>
+              <span className="ptt-label">{isRecording ? "Dinliyor..." : "Basılı Tut ve Konuş"}</span>
             </button>
 
-            {currentTurn?.reply_text && (
+            {currentTurn?.reply_audio_url && (
               <button
+                type="button"
                 className="quick-prompt-chip"
                 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                onClick={() => speakReply(currentTurn.reply_text)}
+                onClick={() => playAudioReply(currentTurn.reply_audio_url)}
               >
-                <Volume2 size={16} /> Replay Voice
+                <Volume2 size={16} /> Yanıtı Dinle
               </button>
             )}
 
             {sessionActive && (
               <button
+                type="button"
                 className="quick-prompt-chip"
                 style={{ borderColor: 'rgba(239, 68, 68, 0.4)', color: '#fca5a5' }}
                 onClick={handleEndSession}
               >
-                <XSquare size={16} /> End Session (Archive)
+                <XSquare size={16} /> Oturumu Bitir (Arşivle)
               </button>
             )}
           </div>
 
           <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-            Echo Show Simulation: Big push-to-talk button, ambient notification lamp, voice playback
+            Echo Show Simülasyonu: {centerName} (center) kimliğiyle çalışır · Sadece gerçek ses gönderilir
           </div>
         </div>
       </div>

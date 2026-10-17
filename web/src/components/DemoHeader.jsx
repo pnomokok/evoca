@@ -10,15 +10,17 @@ export default function DemoHeader() {
     switchViewer,
     useMock,
     toggleMock,
-    circleData
+    circleData,
+    peopleList
   } = useApp();
 
-  const members = circleData?.members || [
-    { id: 'person_fatma', name: 'Fatma Yilmaz', role: 'center' },
-    { id: 'person_ayse', name: 'Ayşe Yilmaz', role: 'admin' },
-    { id: 'person_elif', name: 'Elif Yilmaz', role: 'member' },
-    { id: 'person_can', name: 'Can Yilmaz', role: 'member' }
-  ];
+  // Combine circle members or people list
+  const members = circleData?.members || peopleList?.map(p => ({
+    id: p.id,
+    name: p.name,
+    role: p.circles?.[0]?.role || 'member',
+    relation_to_center: p.circles?.[0]?.role === 'center' ? 'center' : null
+  })) || [];
 
   return (
     <header className="archival-topbar">
@@ -63,7 +65,7 @@ export default function DemoHeader() {
             <User size={13} className="viewer-icon" />
             <select
               className="archival-select"
-              value={currentViewerId}
+              value={currentViewerId || ''}
               onChange={(e) => switchViewer(e.target.value)}
               title="Change family viewer perspective (X-Person-Id)"
             >

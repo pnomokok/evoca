@@ -75,7 +75,7 @@ const SIX_RECENT_STORIES = [
 ];
 
 export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
-  const { setSelectedStoryId, setPanelSubTab, showToast, circleData, currentViewerId, switchViewer } = useApp();
+  const { setSelectedStoryId, setPanelSubTab, showToast, circleData, currentViewerId, centerPersonId, switchViewer } = useApp();
   const [featuredStory, setFeaturedStory] = useState(null);
   const [feedItems, setFeedItems] = useState([]);
   const [lifeline, setLifeline] = useState(null);
@@ -107,17 +107,17 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
         const [feat, feed, life] = await Promise.all([
           apiClient.getFeaturedStory(),
           apiClient.getFeed(),
-          apiClient.getLifeline('person_fatma')
+          centerPersonId ? apiClient.getLifeline(centerPersonId).catch(() => null) : Promise.resolve(null)
         ]);
         setFeaturedStory(feat);
-        setFeedItems(feed.items || []);
+        setFeedItems(feed?.items || []);
         setLifeline(life);
       } catch (err) {
         console.error("Error loading dashboard data", err);
       }
     }
     loadData();
-  }, []);
+  }, [centerPersonId, currentViewerId]);
 
   // Compute actual deduplicated story count from all existing data sources
   const uniqueStoryIds = new Set(SIX_RECENT_STORIES.map(s => s.id));
@@ -535,7 +535,9 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
                       <span className="a-title" onClick={() => handleOpenStory(item.answer.story_id)}>
                         {item.answer.story_title}
                       </span>
-                      <span className="a-duration">0:57 audio</span>
+                      {item.answer.audio_url && (
+                        <span className="a-duration">{item.answer.duration_ms ? `${Math.round(item.answer.duration_ms / 1000)}s ses` : 'Ses'}</span>
+                      )}
                     </div>
 
                     <p className="a-excerpt">"{item.answer.excerpt || item.answer.ai_summary}"</p>

@@ -20,45 +20,48 @@ import {
   Volume2
 } from 'lucide-react';
 
-const PERIOD_OPTIONS = [
-  { id: 'childhood', label: 'Childhood (0-12)', era: '1948 – 1960' },
-  { id: 'youth', label: 'Youth & Discovery (13-20)', era: '1961 – 1967' },
-  { id: 'marriage_early_years', label: 'Early Adulthood & Marriage', era: '1968 – 1972' },
-  { id: 'raising_children', label: 'Raising a Family', era: '1973 – 1984' },
-  { id: 'midlife', label: 'Midlife & Journeys', era: '1985 – 2004' },
-  { id: 'retirement', label: 'Golden Years & Wisdom', era: '2005 – Present' }
+const PERIOD_CONFIG = [
+  { id: 'childhood', label: 'Çocukluk', era: '1948 – 1960', desc: 'Akçaabat köyünde çocukluk günleri, dut ağacı ve karlı okul yolları.' },
+  { id: 'youth', label: 'Gençlik', era: '1961 – 1967', desc: 'Genç kızlık dönemi, terzi dükkanı, zeytin hasadı ve liman pazarı.' },
+  { id: 'marriage_early_years', label: 'İlk Evlilik Yılları', era: '1968 – 1974', desc: 'Sahildeki taş eve yerleşme, ilk yıllar ve ortak hayatın kuruluşu.' },
+  { id: 'raising_children', label: 'Aile Kurma', era: '1975 – 1990', desc: 'Çocukların büyümesi, taş verandada semaver sohbetleri.' },
+  { id: 'midlife', label: 'Orta Yaş', era: '1991 – 2008', desc: 'Yolculuklar, aile düğünleri ve yeni neslin doğuşu.' },
+  { id: 'retirement', label: 'Emeklilik', era: '2009 – Günümüz', desc: 'Sakin sabah kahveleri, torunlarla sohbetler ve bahçe günleri.' }
 ];
 
 export default function LifelineView({ onOpenAskModal }) {
-  const { setSelectedStoryId, setPanelSubTab, showToast } = useApp();
+  const { setSelectedStoryId, setPanelSubTab, showToast, centerPersonId, currentViewerId } = useApp();
   const [lifelineData, setLifelineData] = useState(null);
   const [editingStoryId, setEditingStoryId] = useState(null);
   const [selectedPeriodTarget, setSelectedPeriodTarget] = useState('');
   const [activeFilter, setActiveFilter] = useState('all'); // 'all' | 'stories' | 'gaps'
 
-  useEffect(() => {
-    async function loadLifeline() {
-      try {
-        const data = await apiClient.getLifeline('person_fatma');
-        setLifelineData(data);
-      } catch (err) {
-        console.error('Failed to load lifeline:', err);
-      }
+  const targetPersonId = centerPersonId;
+
+  const loadLifeline = async () => {
+    if (!targetPersonId) return;
+    try {
+      const data = await apiClient.getLifeline(targetPersonId);
+      setLifelineData(data);
+    } catch (err) {
+      console.error('Failed to load lifeline:', err);
     }
+  };
+
+  useEffect(() => {
     loadLifeline();
-  }, []);
+  }, [targetPersonId, currentViewerId]);
 
   const handleCorrectPeriod = async (storyId, newPeriod) => {
+    if (!targetPersonId) return;
     try {
-      await apiClient.patchStorySubject(storyId, 'person_fatma', newPeriod);
-      showToast("Life chapter verified and saved to family archive!", "info");
+      await apiClient.patchStorySubject(storyId, targetPersonId, newPeriod);
+      showToast("Dönem güncellendi ve aile çizgisine işlendi!", "info");
       setEditingStoryId(null);
-      // Reload updated lifeline
-      const updated = await apiClient.getLifeline('person_fatma');
-      setLifelineData(updated);
+      await loadLifeline();
     } catch (err) {
       console.error(err);
-      showToast("Could not update life chapter", "error");
+      showToast(err.message || "Dönem güncellenemedi", "error");
     }
   };
 
@@ -71,16 +74,17 @@ export default function LifelineView({ onOpenAskModal }) {
     return (
       <div className="lifeline-loading-state">
         <div className="loading-spinner" />
-        <p>Opening family chronological archive...</p>
+        <p>Aile hayat çizgisi yükleniyor...</p>
       </div>
     );
   }
 
   const periods = lifelineData.periods || [];
+  const gapsSet = new Set(lifelineData.gaps || []);
   const totalStories = periods.reduce((acc, p) => acc + (p.stories?.length || 0), 0);
   const totalChapters = periods.length;
   const recordedChapters = periods.filter(p => p.stories && p.stories.length > 0).length;
-  const gapChapters = totalChapters - recordedChapters;
+  const gapChapters = periods.filter(p => !p.stories || p.stories.length === 0).length;
   const coveragePercent = Math.round((recordedChapters / (totalChapters || 1)) * 100);
 
   const displayedPeriods = periods.filter(p => {
@@ -97,23 +101,31 @@ export default function LifelineView({ onOpenAskModal }) {
         <div className="lifeline-hero-top-row">
           <div className="lifeline-elder-profile">
             <div className="elder-portrait-wrapper">
-              <img 
-                src={lifelineData.person.avatar_url || "/grandma_fatma.jpg"} 
-                alt={lifelineData.person.name}
+              <div 
                 className="elder-portrait-img"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = "/family_hero.jpg";
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  background: 'var(--accent-terracotta)', 
+                  color: '#fff', 
+                  fontSize: '28px', 
+                  fontWeight: 600,
+                  width: '72px',
+                  height: '72px',
+                  borderRadius: '50%'
                 }}
-              />
-              <span className="elder-portrait-badge">Central Teller</span>
+              >
+                {lifelineData.person?.name?.charAt(0) || 'F'}
+              </div>
+              <span className="elder-portrait-badge">Merkez Anlatan</span>
             </div>
 
             <div className="elder-narrative-meta">
-              <div className="section-eyebrow">CHRONOLOGICAL MEMORY MAP</div>
-              <h1 className="lifeline-elder-title">{lifelineData.person.name}'s Life Chapters</h1>
+              <div className="section-eyebrow">KRONOLOJİK HAYAT ÇİZGİSİ</div>
+              <h1 className="lifeline-elder-title">{lifelineData.person?.name}'ın Hayat Dönemleri</h1>
               <p className="lifeline-elder-subtitle">
-                Born {lifelineData.person.birth_year} in Akçaabat · 76 Years of Family Heritage · Living Audio Archive
+                Doğum {lifelineData.person?.birth_year || 1948} · Yaşayan Sözlü Aile Arşivi
               </p>
             </div>
           </div>
@@ -122,19 +134,19 @@ export default function LifelineView({ onOpenAskModal }) {
           <div className="lifeline-metrics-grid">
             <div className="lifeline-metric-card">
               <span className="metric-num">{totalStories}</span>
-              <span className="metric-text">Stories Preserved</span>
+              <span className="metric-text">Kayıtlı Hikâye</span>
             </div>
             <div className="lifeline-metric-card">
               <span className="metric-num">{recordedChapters}</span>
-              <span className="metric-text">Recorded Eras</span>
+              <span className="metric-text">Belgelenen Dönem</span>
             </div>
             <div className="lifeline-metric-card gap-highlight">
               <span className="metric-num">{gapChapters}</span>
-              <span className="metric-text">Untold Gaps</span>
+              <span className="metric-text">Anlatılmamış Boşluk</span>
             </div>
             <div className="lifeline-metric-card">
               <span className="metric-num">{coveragePercent}%</span>
-              <span className="metric-text">Timeline Mapped</span>
+              <span className="metric-text">Haritalanan Çizgi</span>
             </div>
           </div>
         </div>
@@ -142,8 +154,7 @@ export default function LifelineView({ onOpenAskModal }) {
         {/* Narrative Description & Filter Controls */}
         <div className="lifeline-filter-toolbar">
           <p className="lifeline-editorial-quote">
-            “Every family memory belongs to a season of time. Explore Grandma's journey across the decades, 
-            or ask a morning question to bridge the untold chapters.”
+            “Her anı bir zamana aittir. Yıllar boyunca biriken hikâyeleri keşfedin ya da anlatılmamış dönemler için sabah kahvesine bir soru bırakın.”
           </p>
 
           <div className="lifeline-filter-pills" role="tablist" aria-label="Timeline filter">
@@ -151,19 +162,19 @@ export default function LifelineView({ onOpenAskModal }) {
               className={`filter-pill ${activeFilter === 'all' ? 'active' : ''}`}
               onClick={() => setActiveFilter('all')}
             >
-              All Chapters ({totalChapters})
+              Tüm Dönemler ({totalChapters})
             </button>
             <button 
               className={`filter-pill ${activeFilter === 'stories' ? 'active' : ''}`}
               onClick={() => setActiveFilter('stories')}
             >
-              <CheckCircle2 size={14} /> Preserved Memories ({recordedChapters})
+              <CheckCircle2 size={14} /> Kayıtlı Anılar ({recordedChapters})
             </button>
             <button 
               className={`filter-pill ${activeFilter === 'gaps' ? 'active' : ''}`}
               onClick={() => setActiveFilter('gaps')}
             >
-              <AlertCircle size={14} /> Untold Gaps ({gapChapters})
+              <AlertCircle size={14} /> Anlatılmamış Boşluklar ({gapChapters})
             </button>
           </div>
         </div>
@@ -176,7 +187,10 @@ export default function LifelineView({ onOpenAskModal }) {
         {displayedPeriods.map((periodObj, chapterIdx) => {
           const hasStories = periodObj.stories && periodObj.stories.length > 0;
           const chapterNumber = String(chapterIdx + 1).padStart(2, '0');
-          const eraLabel = periodObj.era || (PERIOD_OPTIONS.find(o => o.id === periodObj.period)?.era) || '';
+          const cfg = PERIOD_CONFIG.find(c => c.id === periodObj.period) || {};
+          const periodTitle = cfg.label || periodObj.period;
+          const eraLabel = cfg.era || '';
+          const isGap = gapsSet.has(periodObj.period) || !hasStories;
 
           return (
             <article 
@@ -194,13 +208,13 @@ export default function LifelineView({ onOpenAskModal }) {
                 <div className="chapter-header-bar">
                   <div className="chapter-header-titles">
                     <div className="chapter-meta-line">
-                      <span className="chapter-tag">CHAPTER {chapterNumber}</span>
+                      <span className="chapter-tag">DÖNEM {chapterNumber}</span>
                       {eraLabel && <span className="chapter-era-bullet">·</span>}
                       {eraLabel && <span className="chapter-era">{eraLabel}</span>}
                     </div>
-                    <h2 className="chapter-main-title">{periodObj.title || periodObj.period}</h2>
-                    {periodObj.description && (
-                      <p className="chapter-curator-desc">{periodObj.description}</p>
+                    <h2 className="chapter-main-title">{periodTitle}</h2>
+                    {cfg.desc && (
+                      <p className="chapter-curator-desc">{cfg.desc}</p>
                     )}
                   </div>
 
@@ -208,12 +222,12 @@ export default function LifelineView({ onOpenAskModal }) {
                     {hasStories ? (
                       <span className="chapter-status-pill preserved">
                         <CheckCircle2 size={13} />
-                        {periodObj.stories.length} {periodObj.stories.length === 1 ? 'Story' : 'Stories'} Preserved
+                        {periodObj.stories.length} {periodObj.stories.length === 1 ? 'Hikâye' : 'Hikâye'}
                       </span>
                     ) : (
                       <span className="chapter-status-pill gap">
                         <AlertCircle size={13} />
-                        Untold Chapter · Gap
+                        Anlatılmamış Dönem · Boşluk
                       </span>
                     )}
                   </div>
@@ -225,29 +239,10 @@ export default function LifelineView({ onOpenAskModal }) {
                     {periodObj.stories.map((story) => {
                       const isEditing = editingStoryId === story.id;
                       const isFamilyVerified = story.period_source === 'family';
+                      const isEstimated = story.estimated || story.period_source === 'ai';
 
                       return (
                         <div key={story.id} className="chapter-story-item">
-                          {/* Photo Frame */}
-                          {story.photo_url && (
-                            <div className="story-photo-matting" onClick={() => handleOpenStory(story.id)}>
-                              <img 
-                                src={story.photo_url} 
-                                alt={story.title} 
-                                className="story-archival-photo"
-                                onError={(e) => {
-                                  e.target.onerror = null;
-                                  e.target.src = "/mulberry_memory.jpg";
-                                }}
-                              />
-                              {(story.place || story.year) && (
-                                <span className="story-photo-caption-handwriting">
-                                  {story.place ? `${story.place}` : ''}{story.year ? `, ${story.year}` : ''}
-                                </span>
-                              )}
-                            </div>
-                          )}
-
                           {/* Story Narrative Details */}
                           <div className="story-narrative-box">
                             <div className="story-headline-row">
@@ -255,7 +250,7 @@ export default function LifelineView({ onOpenAskModal }) {
                                 {story.title}
                               </h3>
 
-                              {/* Period Verification Tag / Edit Trigger */}
+                              {/* Period Tag & Tahmini Badge (Requirement 16) */}
                               <div className="story-period-tag-container">
                                 <button
                                   type="button"
@@ -264,18 +259,18 @@ export default function LifelineView({ onOpenAskModal }) {
                                     setEditingStoryId(isEditing ? null : story.id);
                                     setSelectedPeriodTarget(periodObj.period);
                                   }}
-                                  title="Click to verify or assign to another life chapter"
+                                  title="Dönemi düzeltmek için tıklayın"
                                 >
-                                  {isFamilyVerified ? (
+                                  {isEstimated ? (
                                     <>
-                                      <CheckCircle2 size={12} />
-                                      <span>Family Verified</span>
+                                      <Sparkles size={12} />
+                                      <span>tahmini</span>
+                                      <Edit3 size={11} className="edit-pen-icon" />
                                     </>
                                   ) : (
                                     <>
-                                      <Sparkles size={12} />
-                                      <span>AI Estimate</span>
-                                      <Edit3 size={11} className="edit-pen-icon" />
+                                      <CheckCircle2 size={12} />
+                                      <span>Doğrulandı</span>
                                     </>
                                   )}
                                 </button>
@@ -284,22 +279,22 @@ export default function LifelineView({ onOpenAskModal }) {
 
                             {/* Inline Period Editor Popover */}
                             {isEditing && (
-                              <div className="inline-period-editor-modal" role="dialog" aria-label="Reassign Life Chapter">
+                              <div className="inline-period-editor-modal" role="dialog" aria-label="Hayat Dönemini Değiştir">
                                 <div className="editor-modal-title">
-                                  <span>Reassign Life Chapter for this Memory</span>
+                                  <span>Bu Anının Hayat Dönemini Düzeltin</span>
                                   <button 
                                     className="modal-close-icon"
                                     onClick={() => setEditingStoryId(null)}
-                                    aria-label="Close"
+                                    aria-label="Kapat"
                                   >
                                     <X size={14} />
                                   </button>
                                 </div>
                                 <p className="editor-modal-desc">
-                                  Select the accurate period for Grandma's permanent record:
+                                  Doğru dönemi seçin:
                                 </p>
                                 <div className="period-options-list">
-                                  {PERIOD_OPTIONS.map((opt) => (
+                                  {PERIOD_CONFIG.map((opt) => (
                                     <button
                                       key={opt.id}
                                       type="button"
@@ -317,36 +312,36 @@ export default function LifelineView({ onOpenAskModal }) {
                                     className="btn-cancel-edit"
                                     onClick={() => setEditingStoryId(null)}
                                   >
-                                    Cancel
+                                    İptal
                                   </button>
                                   <button
                                     type="button"
                                     className="btn-save-edit"
                                     onClick={() => handleCorrectPeriod(story.id, selectedPeriodTarget)}
                                   >
-                                    <Check size={14} /> Save Verification
+                                    <Check size={14} /> Kaydet
                                   </button>
                                 </div>
                               </div>
                             )}
 
-                            {/* Excerpt / AI Summary */}
+                            {/* Summary */}
                             <p className="story-narrative-summary">
-                              {story.excerpt || story.ai_summary}
+                              {story.ai_summary || story.excerpt}
                             </p>
 
                             {/* Card Footer Actions */}
                             <div className="story-action-strip">
                               <span className="audio-duration-pill">
                                 <Volume2 size={13} />
-                                <span>{Math.round((story.duration_ms || 30000) / 1000)}s voice recording</span>
+                                <span>{Math.round((story.duration_ms || 30000) / 1000)}s ses kaydı</span>
                               </span>
 
                               <button 
                                 className="story-open-link-btn"
                                 onClick={() => handleOpenStory(story.id)}
                               >
-                                <span>Listen & Explore</span>
+                                <span>Dinle & İncele</span>
                                 <ChevronRight size={14} />
                               </button>
                             </div>
@@ -363,36 +358,20 @@ export default function LifelineView({ onOpenAskModal }) {
                     </div>
 
                     <div className="gap-invitation-body">
-                      <div className="gap-eyebrow">UNTOLD FAMILY CHAPTER</div>
-                      <h3 className="gap-invitation-title">Bridge This Chapter's Memories</h3>
+                      <div className="gap-eyebrow">ANLATILMAMIŞ DÖNEM</div>
+                      <h3 className="gap-invitation-title">{periodTitle} Hatıralarını Keşfedin</h3>
                       <p className="gap-invitation-text">
-                        No audio recordings have been captured yet for Grandma's <strong>{periodObj.title}</strong>. 
-                        Prompting her during her morning coffee helps unlock these precious recollections.
+                        Bu döneme ait henüz bir ses kaydı bulunmuyor. Sabah kahvesinde sorulacak bir soruyla bu dönemin hatıralarını arşive kazandırabilirsiniz.
                       </p>
-
-                      {periodObj.invitationPrompt && (
-                        <div className="curated-prompt-quote-box">
-                          <span className="quote-label">Suggested Morning Prompt:</span>
-                          <p className="quote-text">“{periodObj.invitationPrompt}”</p>
-                        </div>
-                      )}
 
                       <div className="gap-action-buttons-row">
                         <button
                           type="button"
                           className="btn-ask-grandma-primary"
-                          onClick={() => onOpenAskModal && onOpenAskModal(periodObj.period, periodObj.invitationPrompt || '')}
-                        >
-                          <MessageSquarePlus size={15} />
-                          <span>Ask Grandma This Question</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          className="btn-ask-custom-topic"
                           onClick={() => onOpenAskModal && onOpenAskModal(periodObj.period, '')}
                         >
-                          <span>Ask a Custom Question</span>
+                          <MessageSquarePlus size={15} />
+                          <span>Bu Dönem Hakkında Soru Sor</span>
                         </button>
                       </div>
                     </div>
@@ -403,14 +382,6 @@ export default function LifelineView({ onOpenAskModal }) {
           );
         })}
       </main>
-
-      {/* Footnote / Living Archive Philosophy */}
-      <footer className="lifeline-bottom-footnote">
-        <p>
-          Each recorded memory is verified and permanently linked into the Yilmaz family living archive. 
-          New morning conversations automatically enrich Grandma's life chapters.
-        </p>
-      </footer>
     </div>
   );
 }

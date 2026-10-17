@@ -3,12 +3,25 @@ import { useApp } from '../../context/AppContext';
 import { apiClient } from '../../api/client';
 import { X, AlertTriangle, Send, Sparkles, HelpCircle } from 'lucide-react';
 
+const PERIOD_OPTIONS = [
+  { value: '', label: 'Herhangi Bir Dönem' },
+  { value: 'childhood', label: 'Çocukluk (1948 – 1960)' },
+  { value: 'youth', label: 'Gençlik (1961 – 1967)' },
+  { value: 'marriage_early_years', label: 'İlk Evlilik Yılları (1968 – 1974)' },
+  { value: 'raising_children', label: 'Aile Kurma (1975 – 1990)' },
+  { value: 'midlife', label: 'Orta Yaş (1991 – 2008)' },
+  { value: 'retirement', label: 'Emeklilik (2009 – Günümüz)' }
+];
+
 export default function AskQuestionModal({ isOpen, onClose, defaultPeriod = null, initialPrompt = '' }) {
-  const { showToast } = useApp();
+  const { showToast, centerPersonId, circleData } = useApp();
   const [questionText, setQuestionText] = useState('');
   const [period, setPeriod] = useState(defaultPeriod || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [filterWarning, setFilterWarning] = useState(null);
+
+  const centerPerson = circleData?.members?.find(m => m.role === 'center');
+  const centerName = centerPerson?.name || 'Fatma Hanım';
 
   useEffect(() => {
     if (isOpen) {
@@ -27,19 +40,27 @@ export default function AskQuestionModal({ isOpen, onClose, defaultPeriod = null
     setIsSubmitting(true);
     setFilterWarning(null);
 
+    const targetId = centerPersonId || circleData?.circle?.center_person_id;
+    if (!targetId) {
+      showToast("Hedef kişi bulunamadı", "error");
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
-      const res = await apiClient.postQuestion('person_fatma', questionText.trim(), period || null);
+      const res = await apiClient.postQuestion(targetId, questionText.trim(), period || null);
       if (res.status === 'filtered') {
+        // Requirement 24: status "filtered" ise message'ı olduğu gibi göster (hangi konu olduğunu söylemez)
         setFilterWarning(res.message);
-        showToast("Question was held by the family sensitive topic guard.", "error");
+        showToast("Soru hassas konu filtresine takıldı.", "error");
       } else {
-        showToast("Question placed gently in Grandma's morning conversation queue!", "info");
+        showToast(`${centerName}'ın sabah sohbeti sırasına soru eklendi!`, "info");
         setQuestionText('');
         onClose();
       }
     } catch (err) {
       console.error(err);
-      showToast("Unable to send question", "error");
+      showToast(err.message || "Soru gönderilemedi", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -50,12 +71,12 @@ export default function AskQuestionModal({ isOpen, onClose, defaultPeriod = null
       <div className="modal-sheet archival-dialog" onClick={(e) => e.stopPropagation()}>
         <div className="modal-title-row">
           <div>
-            <h2 className="archival-dialog-title">What would you like to know?</h2>
+            <h2 className="archival-dialog-title">Ne öğrenmek istersiniz?</h2>
             <p className="archival-dialog-sub">
-              Ask a question that might unlock another family memory.
+              {centerName}'ın sabah sohbetinde cevaplayabileceği bir aile sorusu bırakın.
             </p>
           </div>
-          <button className="close-btn" onClick={onClose} aria-label="Close dialog">
+          <button className="close-btn" onClick={onClose} aria-label="Kapat">
             <X size={20} />
           </button>
         </div>
@@ -63,30 +84,26 @@ export default function AskQuestionModal({ isOpen, onClose, defaultPeriod = null
         <form onSubmit={handleSubmit} className="archival-form">
           <div className="form-group">
             <label className="form-label">
-              Life Chapter (Optional)
+              Hayat Dönemi (İsteğe bağlı)
             </label>
             <select
               className="archival-input-select"
               value={period}
               onChange={(e) => setPeriod(e.target.value)}
             >
-              <option value="">Any Life Chapter</option>
-              <option value="childhood">Childhood (1948 – 1960)</option>
-              <option value="youth">Youth (1961 – 1967)</option>
-              <option value="marriage_early_years">Early Adulthood & Marriage (1968 – 1974)</option>
-              <option value="raising_children">Raising a Family (1975 – 1990)</option>
-              <option value="midlife">Midlife (1991 – 2008)</option>
-              <option value="retirement">Retirement (2009 – Present)</option>
+              {PERIOD_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
             </select>
           </div>
 
           <div className="form-group">
             <label className="form-label">
-              Your Question
+              Sorunuz
             </label>
             <textarea
               className="archival-textarea"
-              placeholder="e.g. Grandma, what was your childhood home like?"
+              placeholder={`Örn: ${centerName}, çocukluğunuzda kış günleri evde nasıl geçerdi?`}
               rows={4}
               value={questionText}
               onChange={(e) => {
@@ -97,47 +114,40 @@ export default function AskQuestionModal({ isOpen, onClose, defaultPeriod = null
             />
           </div>
 
+          {/* Filter Warning message as-is from backend (Requirement 24) */}
           {filterWarning && (
             <div className="sensitive-guard-alert">
               <div className="alert-head">
                 <AlertTriangle size={15} color="var(--accent-terracotta)" />
-                <strong>Sensitive Topic Guard</strong>
+                <strong>Hassas Konu Koruması</strong>
               </div>
               <p>{filterWarning}</p>
             </div>
           )}
 
           <div className="prompt-suggestions-row">
-            <span className="prompts-intro">Inspiration prompts:</span>
+            <span className="prompts-intro">Örnek sorular:</span>
             <div className="prompt-chips">
               <button
                 type="button"
                 className="chip-btn"
-                onClick={() => setQuestionText("What was your childhood home like?")}
+                onClick={() => setQuestionText("Köydeki eviniz kış aylarında nasıl ısıtılırdı?")}
               >
-                "What was your childhood home like?"
+                "Köydeki eviniz kış aylarında nasıl ısıtılırdı?"
               </button>
               <button
                 type="button"
                 className="chip-btn"
-                onClick={() => setQuestionText("How did you meet Grandpa?")}
+                onClick={() => setQuestionText("Büyükbabamla ilk ne zaman ve nerede tanıştınız?")}
               >
-                "How did you meet Grandpa?"
+                "Büyükbabamla ilk nerede tanıştınız?"
               </button>
               <button
                 type="button"
                 className="chip-btn"
-                onClick={() => setQuestionText("What family tradition do you remember most?")}
+                onClick={() => setQuestionText("Çocukken bayram sabahları neler yapardınız?")}
               >
-                "What family tradition do you remember most?"
-              </button>
-              <button
-                type="button"
-                className="chip-btn filter-test-chip"
-                onClick={() => setQuestionText("What happened during the 1977 traffic accident?")}
-                title="Test sensitive topic filter behavior"
-              >
-                Test filter: "1977 traffic accident"
+                "Çocukken bayram sabahları neler yapardınız?"
               </button>
             </div>
           </div>
@@ -148,7 +158,7 @@ export default function AskQuestionModal({ isOpen, onClose, defaultPeriod = null
               className="editorial-btn secondary"
               onClick={onClose}
             >
-              Cancel
+              Vazgeç
             </button>
             <button
               type="submit"
@@ -156,7 +166,7 @@ export default function AskQuestionModal({ isOpen, onClose, defaultPeriod = null
               disabled={isSubmitting || !questionText.trim()}
             >
               <Send size={15} />
-              <span>{isSubmitting ? "Delivering..." : "Send question to Evoca"}</span>
+              <span>{isSubmitting ? "Gönderiliyor..." : "Evoca'ya Gönder"}</span>
             </button>
           </div>
         </form>
