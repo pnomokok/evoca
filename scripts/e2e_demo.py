@@ -5,14 +5,19 @@ Bedrock, Whisper and Polly.
 
     python scripts/e2e_demo.py              # temp folder is deleted afterwards
     python scripts/e2e_demo.py --keep       # keep it (database, audio, server logs)
+    python scripts/e2e_demo.py --restart    # move the clock by restarting the servers
 
 Never touches data/evoca.db: the seed runs into a fresh database in a temp
 folder, and both servers run with that folder as their working directory, so
 session audio and TTS files land there too. Whisper's model cache is shared
 with the repo (data/hf-cache) so it is not downloaded again.
 
-The clock is DEMO_NOW (core/clock.py). It is read per process, so both servers
-are restarted every time the story moves to another day:
+The clock is DEMO_NOW plus the demo offset (core/clock.py). By default both
+servers start once with DEMO_NOW = D0 and EVOCA_DEMO_MODE=1, and the story
+moves to another day with POST /api/demo/advance, as in the judges' demo (it
+also publishes due stories and runs the invitation scheduler at once). With
+--restart, the old path: both servers are restarted with a new DEMO_NOW every
+time the story moves to another day (and server.run_invitations runs between):
 
   D0 08:00  seed; admin settings and family questions (steps 1-2)
   D1 09:35  after the new chat time: invitation, device session, archivist (3-5)
@@ -140,10 +145,12 @@ def port_in_use(port: int) -> bool:
 
 
 class Servers:
-    """The MCP server and the backend, restarted with a new DEMO_NOW."""
+    """The MCP server and the backend: started once in demo mode, or restarted
+    with a new DEMO_NOW (restart=True)."""
 
-    def __init__(self, workdir: Path) -> None:
+    def __init__(self, workdir: Path, restart: bool = False) -> None:
         self.workdir = workdir
+        self.restart = restart
         self.logs = workdir / "logs"
         self.logs.mkdir(exist_ok=True)
         self.procs: list[subprocess.Popen] = []
@@ -160,6 +167,10 @@ class Servers:
             "PYTHONPATH": str(REPO) + os.pathsep + env.get("PYTHONPATH", ""),
             "PYTHONIOENCODING": "utf-8",
         })
+        if not self.restart:
+            env["EVOCA_DEMO_MODE"] = "1"
+        else:
+            env.pop("EVOCA_DEMO_MODE", None)
         env.setdefault("HF_HOME", str(REPO / "data" / "hf-cache"))
         return env
 
@@ -230,9 +241,10 @@ class Servers:
 # ---------------------------------------------------------------------------
 
 class Demo:
-    def __init__(self, workdir: Path) -> None:
+    def __init__(self, workdir: Path, restart: bool = False) -> None:
         self.workdir = workdir
-        self.servers = Servers(workdir)
+        self.restart = restart
+        self.servers = Servers(workdir, restart)
         self.http = httpx.Client(base_url=API, timeout=240)
         self.results: list[StepResult] = []
         self.current: StepResult | None = None
@@ -243,6 +255,7 @@ class Demo:
         self.t1 = day(1, 9, 35)
         self.t2 = self.t1 + timedelta(hours=25)
         self.t3 = day(3, 9, 35)
+        self.now = self.t0
 
         self.ids: dict[str, str] = {}
         self.seed_story_ids: set[str] = set()
@@ -300,6 +313,25 @@ class Demo:
             want |= {"stt_ms"}
         self.check(want <= set(body.get("latency", {})), f"{label}: latency fields missing")
         self.note(f"{label}: {body['latency'].get('total_ms')} ms · {body.get('reply_text', '')[:90]!r}")
+
+    def move_to(self, when: datetime) -> None:
+        """Move the story's clock to `when`: restart the servers (--restart) or
+        POST /api/demo/advance, which also publishes and runs the invitations."""
+        if self.restart:
+            self.servers.stop()
+            if when in (self.t1, self.t3):
+                out = self.servers.run_module("server.run_invitations", when)
+                self.check("created 1 invitation" in out, f"run_invitations: {out.strip()}")
+            self.servers.start(when)
+        else:
+            hours = (when - self.now).total_seconds() / 3600
+            body = self.json("POST", "/api/demo/advance", json={"hours": hours})
+            self.check(datetime.fromisoformat(body["now"]) == when,
+                       f"advance {hours:.2f} h: now {body['now']}, wanted {when.isoformat()}")
+            clock = self.json("GET", "/api/demo/clock")
+            self.check(clock["now"] == body["now"], f"demo clock: {clock}")
+            self.note(f"advanced {hours:.2f} h to {body['now']}")
+        self.now = when
 
     def run_step(self, name: str, fn: Callable[[], None]) -> None:
         self.current = StepResult(name)
@@ -359,11 +391,9 @@ class Demo:
         self.check(normal.get("status") == "waiting", f"normal question not waiting: {normal}")
 
     def step3_invitation(self) -> None:
-        self.servers.stop()
-        out = self.servers.run_module("server.run_invitations", self.t1)
-        self.check("created 1 invitation" in out, f"run_invitations: {out.strip()}")
-        self.servers.start(self.t1)
+        self.move_to(self.t1)
         body = self.json("GET", "/api/device/invitation", "fatma")
+        self.check(datetime.fromisoformat(body.get("now", "")) == self.t1, f"device clock: {body.get('now')}")
         self.check(body.get("active") is True, f"light is off: {body}")
         reason = (body.get("invitation") or {}).get("reason", "")
         self.check("Elif" in reason, f"reason does not mention Elif: {reason!r}")
@@ -420,7 +450,7 @@ class Demo:
         self.note(f"answer held back while pending; new stories: {len(self.new_story_ids)}")
 
     def step6_published(self) -> None:
-        self.servers.start(self.t2)
+        self.move_to(self.t2)
         deadline = time.time() + 20
         visible: set[str] = set()
         while time.time() < deadline:   # the publisher runs right after startup
@@ -483,10 +513,7 @@ class Demo:
         self.check(bool(mine), "the recording is not on Elif's own lifeline")
 
     def step8_next_day(self) -> None:
-        self.servers.stop()
-        out = self.servers.run_module("server.run_invitations", self.t3)
-        self.check("created 1 invitation" in out, f"run_invitations: {out.strip()}")
-        self.servers.start(self.t3)
+        self.move_to(self.t3)
         inv = self.json("GET", "/api/device/invitation", "fatma")
         reason = (inv.get("invitation") or {}).get("reason", "")
         self.check(inv.get("active") is True, f"light is off: {inv}")
@@ -532,6 +559,8 @@ class Demo:
 def main() -> int:
     parser = argparse.ArgumentParser(description="End-to-end demo run against the real API.")
     parser.add_argument("--keep", action="store_true", help="keep the temp folder (database, audio, logs)")
+    parser.add_argument("--restart", action="store_true",
+                        help="move the clock by restarting the servers with a new DEMO_NOW (no demo mode)")
     args = parser.parse_args()
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -540,7 +569,7 @@ def main() -> int:
     workdir = Path(tempfile.mkdtemp(prefix="evoca_e2e_"))
     ok = False
     try:
-        ok = Demo(workdir).run()
+        ok = Demo(workdir, restart=args.restart).run()
     finally:
         if args.keep:
             print(f"Kept {workdir}")

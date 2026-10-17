@@ -56,6 +56,9 @@ Because Elif is a plain member, these samples also show what access control hide
 | `POST_admin_sensitive_topics.json` | `POST /api/admin/sensitive-topics` (admin) | Admin: add a topic |
 | `DELETE_admin_sensitive_topic.json` | `DELETE /api/admin/sensitive-topics/{id}` (admin) | Admin: remove a topic |
 | `PATCH_admin_circle.json` | `PATCH /api/admin/circle` (admin) | Admin: chat time and timezone |
+| `GET_demo_clock.json` | `GET /api/demo/clock` (**demo mode only**, no header) | Demo controls: current demo time |
+| `POST_demo_advance.json` | `POST /api/demo/advance` (**demo mode only**, no header) | Demo controls: skip ahead |
+| `POST_demo_reset.json` | `POST /api/demo/reset` (**demo mode only**, no header) | Demo controls: start over |
 | `ERROR_example.json` | any | Error shape |
 
 ## Requests
@@ -96,6 +99,23 @@ Because Elif is a plain member, these samples also show what access control hide
 - `POST /api/admin/sensitive-topics`: JSON `{"text": "Selim's debt"}`. Empty text, or text with no word of 4+ letters the filter can match (for example "the war"), returns 400. The same text again (any case) returns the existing topic.
 - `DELETE /api/admin/sensitive-topics/{id}`: questions the topic already filtered stay filtered.
 - `PATCH /api/admin/circle`: JSON `{"chat_time": "09:30"}` and/or `{"timezone": "Europe/Istanbul"}` (24-hour `HH:MM`, IANA name; otherwise 400). The light follows the new time from the next scheduler pass; a day that already has its invitation is not changed.
+
+## Demo controls
+
+Judges cannot restart the servers, so the demo moves time at runtime. These endpoints exist only when both servers
+run with `EVOCA_DEMO_MODE=1` (both, or new stories may publish early); otherwise they return 404 and nothing changes. They take no `X-Person-Id` header:
+anyone on the page can use them (PROJECT.md "Bilinen sınırlar").
+
+- `GET /api/demo/clock`: `{now, offset_hours}`. `now` is the demo time (UTC ISO 8601), the same as `now` in `GET /api/device/invitation`.
+- `POST /api/demo/advance`: JSON `{"hours": 24}`, between 1 and 72 (otherwise 400). Moves the clock forward, then at once
+  publishes stories whose 24 hours are over and runs the invitation scheduler, so the light and the feed change right away.
+  Returns the same shape as `GET /api/demo/clock`. It takes about two seconds (both servers must see the new time).
+  After it, refetch the feed, lifeline, invitation and anything else time-dependent.
+- `POST /api/demo/reset`: no body. Rebuilds the demo database from the seed, sets the clock back (offset 0), ends live
+  device sessions and deletes the audio, reply audio and photos recorded since the seed. Returns the new people list
+  (the shape of `GET /api/people`); person ids change, so go back to the person picker. Works only on `data/demo.db` (the database
+  `python scripts/run_demo.py` uses); any other database, `data/evoca.db` and `data/browser.db` included, gets a 400
+  that says so.
 
 ## Shapes not shown with data
 

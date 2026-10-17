@@ -319,3 +319,16 @@ class Invitation(Base):
     __table_args__ = (
         Index("uq_invitation_circle_date", "circle_id", "date", unique=True),
     )
+
+
+# ---------------------------------------------------------------------------
+# DemoClock (demo mode only; not part of the family's data)
+# ---------------------------------------------------------------------------
+
+class DemoClock(Base):
+    """The demo clock's offset, one row (id 1). Kept in the database so the API
+    and the MCP server, two processes, agree on now_utc() (core/clock.py)."""
+    __tablename__ = "demo_clock"
+
+    id = Column(Integer, primary_key=True)
+    offset_seconds = Column(Integer, nullable=False, default=0)

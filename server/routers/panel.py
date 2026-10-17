@@ -30,6 +30,7 @@ from core.db import SessionLocal
 from core.enums import LifePeriod, QuestionSource, QuestionStatus, TopicSource
 from core.models import Circle, Membership, Person, Question, SensitiveTopic
 from core.services import stories as story_svc
+from core.services.demo import people_list
 from core.services.feed import build_feed
 from core.services.questions import find_duplicate
 from core.services.session_tools import _matches_sensitive_topic
@@ -74,18 +75,7 @@ async def get_people():
     "Bilinen sınırlar"). Returns names and roles only, never story data.
     """
     with SessionLocal() as db:
-        people = db.query(Person).order_by(Person.name).all()
-        return [
-            {
-                "id": p.id,
-                "name": p.name,
-                "circles": [
-                    {"circle_id": m.circle_id, "role": m.role}
-                    for m in db.query(Membership).filter(Membership.person_id == p.id).all()
-                ],
-            }
-            for p in people
-        ]
+        return people_list(db)
 
 
 # ---------------------------------------------------------------------------

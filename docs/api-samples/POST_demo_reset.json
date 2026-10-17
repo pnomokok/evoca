@@ -1,0 +1,42 @@
+[
+  {
+    "id": "person_ayse",
+    "name": "Ayşe Yilmaz",
+    "circles": [
+      {
+        "circle_id": "circle_yilmaz",
+        "role": "admin"
+      }
+    ]
+  },
+  {
+    "id": "person_can",
+    "name": "Can Yilmaz",
+    "circles": [
+      {
+        "circle_id": "circle_yilmaz",
+        "role": "member"
+      }
+    ]
+  },
+  {
+    "id": "person_elif",
+    "name": "Elif Yilmaz",
+    "circles": [
+      {
+        "circle_id": "circle_yilmaz",
+        "role": "member"
+      }
+    ]
+  },
+  {
+    "id": "person_fatma",
+    "name": "Fatma Yilmaz",
+    "circles": [
+      {
+        "circle_id": "circle_yilmaz",
+        "role": "center"
+      }
+    ]
+  }
+]
