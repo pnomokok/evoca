@@ -31,8 +31,8 @@ Coverage
 - POST /api/questions: non-member → 403
 - Privacy rules on /api/audio: answers need can_see() on the answer's story
   (pending / private / hidden stories keep it from the asker); one generic 403
-  for every refusal; a private part only for its own speaker; whole-session listening only for the circle center and
-  the recorder of a panel_recording; /api/tts only for session participants
+  for every refusal; a private part only for its own speaker; whole-session listening only for the recorder of a
+  panel_recording and for the circle center in sessions the center took part in; /api/tts only for session participants
 - Identity: /turn and /session/end only for the session's owner
 - Timeline: the opening reply's audio is in the WAV and segments do not overlap
 - Cards: a question card only for a question marked as asked
@@ -747,7 +747,9 @@ async def test_speaker_hears_own_private_part(test_app):
 @pytest.mark.anyio
 async def test_center_refused_for_another_speakers_private_part(test_app):
     app, db, fatma, elif_, circle, *_ = test_app
-    sid = _session_with_segments(db, circle, [elif_], SessionStart.panel_recording, test_app[-1],
+    # A session the center took part in (her whole-session right applies), with
+    # a private part spoken by Elif.
+    sid = _session_with_segments(db, circle, [elif_, fatma], SessionStart.spontaneous, test_app[-1],
                                  [(elif_, 0, 1000, False), (elif_, 1000, 2000, True)])
 
     r = await _get_audio(app, sid, 500, 1500, fatma.id)   # the circle center
@@ -818,7 +820,7 @@ async def test_panel_recording_audible_to_its_recorder(test_app):
     sid = _session_with_pcm(db, circle, [elif_], SessionStart.panel_recording, test_app[-1])
 
     assert (await _get_audio(app, sid, 0, 800, elif_.id)).status_code == 200
-    assert (await _get_audio(app, sid, 0, 800, fatma.id)).status_code == 200   # circle center
+    assert (await _get_audio(app, sid, 0, 800, fatma.id)).status_code == 403   # center not in it
     assert (await _get_audio(app, sid, 0, 800, can.id)).status_code == 403
 
 

@@ -8,8 +8,10 @@ GET /api/tts/{file}
 
 Privacy rules for /api/audio (docs/PROJECT.md "Erişim kuralları"):
   1. The viewer must be entitled to the range, checked FIRST:
-     a. the circle's center person, or the recorder of a panel_recording
-        session, may hear any range of that session; or
+     a. the recorder of a panel_recording session, or the circle's center
+        person for a session the center took part in, may hear any range of
+        that session (the center has no whole-session right to another
+        member's panel recording); or
      b. the range lies inside a source of a story the viewer can_see(); or
      c. the range lies inside the answer to a question the viewer asked, and
         the viewer can_see() the answer's story (so a pending, hidden or
@@ -60,13 +62,12 @@ def _within(start: int, end: int, rng: dict) -> bool:
 
 
 def _may_hear_whole_session(db, viewer_id: str, sess: OrmSession) -> bool:
-    circle = db.get(Circle, sess.circle_id)
-    if circle is not None and viewer_id == circle.center_person_id:
+    if viewer_id not in (sess.participant_ids or []):
+        return False
+    if sess.started_by == SessionStart.panel_recording:
         return True
-    return (
-        sess.started_by == SessionStart.panel_recording
-        and viewer_id in (sess.participant_ids or [])
-    )
+    circle = db.get(Circle, sess.circle_id)
+    return circle is not None and viewer_id == circle.center_person_id
 
 
 def _allowed_by_story(db, viewer_id: str, sess: OrmSession, start: int, end: int) -> bool:

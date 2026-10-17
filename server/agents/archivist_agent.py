@@ -36,6 +36,21 @@ Architecture
 - At the end of the run, every question that is still "asked" (not answered,
   not declined) is returned to "waiting" via reopen_question, so it is asked
   again in a later session. These calls are made by this code, not the model.
+
+Panel recordings (A4)
+---------------------
+With panel_recording=True the session is one family member's own recording
+from the panel. Questions belong only to the center's own sessions, so:
+- only get_session_transcript, save_story and link_stories are offered (and
+  accepted); the circle's asked questions are dropped from the transcript the
+  model sees, and nothing is reopened at the end of the run;
+- teller_id is always the recorder (person_id), whatever the model passes,
+  and only this session can be read or cited (the recorder's identity must
+  not reach other sessions of the circle);
+- subjects may be any circle member (the members list is in the first message,
+  e.g. the center in "Grandma taught me...");
+- every saved story gets the requested access right away, by this code
+  (set_story_access as the teller); the caller enforces it again afterwards.
 """
 
 from __future__ import annotations
@@ -57,6 +72,7 @@ from server.llm import LLM, BedrockLLM, strip_thinking
 log = logging.getLogger(__name__)
 
 _PROMPT_PATH = Path(__file__).parent / "prompts" / "archivist_agent.md"
+_PANEL_PROMPT_PATH = Path(__file__).parent / "prompts" / "archivist_panel_recording.md"
 _MAX_TOOL_ROUNDS = 15
 _MAX_QUESTIONS = 2
 
@@ -74,6 +90,9 @@ _ARCHIVIST_TOOLS = {
     "link_stories",
     "find_gaps",
 }
+
+# A panel recording only becomes stories; no answers, declines or questions.
+_PANEL_RECORDING_TOOLS = {"get_session_transcript", "save_story", "link_stories"}
 
 
 _PUNCTUATION = re.compile(r"[^\w\s]", re.UNICODE)
@@ -163,6 +182,12 @@ class ArchivistAgent:
     bridge      : An already-entered MCPBridge (or a fake for tests).
     checker_llm : LLM for the answer check (answer_check_llm() in production);
                   defaults to llm.
+    panel_recording : True for a panel_recording session; person_id is then
+                  the recorder (see "Panel recordings" above).
+    members     : circle members offered as subjects of a panel recording:
+                  [{person_id, name, relation_to_center, birth_year}].
+    story_access : access for the stories of a panel recording ("circle" or
+                  "private").
     """
 
     def __init__(
@@ -172,13 +197,22 @@ class ArchivistAgent:
         circle_id: str,
         bridge: Any,
         checker_llm: LLM | None = None,
+        panel_recording: bool = False,
+        members: list[dict[str, Any]] | None = None,
+        story_access: str = "circle",
     ) -> None:
         self._llm = llm
         self._checker_llm = checker_llm or llm
         self._person_id = person_id
         self._circle_id = circle_id
         self._bridge = bridge
-        self._system = [{"text": _PROMPT_PATH.read_text(encoding="utf-8")}]
+        self._panel_recording = panel_recording
+        self._members = members or []
+        self._story_access = story_access
+        prompt = _PROMPT_PATH.read_text(encoding="utf-8")
+        if panel_recording:
+            prompt += "\n\n" + _PANEL_PROMPT_PATH.read_text(encoding="utf-8")
+        self._system = [{"text": prompt}]
 
         # Per-run state for the duplicate-question guard (filled lazily).
         self._session_id: str | None = None
@@ -192,7 +226,8 @@ class ArchivistAgent:
 
     async def _tool_config(self) -> dict[str, Any]:
         full = await self._bridge.bedrock_tool_config()
-        tools = [t for t in full["tools"] if t["toolSpec"]["name"] in _ARCHIVIST_TOOLS]
+        names = _PANEL_RECORDING_TOOLS if self._panel_recording else _ARCHIVIST_TOOLS
+        tools = [t for t in full["tools"] if t["toolSpec"]["name"] in names]
         return {"tools": tools}
 
     async def run(self, session_id: str) -> ArchiveResult:
@@ -205,17 +240,16 @@ class ArchivistAgent:
         tool_config = await self._tool_config()
         allowed = {t["toolSpec"]["name"] for t in tool_config["tools"]}
 
-        messages: list[dict[str, Any]] = [
-            {
-                "role": "user",
-                "content": [{
-                    "text": (
-                        f"Archive the finished session with session_id {session_id}. "
-                        f"Start by calling get_session_transcript with that session_id."
-                    )
-                }],
-            }
-        ]
+        first = (
+            f"Archive the finished session with session_id {session_id}. "
+            f"Start by calling get_session_transcript with that session_id."
+        )
+        if self._panel_recording:
+            first += (
+                f"\n\nThis is a panel recording by person_id {self._person_id}."
+                f"\nCircle members you may use as subjects:\n{self._members_text()}"
+            )
+        messages: list[dict[str, Any]] = [{"role": "user", "content": [{"text": first}]}]
 
         llm_ms_total = 0
         tools_ms_total = 0
@@ -278,7 +312,8 @@ class ArchivistAgent:
 
             messages.append({"role": "user", "content": tool_results_content})
 
-        await self._reopen_unanswered(result)
+        if not self._panel_recording:
+            await self._reopen_unanswered(result)
 
         result.latency = {
             "llm_ms": llm_ms_total + self._check_ms,
@@ -297,6 +332,8 @@ class ArchivistAgent:
         """Dispatch one tool call and record its outcome in result."""
         if name not in allowed:
             raise RuntimeError(f"Tool '{name}' is not available to the archivist.")
+        if self._panel_recording:
+            self._only_this_session(name, arguments)
         if name == "add_question":
             if len(result.questions_added) >= _MAX_QUESTIONS:
                 raise RuntimeError(
@@ -330,10 +367,14 @@ class ArchivistAgent:
         out = await self._bridge.call_tool(name, arguments)
 
         if name == "get_session_transcript" and isinstance(out, dict):
+            if self._panel_recording:
+                out = {**out, "asked_questions": []}
             self._remember_transcript(out)
 
         if name == "save_story" and isinstance(out, dict) and out.get("story_id"):
             result.story_ids.append(out["story_id"])
+            if self._panel_recording and self._story_access != "circle":
+                await self._apply_story_access(out["story_id"])
         elif name == "record_answer":
             result.answers_recorded.append(arguments.get("question_id", ""))
         elif name == "mark_question_declined":
@@ -345,6 +386,41 @@ class ArchivistAgent:
             if self._waiting_texts is not None:
                 self._waiting_texts.add(normalize_question(arguments.get("text", "")))
         return out
+
+    # ------------------------------------------------------------------
+    # Panel recordings
+    # ------------------------------------------------------------------
+
+    def _only_this_session(self, name: str, arguments: dict[str, Any]) -> None:
+        """A panel recording reads and cites only its own session, and its
+        teller is always the recorder."""
+        if name == "get_session_transcript" and arguments.get("session_id") != self._session_id:
+            raise RuntimeError("Only the session being archived can be read.")
+        if name == "save_story":
+            if any(src.get("session_id") != self._session_id
+                   for src in arguments.get("sources") or []):
+                raise RuntimeError("Sources must be ranges of the session being archived.")
+            arguments["teller_id"] = self._person_id
+
+    def _members_text(self) -> str:
+        lines = []
+        for m in self._members:
+            relation = m.get("relation_to_center") or "the center of the circle"
+            born = f", born {m['birth_year']}" if m.get("birth_year") else ""
+            lines.append(f"- {m.get('name')} ({relation}{born}): person_id {m.get('person_id')}")
+        return "\n".join(lines)
+
+    async def _apply_story_access(self, story_id: str) -> None:
+        """Give a just-saved story the requested access. A failure is logged,
+        not shown to the model (it would save the story again); the caller
+        enforces the access once more after the run."""
+        try:
+            await self._bridge.call_tool(
+                "set_story_access", {"story_id": story_id, "type": self._story_access}
+            )
+        except Exception as exc:
+            log.error("Could not set story access (session %s): %s",
+                      self._session_id, type(exc).__name__)
 
     # ------------------------------------------------------------------
     # Duplicate-question guard
