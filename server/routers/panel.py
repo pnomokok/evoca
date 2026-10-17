@@ -1,9 +1,20 @@
 """
 Panel REST endpoints.
 
-GET  /api/circle
-GET  /api/feed
-POST /api/questions
+GET    /api/people                (demo only: the person picker, no header)
+GET    /api/circle
+GET    /api/feed
+POST   /api/questions
+GET    /api/lifeline/{person_id}
+GET    /api/stories/{id}
+GET    /api/stories/{id}/playlist
+POST   /api/stories/{id}/reactions
+PATCH  /api/stories/{id}/subjects/{person_id}
+PATCH  /api/stories/{id}
+DELETE /api/links/{id}
+
+Story logic lives in core.services.stories; every story passes can_see() there.
+A story the viewer cannot see gets the same 404 as a missing one.
 """
 
 from __future__ import annotations
@@ -18,6 +29,7 @@ from core.clock import now_utc
 from core.db import SessionLocal
 from core.enums import LifePeriod, QuestionSource, QuestionStatus
 from core.models import Circle, Membership, Person, Question, SensitiveTopic
+from core.services import stories as story_svc
 from core.services.feed import build_feed
 from core.services.session_tools import _matches_sensitive_topic
 
@@ -47,6 +59,32 @@ def _resolve_panel_viewer(x_person_id: str, db) -> tuple[str, str]:
     if m is None:
         raise HTTPException(status_code=403, detail="Not a member of any circle.")
     return x_person_id, m.circle_id
+
+
+# ---------------------------------------------------------------------------
+# GET /api/people  (DEMO ONLY)
+# ---------------------------------------------------------------------------
+
+@router.get("/api/people")
+async def get_people():
+    """Everyone and their circles, for the panel's password-less person picker.
+
+    DEMO ONLY: no header and no access check, by design (PROJECT.md
+    "Bilinen sınırlar"). Returns names and roles only, never story data.
+    """
+    with SessionLocal() as db:
+        people = db.query(Person).order_by(Person.name).all()
+        return [
+            {
+                "id": p.id,
+                "name": p.name,
+                "circles": [
+                    {"circle_id": m.circle_id, "role": m.role}
+                    for m in db.query(Membership).filter(Membership.person_id == p.id).all()
+                ],
+            }
+            for p in people
+        ]
 
 
 # ---------------------------------------------------------------------------
@@ -218,3 +256,102 @@ async def post_question(
                 "created_at": q.created_at,
             },
         }
+
+
+# ---------------------------------------------------------------------------
+# Stories: lifeline, story page, playlist, reactions, corrections, links
+# ---------------------------------------------------------------------------
+
+def _story_call(fn, x_person_id: str, *args):
+    """Resolve the viewer, run a story service function, map its errors to HTTP."""
+    with SessionLocal() as db:
+        person_id, _ = _resolve_panel_viewer(x_person_id, db)
+        try:
+            return fn(db, person_id, *args)
+        except story_svc.NotFound as exc:
+            raise HTTPException(status_code=404, detail=str(exc))
+        except story_svc.Forbidden as exc:
+            raise HTTPException(status_code=403, detail=str(exc))
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.get("/api/lifeline/{person_id}")
+async def get_lifeline(
+    person_id: str,
+    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
+):
+    """Stories about person_id the viewer can see, by period. Matches GET_lifeline_person_fatma.json."""
+    return _story_call(story_svc.build_lifeline, x_person_id, person_id)
+
+
+@router.get("/api/stories/{story_id}")
+async def get_story(
+    story_id: str,
+    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
+):
+    """The story page. Matches GET_story_mulberry.json."""
+    return _story_call(story_svc.build_story, x_person_id, story_id)
+
+
+@router.get("/api/stories/{story_id}/playlist")
+async def get_story_playlist(
+    story_id: str,
+    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
+):
+    """Listen from the start: the story and its visible direct links. Matches GET_story_mulberry_playlist.json."""
+    return _story_call(story_svc.build_playlist, x_person_id, story_id)
+
+
+class ReactionRequest(BaseModel):
+    emoji: str
+    action: str
+
+
+@router.post("/api/stories/{story_id}/reactions")
+async def post_story_reaction(
+    story_id: str,
+    body: ReactionRequest,
+    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
+):
+    """Add or remove the viewer's emoji. Matches POST_story_reactions.json (no counts)."""
+    return _story_call(story_svc.set_reaction, x_person_id, story_id, body.emoji, body.action)
+
+
+class PeriodRequest(BaseModel):
+    period: str
+
+
+@router.patch("/api/stories/{story_id}/subjects/{person_id}")
+async def patch_story_subject(
+    story_id: str,
+    person_id: str,
+    body: PeriodRequest,
+    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
+):
+    """Family period correction (period_source = family). Returns the updated subject."""
+    return _story_call(story_svc.correct_period, x_person_id, story_id, person_id, body.period)
+
+
+class StoryPatchRequest(BaseModel):
+    access: str | None = None
+    hidden: bool | None = None
+
+
+@router.patch("/api/stories/{story_id}")
+async def patch_story(
+    story_id: str,
+    body: StoryPatchRequest,
+    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
+):
+    """Change access (teller) or hide (teller, subject, center, admin). Hiding is final."""
+    return _story_call(story_svc.update_story, x_person_id, story_id, body.access, body.hidden)
+
+
+@router.delete("/api/links/{link_id}")
+async def delete_link(
+    link_id: str,
+    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
+):
+    """Mark a wrong link removed; the viewer must see both stories."""
+    return _story_call(story_svc.remove_link, x_person_id, link_id)

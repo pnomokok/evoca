@@ -460,16 +460,17 @@ Cevap iletimi (bildirim) `record_answer`'ın yan etkisidir; ajan doğrudan bildi
 | `GET /api/device/invitation` | Cihaz ekranı | Işık yansın mı? |
 | `POST /api/questions` | Aile paneli | Aile sorusu ekler; filtrelenirse açıklama döner |
 | `GET /api/feed` | Aile paneli | Bildirimler: cevaplar, yeni hikâyeler |
-| `GET /api/lifeline/{person_id}` | Aile paneli | Hesaplanmış hayat çizgisi |
-| `GET /api/stories/{id}` | Aile paneli | Hikâye sayfası: ses aralıkları, döküm, anlatımlar, bağlantılar |
-| `GET /api/stories/{id}/playlist` | Aile paneli | Baştan dinle sırası |
+| `GET /api/lifeline/{person_id}` | Aile paneli | Hesaplanmış hayat çizgisi: tüm dönemler enum sırasıyla (boşlar boş liste), dönem içinde eskiden yeniye; kişi izleyenin bir çemberinde değilse 404 |
+| `GET /api/stories/{id}` | Aile paneli | Hikâye sayfası: ses aralıkları, döküm, anlatımlar, bağlantılar. Gizli parçalar ses aralığından, dökümden ve süreden çıkarılır; `has_private_part` sadece anlatana `true` olabilir. Görülemeyen hikâye, olmayan hikâyeyle aynı 404'ü döner. Tepkiler sayısız: `present` ve `mine` |
+| `GET /api/stories/{id}/playlist` | Aile paneli | Baştan dinle sırası: hikâye + doğrudan bağlılar (derinlik 1, `removed` hariç), en erken konu dönemine sonra `created_at`'e göre; görülemeyen bağlı hikâye iz bırakmadan atlanır (`skipped_count` yok) |
 | `POST /api/recordings` | Aile paneli | Aile üyesinin kendi anısı (tek kişilik `panel_recording` oturumu) |
-| `POST /api/stories/{id}/reactions` | Aile paneli | Emoji ekler/kaldırır |
-| `PATCH /api/stories/{id}/subjects/{person_id}` | Aile paneli | Dönem düzeltme (`period_source = family`) |
-| `PATCH /api/stories/{id}` | Anlatan, yönetici | Erişim değiştirir veya gizler |
-| `DELETE /api/links/{id}` | Aile paneli | Yanlış bağlantıyı kaldırır (`status = removed`) |
+| `POST /api/stories/{id}/reactions` | Aile paneli | Emoji ekler/kaldırır; tekrar edilebilir (idempotent), yeni tepki `delivered_to_center = false`. Sayı dönmez |
+| `PATCH /api/stories/{id}/subjects/{person_id}` | Aile paneli | Dönem düzeltme (`period_source = family`, `corrected_by` = izleyen); hikâyeyi gören herkes |
+| `PATCH /api/stories/{id}` | Anlatan, konu kişi, merkez, yönetici | Erişimi (`circle`/`private`) sadece anlatan değiştirir. Gizlemeyi anlatan, hikâyenin konusu olan kişi, merkez kişi veya yönetici yapar; gizleme kesindir, `hidden: false` herkes için reddedilir |
+| `DELETE /api/links/{id}` | Aile paneli | Yanlış bağlantıyı kaldırır (`status = removed`, satır silinmez); izleyen iki hikâyeyi de görebilmeli |
 | `POST /api/admin/members`, `/sensitive-topics`, `PATCH /api/admin/circle` | Yönetici | Üye, hassas konu, sohbet saati |
 | `GET /api/audio/{session_id}?start=&end=` | Herkes | Ses aralığını akıtır; erişim kontrolü burada da yapılır |
+| `GET /api/people` | Kişi seçici | **Sadece demo**, başlık istemez: kişiler ve çemberleri (`circle_id`, rol). Bkz. Bilinen sınırlar |
 | GET /api/circle | Aile paneli | Çember, "ben" ve üyeler (rol, relation\_to\_center). İzleyen kişi X-Person-Id başlığından okunur (hackathon kimlik kararı, bkz. Karar günlüğü 17 Ekim). Örnek cevaplar: docs/api-samples/ |
 
 **Arka plan işleri**
@@ -658,6 +659,9 @@ Kalan üç karar (ürün adı, LLM, konuşmadan metne servisi) 13 Ekim akşamın
 
 **Bilinen sınırlar**
 
+- Gizleme API'den geri alınamaz: `hidden: false` herkes için reddedilir. Yanlışlıkla gizlenen bir hikâye sadece veritabanından elle geri açılabilir; kimin gizlediği saklanmadığı için anlatanın, konu kişinin gizlemesini geri alması da böylece engellenir.
+- Hikâye kaydedildikten sonra bir parça gizli işaretlenirse ses aralığı ve döküm her okumada yeniden kesilir, ama başlık ve `ai_summary` yeniden üretilmez ve gizli kısmı anabilir. Bugünkü akışta işaret arşivciden önce yapıldığı için bu durum beklenmez.
+- `GET /api/people` sadece demo içindir: başlık istemeden herkesin adını, çemberini ve rolünü döner; gerçek kullanımda kaldırılmalıdır.
 - Şifresiz kişi seçici sadece demo içindir: panelde herkes herhangi bir kişiyi (merkez kişi dahil) seçip onun adına görebilir, gizli parçalar dahil; gerçek kullanımdan önce kişisel davet linkiyle kimlik şarttır.
 - Açık `keep_private` her zaman işaretler: modelin yanlış okuması zararsız bir hikâyeyi de gizleyebilir. Örnek: eval prompt_v9, private_then_move_on 2. koşu 4. tur — benzetilen kişinin "bazı aile meseleleri özel kalmalı" demesi üzerine `next` çağrıldı ve sonraki gül/yorgan hikâyesi arşivden düştü.
 - Başka bir kişiyi anan cümleler de koruyucu terimi olur ("Kızım Leyla gülleri sever" → leyla, kızım, gül); devam kuralındaki "başka bir kişiyi anıyorsa" istisnası bu yüzden pratikte bir şey değiştirmez.
@@ -672,6 +676,7 @@ Yeni kararlar tablonun en üstüne eklenir. Bir karar geri alınırsa satır sil
 
 | Tarih | Karar | Gerekçe |
 | --- | --- | --- |
+| 17 Ekim | Panel hikâye uçları: (1) `GET /api/people` sadece demo için, başlıksız kişi seçici listesi (Bilinen sınırlar). (2) Tepkiler hiçbir cevapta sayı taşımaz; sadece hangi emojilerin olduğu (`present`) ve izleyenin kendi emojileri (`mine`) döner; örnekteki `counts` kaldırıldı. (3) Baştan dinle cevabında `skipped_count` yok; görülemeyen bağlı hikâye iz bırakmadan atlanır. (4) Yapay zekâ dönemleri `estimated: true` taşır. (5) Görülemeyen hikâye olmayanla aynı 404'ü döner | (2) "Sayaç gösterilmez" kuralı. (3) Erişimi olmayan kişi gizli kaydın varlığını bile görmemeli; bir sayı bile varlığını söyler. (1) Şifresiz seçici başka türlü kişi listesini alamaz |
 | 17 Ekim | Gizlilik vaadi kuralı (17 Ekim "Bunu kimse duymasın" satırını günceller): modelin açık `keep_private` çağrısı her zaman işaretler. Cevap hattının en sonunda (koruyucu ve her yeniden üretimden sonra) tek bir kural çalışır: söylenecek cevap gizlilik vaat ediyorsa ve bu turu açık bir işaret (ya da önceki bir `next`) kapsamıyorsa, sıcaklık 0 bir kontrol konuşanın bu turdaki ve önceki turdaki kendi sözlerini görür. "Evet", "emin değilim", okunamayan cevap veya kontrol hatası: `previous_turn` işaretlenir (iki tur da gizlenir; günlüğe sadece oturum kimliği yazılır). Açık "hayır": vaat cevaptan çıkarılır; yerine gelen cevap onay gibi duyulamaz ("anlıyorum", "tabii" yok) ve gizli bir terime dokunamaz, yoksa nötr cevap kullanılır. Reddedilen konu sır değildir | Söylenen her gizlilik sözü doğru olmalı: istek bir önceki turda yapılmış ya da sır önceki turda söylenmiş olabilir, vaat koruyucunun yeniden üretiminde de ortaya çıkabilir; hepsini tek bir yerde yakalamak bunu garanti eder. Konuyu konuşmak istememek sır saklama isteğiyle karıştırılınca gerçek hikâyeler arşivden düşüyordu (declines_topic); açık "hayır" bu yüzden işareti durdurur |
 | 17 Ekim | Kimlik: hackathon için aile paneli şifresiz bir kişi seçiciyle açılır, her istek kişiyi `X-Person-Id` başlığıyla taşır. Kişisel davet linki (C) "Sonra"ya taşındı. Sonuç: ses uçları (`/api/audio`, `/api/tts`) da başlık ister; bir `<audio src>` başlık gönderemediği için panel sesi başlıkla `fetch` edip blob olarak çalar (docs/api-samples/README.md) | Demo ve hakem kurulumu için en basit yol; tüm erişim kuralları sunucuda başlıktaki kişiye göre zaten uygulanıyor. Davet linki gerçek kullanım için doğru çözüm ama çekirdek değil |
 | 17 Ekim | "Bunu kimse duymasın": model yerel `keep_private(scope)` aracını çağırır; `this_turn` (sır ve istek aynı turda), `previous_turn` (sır önceki turda; ikisi de gizlenir), `next` (sıradaki tur). Şüphede `previous_turn`. Kod kapsamı tam parça sınırlarına çevirir ve `mark_private(start_ms, end_ms)` MCP aracını çağırır; oturum `X-Evoca-Session-Id` başlığıyla gelir. Gizlenen turlar ajanın kendi geçmişinden de silinir. İşaret başarısız olursa bekletilir ve oturum sonunda yeniden denenir; yine başarısızsa o oturum için arşivci çalışmaz. Cevap gizlilik vaat edip işaret yapılmadıysa kod `this_turn` uygular. Büyüğe asla "ailene söyle" denmez | Model milisaniye uyduramaz; uzun bir hikâyeyi varsayılan olarak gizlemek arşivden sessizce siler, bu yüzden kapsamı model seçer. Söylenen gizlilik sözü her zaman doğru olmalı; hikâye kaybolabilir ama sır sızamaz. Sır, söylendiği turda canlı olarak LLM'e ulaşır (ajan cevap verebilmek için duymak zorunda); koruma işaretten sonra başlar |

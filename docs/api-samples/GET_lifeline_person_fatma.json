@@ -1,5 +1,10 @@
 {
-  "person": { "id": "person_fatma", "name": "Fatma Yilmaz", "birth_year": 1948, "relation_to_center": null },
+  "person": {
+    "id": "person_fatma",
+    "name": "Fatma Yilmaz",
+    "birth_year": 1948,
+    "relation_to_center": null
+  },
   "periods": [
     {
       "period": "childhood",
@@ -8,18 +13,44 @@
           "id": "story_mulberry",
           "title": "The Mulberry Tree",
           "ai_summary": "Fatma recalls climbing the mulberry tree with her sister every summer as a child in their village garden.",
-          "teller": { "id": "person_fatma", "name": "Fatma Yilmaz", "relation_to_center": null },
+          "teller": {
+            "id": "person_fatma",
+            "name": "Fatma Yilmaz",
+            "relation_to_center": null
+          },
           "period_source": "ai",
+          "estimated": true,
           "status": "published",
           "duration_ms": 45000
         }
       ]
     },
-    { "period": "youth", "stories": [] },
-    { "period": "marriage_early_years", "stories": [] },
-    { "period": "raising_children", "stories": [] },
-    { "period": "midlife", "stories": [] },
-    { "period": "retirement", "stories": [] }
+    {
+      "period": "youth",
+      "stories": []
+    },
+    {
+      "period": "marriage_early_years",
+      "stories": []
+    },
+    {
+      "period": "raising_children",
+      "stories": []
+    },
+    {
+      "period": "midlife",
+      "stories": []
+    },
+    {
+      "period": "retirement",
+      "stories": []
+    }
   ],
-  "gaps": ["youth", "marriage_early_years", "raising_children", "midlife", "retirement"]
+  "gaps": [
+    "youth",
+    "marriage_early_years",
+    "raising_children",
+    "midlife",
+    "retirement"
+  ]
 }
