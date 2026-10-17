@@ -1,0 +1,140 @@
+[
+  {
+    "scenario": "one_memory",
+    "run": 1,
+    "expected": 1,
+    "stories": 1,
+    "titles": [
+      "The harbour in Akcaabat"
+    ],
+    "possible_splits": [],
+    "ok": true,
+    "tools": [
+      "get_session_transcript",
+      "search_archive",
+      "save_story",
+      "find_gaps",
+      "add_question"
+    ],
+    "tool_errors": [],
+    "total_ms": 10384
+  },
+  {
+    "scenario": "one_memory",
+    "run": 2,
+    "expected": 1,
+    "stories": 1,
+    "titles": [
+      "Sundays at the harbour"
+    ],
+    "possible_splits": [],
+    "ok": true,
+    "tools": [
+      "get_session_transcript",
+      "search_archive",
+      "save_story",
+      "find_gaps",
+      "add_question"
+    ],
+    "tool_errors": [],
+    "total_ms": 6609
+  },
+  {
+    "scenario": "one_memory",
+    "run": 3,
+    "expected": 1,
+    "stories": 3,
+    "titles": [
+      "The harbour in Akcaabat",
+      "The fishing boats",
+      "Father and the fishermen"
+    ],
+    "possible_splits": [
+      [
+        "69e2e57b-4b73-4163-84e9-62e5e8a44b3a",
+        "c53c4f55-ab9e-4c1f-9efb-5525a810bf52"
+      ],
+      [
+        "c53c4f55-ab9e-4c1f-9efb-5525a810bf52",
+        "dd35c124-0b3c-43a5-9fbf-b776e06e2e64"
+      ]
+    ],
+    "ok": false,
+    "tools": [
+      "get_session_transcript",
+      "search_archive",
+      "save_story",
+      "save_story",
+      "save_story",
+      "link_stories",
+      "link_stories",
+      "link_stories",
+      "find_gaps",
+      "add_question"
+    ],
+    "tool_errors": [],
+    "total_ms": 13482
+  },
+  {
+    "scenario": "two_memories",
+    "run": 1,
+    "expected": 2,
+    "stories": 2,
+    "titles": [
+      "Sundays at the Akcaabat harbour",
+      "Wedding in Trabzon"
+    ],
+    "possible_splits": [],
+    "ok": true,
+    "tools": [
+      "get_session_transcript",
+      "search_archive",
+      "search_archive",
+      "save_story",
+      "save_story",
+      "find_gaps",
+      "add_question"
+    ],
+    "tool_errors": [],
+    "total_ms": 8105
+  },
+  {
+    "scenario": "two_memories",
+    "run": 2,
+    "expected": 2,
+    "stories": 0,
+    "titles": [],
+    "possible_splits": [],
+    "ok": false,
+    "tools": [
+      "get_session_transcript"
+    ],
+    "tool_errors": [
+      "get_session_transcript: {\"error\": \"Session 'bcdc8322-5389-4303-a6ed-bd5f528446b5' not found in this circle.\"}"
+    ],
+    "total_ms": 2910
+  },
+  {
+    "scenario": "two_memories",
+    "run": 3,
+    "expected": 2,
+    "stories": 2,
+    "titles": [
+      "Sundays at the Akcaabat harbour",
+      "Wedding in Trabzon"
+    ],
+    "possible_splits": [],
+    "ok": true,
+    "tools": [
+      "get_session_transcript",
+      "search_archive",
+      "search_archive",
+      "save_story",
+      "save_story",
+      "find_gaps",
+      "add_question"
+    ],
+    "tool_errors": [],
+    "total_ms": 9835
+  }
+]
