@@ -2,9 +2,47 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/useApp';
 import { useAudioElement } from '../utils/useAudioElement';
 import { apiClient } from '../api/client';
-import { Mic, MicOff, Volume2, Sparkles, XSquare, MessageCircle } from 'lucide-react';
+import { Mic, MicOff, Volume2, Sparkles, XSquare, MessageCircle, Square } from 'lucide-react';
 
 const REACTION_EMOJI = { heart: '❤️', laugh: '😂', sad: '😢', pray: '🙏' };
+const CLOCK_REFRESH_MS = 60000;
+
+function shorten(value, max = 90) {
+  if (value == null) return '';
+  const text = typeof value === 'string' ? value : JSON.stringify(value);
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}
+
+// "stt 812 ms · llm and tools 2140 + 95 ms · tts 410 ms · total 3480 ms"
+function latencyLine(latency) {
+  if (!latency) return '';
+  const ms = (v) => `${v ?? 0} ms`;
+  return `stt ${ms(latency.stt_ms)} · llm and tools ${latency.llm_ms ?? 0} + ${ms(latency.tools_ms)} · tts ${ms(latency.tts_ms)} · total ${ms(latency.total_ms)}`;
+}
+
+function DeviceCard({ card }) {
+  return (
+    <div className="device-subcard">
+      <div className="subcard-emoji" aria-hidden="true">
+        {card.type === 'reaction' ? (REACTION_EMOJI[card.emoji] || '💛')
+          : card.type === 'playlist' ? '🎧' : '❓'}
+      </div>
+      <div>
+        <div className="subcard-title">
+          {card.type === 'reaction' && `${card.from?.name || 'Someone in your family'} reacted`}
+          {card.type === 'question' && `${card.asker?.name || 'Someone in your family'} asked`}
+          {card.type === 'playlist' && 'Playing your stories'}
+        </div>
+        <div className="subcard-desc">
+          {card.type === 'reaction' && `to "${card.story_title || 'your story'}"`}
+          {card.type === 'question' && card.text}
+          {card.type === 'playlist' && (card.items || []).map(i => i.title)
+            .filter((t, idx, all) => all.indexOf(t) === idx).join(', ')}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function DeviceScreen() {
   const { invitationData, setInvitationData, centerPersonId, viewerReady, showToast, circleData, peopleList } = useApp();
@@ -12,10 +50,10 @@ export default function DeviceScreen() {
   const [phase, setPhase] = useState('idle');
   const [isRecording, setIsRecording] = useState(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  const [currentTurn, setCurrentTurn] = useState(null);
+  // Every turn of this conversation: what was heard, what Evoca said, cards, trace and latency.
+  const [turns, setTurns] = useState([]);
   const [busy, setBusy] = useState(false);
   const [deviceError, setDeviceError] = useState(null);
-  const [now, setNow] = useState(() => new Date());
   const getPlayer = useAudioElement();
 
   // The open session lives in a ref so a double tap (or StrictMode) can never start two,
@@ -24,27 +62,30 @@ export default function DeviceScreen() {
   const playbackRef = useRef({ token: 0, resolve: null });
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const conversationEndRef = useRef(null);
 
   const centerName =
     circleData?.members?.find(m => m.id === centerPersonId)?.name ||
     peopleList?.find(p => p.id === centerPersonId)?.name ||
     '';
   const firstName = centerName.split(' ')[0];
+  const lastTurn = turns[turns.length - 1] || null;
 
-  // Refresh the light when the screen opens (GET only; no session yet).
+  // The light and the clock: GET /api/device/invitation now, then every minute.
+  // Its "now" is the demo-aware server time, so the device clock follows the demo clock.
   useEffect(() => {
     if (!viewerReady || !centerPersonId) return;
     let cancelled = false;
-    apiClient.getDeviceInvitation(centerPersonId)
+    const refresh = () => apiClient.getDeviceInvitation(centerPersonId)
       .then(inv => { if (!cancelled) setInvitationData(inv); })
       .catch(err => console.warn('Could not refresh the invitation light:', err));
-    return () => { cancelled = true; };
+    refresh();
+    const timer = setInterval(refresh, CLOCK_REFRESH_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
   }, [viewerReady, centerPersonId, setInvitationData]);
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 30000);
-    return () => clearInterval(timer);
-  }, []);
 
   // End the session when the page goes away or the elder leaves this screen (best effort).
   useEffect(() => {
@@ -64,6 +105,12 @@ export default function DeviceScreen() {
     };
   }, [getPlayer]);
 
+  useEffect(() => {
+    conversationEndRef.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [turns.length]);
+
+  const addTurn = (turn) => setTurns(prev => [...prev, { ...turn, key: `${prev.length}-${Date.now()}` }]);
+
   const stopAudio = () => {
     playbackRef.current.token += 1;
     getPlayer().pause();
@@ -71,7 +118,8 @@ export default function DeviceScreen() {
     setIsPlayingAudio(false);
   };
 
-  // Play the reply, then any playlist items, in order (each fetched with X-Person-Id = center).
+  // Play the reply first, then any playlist items in order (each fetched with X-Person-Id = center).
+  // The microphone stays off until it is done or Stop is pressed.
   const playTurnAudio = async (turn) => {
     const urls = [
       turn?.reply_audio_url,
@@ -112,11 +160,11 @@ export default function DeviceScreen() {
     session.starting = true;
     setPhase('starting');
     setDeviceError(null);
-    setCurrentTurn(null);
+    setTurns([]);
     try {
       const turn = await apiClient.postDeviceSessionStart(centerPersonId);
       session.centerId = centerPersonId;
-      setCurrentTurn(turn);
+      addTurn(turn);
       if (turn.session_open === false) {
         setPhase('ended');
       } else {
@@ -166,7 +214,7 @@ export default function DeviceScreen() {
     setBusy(true);
     try {
       const turn = await apiClient.postDeviceTurn(audioBlob, session.id, centerPersonId);
-      setCurrentTurn(turn);
+      addTurn(turn);
       if (turn.session_open === false) {
         session.id = null;
         setPhase('ended');
@@ -184,8 +232,7 @@ export default function DeviceScreen() {
   };
 
   const startRecording = async () => {
-    if (phase !== 'active' || busy || isRecording) return;
-    stopAudio();
+    if (phase !== 'active' || busy || isRecording || isPlayingAudio) return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
@@ -216,8 +263,13 @@ export default function DeviceScreen() {
     setIsRecording(false);
   };
 
-  const timeLabel = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-  const dateLabel = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+  // Clock and date from the server's demo-aware "now", in the family's time zone.
+  const nowIso = invitationData?.now;
+  const now = nowIso ? new Date(nowIso) : null;
+  const timeZone = circleData?.circle?.timezone || undefined;
+  const timeLabel = now ? now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone }) : '--:--';
+  const dateLabel = now ? now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone }) : '';
+  const traceCount = turns.reduce((n, t) => n + (t.trace?.length || 0), 0);
 
   return (
     <div className="device-wrapper">
@@ -228,8 +280,8 @@ export default function DeviceScreen() {
 
       <div className="device-header">
         <div>
-          <div className="device-time">{timeLabel}</div>
-          <div className="device-date">{dateLabel} · Living room</div>
+          <div className="device-time" data-testid="device-time" data-now={nowIso || ''}>{timeLabel}</div>
+          <div className="device-date">{dateLabel ? `${dateLabel} · ` : ''}Living room</div>
         </div>
 
         {invitationData?.active && (
@@ -241,66 +293,49 @@ export default function DeviceScreen() {
       </div>
 
       <div className="device-content">
-        <div className="device-speech-bubble-area">
+        <div className="device-speech-bubble-area" aria-live="polite">
           {deviceError && (
             <div className="elder-heard-card" role="alert" style={{ borderColor: 'rgba(239, 68, 68, 0.4)' }}>
               <div className="elder-text">{deviceError}</div>
             </div>
           )}
 
-          {phase === 'ended' && !currentTurn?.reply_text && (
-            <div className="agent-reply-card">
-              <div className="agent-text">Goodbye{firstName ? `, ${firstName}` : ''}! Talk to you soon.</div>
-            </div>
-          )}
-
-          {/* What the device heard */}
-          {currentTurn?.heard_text && (
-            <div className="elder-heard-card">
-              <div className="elder-label">{firstName || 'You'} said</div>
-              <div className="elder-text">"{currentTurn.heard_text}"</div>
-            </div>
-          )}
-
-          {/* Evoca's reply */}
-          {currentTurn?.reply_text && (
-            <div className="agent-reply-card">
-              <div className="agent-label">
-                <Sparkles size={14} />
-                Evoca
-                {isPlayingAudio && (
-                  <span style={{ color: 'var(--accent-gold)', marginLeft: '8px' }}>
-                    ● Speaking...
-                  </span>
-                )}
-              </div>
-              <div className="agent-text">{currentTurn.reply_text}</div>
-
-              {currentTurn.cards && currentTurn.cards.length > 0 && (
-                <div className="device-cards-row">
-                  {currentTurn.cards.map((card, i) => (
-                    <div key={i} className="device-subcard">
-                      <div className="subcard-emoji" aria-hidden="true">
-                        {card.type === 'reaction' ? (REACTION_EMOJI[card.emoji] || '💛')
-                          : card.type === 'playlist' ? '🎧' : '❓'}
-                      </div>
-                      <div>
-                        <div className="subcard-title">
-                          {card.type === 'reaction' && `${card.from?.name || 'Someone in your family'} reacted`}
-                          {card.type === 'question' && `${card.asker?.name || 'Someone in your family'} asked`}
-                          {card.type === 'playlist' && 'Playing your stories'}
-                        </div>
-                        <div className="subcard-desc">
-                          {card.type === 'reaction' && `to "${card.story_title || 'your story'}"`}
-                          {card.type === 'question' && card.text}
-                          {card.type === 'playlist' && (card.items || []).map(i => i.title)
-                            .filter((t, idx, all) => all.indexOf(t) === idx).join(', ')}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+          {/* The conversation so far: per turn, what the device heard and what Evoca said */}
+          {turns.map((turn) => (
+            <div key={turn.key} className="device-turn" data-testid="device-turn">
+              {turn.heard_text && (
+                <div className="elder-heard-card">
+                  <div className="elder-label">{firstName || 'You'} said</div>
+                  <div className="elder-text">"{turn.heard_text}"</div>
                 </div>
               )}
+
+              {turn.reply_text && (
+                <div className="agent-reply-card">
+                  <div className="agent-label">
+                    <Sparkles size={14} />
+                    Evoca
+                    {turn === lastTurn && isPlayingAudio && (
+                      <span style={{ color: 'var(--accent-gold)', marginLeft: '8px' }}>
+                        ● Speaking...
+                      </span>
+                    )}
+                  </div>
+                  <div className="agent-text">{turn.reply_text}</div>
+
+                  {turn.cards && turn.cards.length > 0 && (
+                    <div className="device-cards-row">
+                      {turn.cards.map((card, i) => <DeviceCard key={i} card={card} />)}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+
+          {phase === 'ended' && !lastTurn?.reply_text && (
+            <div className="agent-reply-card">
+              <div className="agent-text">Goodbye{firstName ? `, ${firstName}` : ''}! Talk to you soon.</div>
             </div>
           )}
 
@@ -309,6 +344,7 @@ export default function DeviceScreen() {
               One moment...
             </div>
           )}
+          <div ref={conversationEndRef} />
         </div>
 
         <div className="device-bottom-action">
@@ -321,19 +357,30 @@ export default function DeviceScreen() {
                   onPointerDown={startRecording}
                   onPointerUp={stopRecording}
                   onPointerLeave={() => isRecording && stopRecording()}
-                  disabled={busy}
+                  disabled={busy || isPlayingAudio}
                   aria-label="Hold to speak"
                 >
-                  {isRecording ? <MicOff className="ptt-icon" /> : <Mic className="ptt-icon" />}
-                  <span className="ptt-label">{isRecording ? 'Listening...' : 'Hold to speak'}</span>
+                  {isRecording || isPlayingAudio ? <MicOff className="ptt-icon" /> : <Mic className="ptt-icon" />}
+                  <span className="ptt-label">
+                    {isRecording ? 'Listening...' : isPlayingAudio ? 'Mic off while playing' : 'Hold to speak'}
+                  </span>
                 </button>
 
-                {currentTurn?.reply_audio_url && (
+                {isPlayingAudio ? (
                   <button
                     type="button"
                     className="quick-prompt-chip"
                     style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                    onClick={() => playTurnAudio(currentTurn)}
+                    onClick={stopAudio}
+                  >
+                    <Square size={16} /> Stop
+                  </button>
+                ) : lastTurn?.reply_audio_url && (
+                  <button
+                    type="button"
+                    className="quick-prompt-chip"
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                    onClick={() => playTurnAudio(lastTurn)}
                   >
                     <Volume2 size={16} /> Hear it again
                   </button>
@@ -367,6 +414,37 @@ export default function DeviceScreen() {
           <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
             Living room device{firstName ? ` · ${firstName}` : ''} · tap Talk to begin
           </div>
+
+          {/* For the demo: what happened behind each turn (tools, timings) */}
+          {turns.length > 0 && (
+            <details className="device-trace-panel" data-testid="trace-panel" style={{ width: '100%', maxWidth: '760px', fontSize: '12px', color: 'var(--text-muted)' }}>
+              <summary style={{ cursor: 'pointer' }}>Behind the scenes · {traceCount} tool {traceCount === 1 ? 'call' : 'calls'}</summary>
+              {turns.map((turn, idx) => (
+                <div key={turn.key} style={{ marginTop: '10px' }}>
+                  <div><strong>Turn {idx + 1}</strong>{turn.latency && <span data-testid="latency-line"> · {latencyLine(turn.latency)}</span>}</div>
+                  {(turn.trace || []).length === 0 ? (
+                    <div>No tool calls.</div>
+                  ) : (
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr><th align="left">Tool</th><th align="left">Input</th><th align="left">Result</th><th align="right">ms</th></tr>
+                      </thead>
+                      <tbody>
+                        {turn.trace.map((t, i) => (
+                          <tr key={i} data-testid="trace-row">
+                            <td>{t.is_error ? `${t.tool} (error)` : t.tool}</td>
+                            <td style={{ wordBreak: 'break-word' }}>{shorten(t.input, 60)}</td>
+                            <td style={{ wordBreak: 'break-word' }}>{shorten(t.result_preview, 80)}</td>
+                            <td align="right">{t.ms}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              ))}
+            </details>
+          )}
         </div>
       </div>
     </div>

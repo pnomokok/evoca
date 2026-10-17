@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { PERIOD_LABELS, periodLabel, periodYears } from '../../utils/periods';
 import { formatDuration } from '../../utils/format';
+import BlobPhoto from './BlobPhoto';
 
 export default function LifelineView({ onOpenAskModal }) {
   const { setSelectedStoryId, setPanelSubTab, showToast, centerPersonId, currentViewerId, viewerReady } = useApp();
@@ -50,6 +51,13 @@ export default function LifelineView({ onOpenAskModal }) {
       });
     return () => { cancelled = true; };
   }, [viewerReady, targetPersonId, loadKey]);
+
+  useEffect(() => {
+    if (!editingStoryId) return;
+    const onKeyDown = (e) => { if (e.key === 'Escape') setEditingStoryId(null); };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [editingStoryId]);
 
   const current = loaded.key === loadKey ? loaded : { data: null, failed: false };
   const lifelineData = current.data;
@@ -244,6 +252,18 @@ export default function LifelineView({ onOpenAskModal }) {
 
                       return (
                         <div key={story.id} className="chapter-story-item">
+                          {story.photo_url && (
+                            <figure className="photo-matte-frame card-frame">
+                              <BlobPhoto
+                                photoUrl={story.photo_url}
+                                alt={story.photo_caption || story.title}
+                                fallback={{ title: story.title, period: periodObj.period, teller: story.teller?.name }}
+                              />
+                              {story.photo_caption && (
+                                <figcaption className="photo-caption"><span>{story.photo_caption}</span></figcaption>
+                              )}
+                            </figure>
+                          )}
                           <div className="story-narrative-box">
                             <div className="story-headline-row">
                               <h3 className="story-entry-title" onClick={() => handleOpenStory(story.id)}>
@@ -319,6 +339,10 @@ export default function LifelineView({ onOpenAskModal }) {
                               </div>
                             )}
 
+                            <p className="card-storyteller">
+                              {periodTitle}{story.teller?.name ? ` · Told by ${story.teller.name}` : ''}
+                            </p>
+
                             {story.ai_summary && (
                               <p className="story-narrative-summary">{story.ai_summary}</p>
                             )}
@@ -357,16 +381,18 @@ export default function LifelineView({ onOpenAskModal }) {
                         No stories from this chapter yet. A question in the next morning chat could bring the first one.
                       </p>
 
-                      <div className="gap-action-buttons-row">
-                        <button
-                          type="button"
-                          className="btn-ask-grandma-primary"
-                          onClick={() => onOpenAskModal && onOpenAskModal(periodObj.period, '')}
-                        >
-                          <MessageSquarePlus size={15} />
-                          <span>Ask about this chapter</span>
-                        </button>
-                      </div>
+                      {onOpenAskModal && (
+                        <div className="gap-action-buttons-row">
+                          <button
+                            type="button"
+                            className="btn-ask-grandma-primary"
+                            onClick={() => onOpenAskModal(periodObj.period, '')}
+                          >
+                            <MessageSquarePlus size={15} />
+                            <span>Ask about this chapter</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

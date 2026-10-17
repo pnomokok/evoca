@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../../context/useApp';
 import { apiClient } from '../../api/client';
 import { X, Mic, MicOff, Radio, Lock, Users, AlertCircle } from 'lucide-react';
+import Modal from '../Modal';
 
 const MAX_RECORDING_SECONDS = 180; // 3 minutes maximum
 
@@ -102,8 +103,7 @@ export default function RecordMemoryModal({ onClose }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Record your own memory">
-      <div className="modal-sheet archival-dialog" style={{ maxWidth: '480px' }} onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose} label="Record your own memory" sheetStyle={{ maxWidth: '480px' }}>
         <div className="modal-title-row">
           <div>
             <h2 className="archival-dialog-title">Record your own memory</h2>
@@ -202,7 +202,6 @@ export default function RecordMemoryModal({ onClose }) {
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, BookOpen } from 'lucide-react';
+import Modal from '../Modal';
 
 const getInitials = (name) =>
   (name || '')
@@ -10,15 +11,13 @@ const getInitials = (name) =>
     .toUpperCase() || '?';
 
 // Members come from GET /api/circle; nothing about them is invented here.
+// Mounted only while open (see FamilyDashboard).
 export default function FamilyTreeModal({
-  isOpen,
   onClose,
   circleData,
   onNavigateLifeline,
   storyCount
 }) {
-  if (!isOpen) return null;
-
   const circle = circleData?.circle;
   const members = circleData?.members || [];
   const center = members.find(m => m.role === 'center');
@@ -31,8 +30,7 @@ export default function FamilyTreeModal({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="family-tree-modal-title">
-      <div className="modal-sheet archival-dialog family-tree-modal" onClick={e => e.stopPropagation()}>
+    <Modal onClose={onClose} labelledBy="family-tree-modal-title" sheetClassName="modal-sheet archival-dialog family-tree-modal">
         <div className="modal-header-row">
           <div className="dialog-title-group">
             <span className="archival-eyebrow">Family tree</span>
@@ -109,7 +107,6 @@ export default function FamilyTreeModal({
             <span>View the life chapters</span>
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

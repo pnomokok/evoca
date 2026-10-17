@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/useApp';
 import { useAudioElement } from '../../utils/useAudioElement';
 import { apiClient } from '../../api/client';
@@ -29,7 +29,10 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
   const [playingKey, setPlayingKey] = useState(null);
   const [isTreeModalOpen, setIsTreeModalOpen] = useState(false);
   const [storiesPageIndex, setStoriesPageIndex] = useState(0);
+  const [answerPosMs, setAnswerPosMs] = useState(0);
   const getPlayer = useAudioElement();
+  // The answer being played: every piece of its audio list, back to back.
+  const answerRef = useRef({ key: null, urls: [], durations: [], index: 0 });
 
   useEffect(() => {
     if (!viewerReady) return;
@@ -52,7 +55,13 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
     return () => { cancelled = true; };
   }, [viewerReady, centerPersonId, currentViewerId]);
 
-  useEffect(() => () => getPlayer().pause(), [getPlayer]);
+  useEffect(() => {
+    const state = answerRef;
+    return () => {
+      getPlayer().pause();
+      state.current.urls.forEach(u => URL.revokeObjectURL(u));
+    };
+  }, [getPlayer]);
 
   const isCurrent = loaded.viewerId === currentViewerId;
   const feedItems = isCurrent ? loaded.feedItems : [];
@@ -83,26 +92,63 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
     setPanelSubTab('story');
   };
 
-  // Answer audio is fetched with X-Person-Id and played as a blob.
-  const toggleAnswerAudio = async (key, audioUrl) => {
-    if (playingKey === key) {
-      getPlayer().pause();
-      setPlayingKey(null);
+  const releaseAnswer = () => {
+    answerRef.current.urls.forEach(u => URL.revokeObjectURL(u));
+    answerRef.current = { key: null, urls: [], durations: [], index: 0 };
+  };
+
+  const playAnswerPiece = (index) => {
+    const state = answerRef.current;
+    const player = getPlayer();
+    state.index = index;
+    player.src = state.urls[index];
+    player.ontimeupdate = () => {
+      const before = state.durations.slice(0, index).reduce((a, b) => a + b, 0);
+      setAnswerPosMs(before + Math.round(player.currentTime * 1000));
+    };
+    player.onended = () => {
+      if (index + 1 < state.urls.length) {
+        playAnswerPiece(index + 1);
+      } else {
+        setPlayingKey(null);
+        setAnswerPosMs(0);
+        releaseAnswer();
+      }
+    };
+    return player.play();
+  };
+
+  // Answer audio: each piece fetched with X-Person-Id as a blob, played as one recording.
+  const toggleAnswerAudio = async (key, pieces) => {
+    const player = getPlayer();
+    const state = answerRef.current;
+    if (state.key === key && state.urls.length) {
+      if (!player.paused) {
+        player.pause();
+        setPlayingKey(null);
+      } else {
+        player.play().then(() => setPlayingKey(key)).catch(err => console.warn(err));
+      }
       return;
     }
-    getPlayer().pause();
+    player.pause();
+    releaseAnswer();
+    answerRef.current.key = key;
+    setAnswerPosMs(0);
     try {
-      const blobUrl = await apiClient.fetchBlobUrl(audioUrl);
-      if (!blobUrl) return;
-      getPlayer().src = blobUrl;
-      getPlayer().onended = () => {
-        setPlayingKey(null);
-        URL.revokeObjectURL(blobUrl);
-      };
-      await getPlayer().play();
+      const urls = await Promise.all(pieces.map(p => apiClient.fetchBlobUrl(p.url)));
+      if (answerRef.current.key !== key) {
+        urls.forEach(u => u && URL.revokeObjectURL(u));
+        return;
+      }
+      if (urls.length === 0 || urls.some(u => !u)) throw new Error('missing audio');
+      answerRef.current.urls = urls;
+      answerRef.current.durations = pieces.map(p => Math.max(0, (p.end_ms ?? 0) - (p.start_ms ?? 0)));
+      await playAnswerPiece(0);
       setPlayingKey(key);
     } catch (err) {
       console.warn('Answer audio not available:', err);
+      releaseAnswer();
       setPlayingKey(null);
       showToast('This recording is not available.', 'error');
     }
@@ -134,8 +180,12 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
           {featuredStory ? (
             <div className="hero-featured-memory-spread">
               <figure className="photo-matte-frame hero-card-photo-frame">
-                <BlobPhoto photoUrl={featuredStory.photo_url} alt={featuredStory.photo_caption || featuredStory.title} />
-                {featuredStory.photo_caption && (
+                <BlobPhoto
+                  photoUrl={featuredStory.photo_url}
+                  alt={featuredStory.photo_caption || featuredStory.title}
+                  fallback={{ title: featuredStory.title, period: featuredStory.subjects?.[0]?.period, teller: featuredStory.teller?.name }}
+                />
+                {featuredStory.photo_url && featuredStory.photo_caption && (
                   <figcaption className="photo-caption">
                     <span>{featuredStory.photo_caption}</span>
                   </figcaption>
@@ -177,14 +227,16 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
               </button>
             )}
 
-            <button
-              type="button"
-              className="editorial-btn secondary"
-              onClick={() => onOpenAskModal && onOpenAskModal(null)}
-            >
-              <MessageSquarePlus size={16} />
-              <span>{centerFirst ? `Ask ${centerFirst} a question` : 'Ask a question'}</span>
-            </button>
+            {onOpenAskModal && (
+              <button
+                type="button"
+                className="editorial-btn secondary"
+                onClick={() => onOpenAskModal(null)}
+              >
+                <MessageSquarePlus size={16} />
+                <span>{centerFirst ? `Ask ${centerFirst} a question` : 'Ask a question'}</span>
+              </button>
+            )}
 
             {featuredStory && (
               <button
@@ -209,13 +261,14 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
         />
       </div>
 
-      <FamilyTreeModal
-        isOpen={isTreeModalOpen}
-        onClose={() => setIsTreeModalOpen(false)}
-        circleData={circleData}
-        onNavigateLifeline={() => setPanelSubTab('lifeline')}
-        storyCount={storyCount}
-      />
+      {isTreeModalOpen && (
+        <FamilyTreeModal
+          onClose={() => setIsTreeModalOpen(false)}
+          circleData={circleData}
+          onNavigateLifeline={() => setPanelSubTab('lifeline')}
+          storyCount={storyCount}
+        />
+      )}
 
       <div className="editorial-divider">
         <span className="divider-line" />
@@ -287,8 +340,12 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
               return (
                 <article key={story.id} className="story-editorial-card vertical-card">
                   <figure className="photo-matte-frame card-frame">
-                    <BlobPhoto photoUrl={story.photo_url} alt={story.photo_caption || story.title} />
-                    {story.photo_caption && (
+                    <BlobPhoto
+                      photoUrl={story.photo_url}
+                      alt={story.photo_caption || story.title}
+                      fallback={{ title: story.title, period, teller: story.teller?.name }}
+                    />
+                    {story.photo_url && story.photo_caption && (
                       <figcaption className="photo-caption">
                         <span>{story.photo_caption}</span>
                       </figcaption>
@@ -365,11 +422,11 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
                 <div
                   key={p.period}
                   className={`chapter-card ${status}`}
-                  onClick={() => onOpenAskModal && onOpenAskModal(p.period, prompt)}
-                  title="Ask a question about this chapter"
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => e.key === 'Enter' && onOpenAskModal && onOpenAskModal(p.period, prompt)}
+                  onClick={onOpenAskModal ? () => onOpenAskModal(p.period, prompt) : undefined}
+                  title={onOpenAskModal ? 'Ask a question about this chapter' : undefined}
+                  role={onOpenAskModal ? 'button' : undefined}
+                  tabIndex={onOpenAskModal ? 0 : undefined}
+                  onKeyDown={onOpenAskModal ? (e) => e.key === 'Enter' && onOpenAskModal(p.period, prompt) : undefined}
                 >
                   <div className="chapter-top">
                     <span className="chapter-name">{periodLabel(p.period)}</span>
@@ -385,17 +442,19 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
                     </span>
                   </div>
 
-                  <div className={`chapter-invitation ${count > 0 ? 'recorded' : ''}`}>
-                    {count === 0 && prompt && (
-                      <>
-                        <span className="invitation-label">A gentle question:</span>
-                        <p className="invitation-question">"{prompt}"</p>
-                      </>
-                    )}
-                    <span className="ask-prompt-link">
-                      {count > 0 ? '+ Ask another question' : '+ Ask this question'}
-                    </span>
-                  </div>
+                  {onOpenAskModal && (
+                    <div className={`chapter-invitation ${count > 0 ? 'recorded' : ''}`}>
+                      {count === 0 && prompt && (
+                        <>
+                          <span className="invitation-label">A gentle question:</span>
+                          <p className="invitation-question">"{prompt}"</p>
+                        </>
+                      )}
+                      <span className="ask-prompt-link">
+                        {count > 0 ? '+ Ask another question' : '+ Ask this question'}
+                      </span>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -418,7 +477,12 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
             {answers.map((item) => {
               const a = item.answer;
               const key = `${item.question?.id}-${a.story_id}`;
-              const duration = formatDuration((a.end_ms ?? 0) - (a.start_ms ?? 0));
+              // Every piece of the answer (docs/api-samples/GET_feed.json); older cards only have audio_url.
+              const pieces = a.audio?.length ? a.audio
+                : a.audio_url ? [{ url: a.audio_url, start_ms: a.start_ms, end_ms: a.end_ms }] : [];
+              const totalMs = a.duration_ms ?? pieces.reduce((sum, p) => sum + Math.max(0, p.end_ms - p.start_ms), 0);
+              const duration = formatDuration(totalMs);
+              const showPos = playingKey === key && answerPosMs > 0;
               const summary = summaryByStory[a.story_id];
               return (
                 <div key={key} className="activity-item-card answer">
@@ -444,16 +508,19 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
                       <p className="a-excerpt"><span className="card-period-tag">AI summary · </span>{summary}</p>
                     )}
 
-                    {a.audio_url && (
+                    {pieces.length > 0 && (
                       <button
                         type="button"
                         className="mini-audio-btn"
-                        onClick={() => toggleAnswerAudio(key, a.audio_url)}
+                        onClick={() => toggleAnswerAudio(key, pieces)}
+                        data-pieces={pieces.length}
                       >
                         {playingKey === key ? <Pause size={15} /> : <Play size={15} />}
                         <span>
                           {playingKey === key ? 'Pause the answer' : 'Listen to the answer'}
-                          {duration ? ` (${duration})` : ''}
+                          {showPos
+                            ? ` (${formatDuration(answerPosMs) || '0:00'} / ${duration})`
+                            : duration ? ` (${duration})` : ''}
                         </span>
                       </button>
                     )}
@@ -507,22 +574,26 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
             <p>Record a memory of your own, or leave a question for the next morning chat.</p>
           </div>
           <div className="footer-callout-actions">
-            <button
-              type="button"
-              className="editorial-btn secondary"
-              onClick={() => onOpenRecordModal && onOpenRecordModal()}
-            >
-              <Mic size={16} />
-              <span>Record your own memory</span>
-            </button>
-            <button
-              type="button"
-              className="editorial-btn primary"
-              onClick={() => onOpenAskModal && onOpenAskModal(null)}
-            >
-              <MessageSquarePlus size={16} />
-              <span>Ask a question</span>
-            </button>
+            {onOpenRecordModal && (
+              <button
+                type="button"
+                className="editorial-btn secondary"
+                onClick={() => onOpenRecordModal()}
+              >
+                <Mic size={16} />
+                <span>Record your own memory</span>
+              </button>
+            )}
+            {onOpenAskModal && (
+              <button
+                type="button"
+                className="editorial-btn primary"
+                onClick={() => onOpenAskModal(null)}
+              >
+                <MessageSquarePlus size={16} />
+                <span>Ask a question</span>
+              </button>
+            )}
           </div>
         </div>
       </footer>

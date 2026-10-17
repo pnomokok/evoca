@@ -110,8 +110,8 @@ class EvocaApiClient {
   async fetchBlobUrl(path, personId = null) {
     if (!path) return null;
     if (this.useMock) {
-      // Mock audio has no file; mock photos are static files in public/.
-      return path.startsWith('/api/') ? null : path;
+      // Mock samples have no audio or photo files.
+      return null;
     }
     // The person header only ever goes to our own API.
     if (!path.startsWith('/') && !path.startsWith(`${API_BASE_URL}/`)) {
@@ -140,11 +140,12 @@ class EvocaApiClient {
   }
 
   // --- Circle & Identity ---
-  async getCircle() {
+  // personId: ask as someone without making them the viewer (choosing the default viewer).
+  async getCircle(personId = null) {
     if (this.useMock) {
       return { ...this.circle };
     }
-    const res = await fetch(`${API_BASE_URL}/api/circle`, { headers: this.getHeaders() });
+    const res = await fetch(`${API_BASE_URL}/api/circle`, { headers: this.getHeaders({}, personId) });
     return handleResponse(res);
   }
 
@@ -405,6 +406,66 @@ class EvocaApiClient {
       method: 'POST',
       headers: this.getHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ target_person_id: targetPersonId, text, period })
+    });
+    return handleResponse(res);
+  }
+
+  // --- Story photo (POST /api/stories/{id}/photo: multipart image + caption?) ---
+  async postStoryPhoto(storyId, imageFile, caption = '') {
+    if (this.useMock) {
+      return { story_id: storyId, photo_url: null, photo_caption: caption || null };
+    }
+    const formData = new FormData();
+    formData.append('image', imageFile, imageFile.name || 'photo.jpg');
+    if (caption && caption.trim()) formData.append('caption', caption.trim());
+    const res = await fetch(`${API_BASE_URL}/api/stories/${storyId}/photo`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: formData
+    });
+    return handleResponse(res);
+  }
+
+  // --- Family settings (admin only: /api/admin/*) ---
+  async getSensitiveTopics() {
+    if (this.useMock) return [];
+    const res = await fetch(`${API_BASE_URL}/api/admin/sensitive-topics`, { headers: this.getHeaders() });
+    return handleResponse(res);
+  }
+
+  async postSensitiveTopic(text) {
+    if (this.useMock) {
+      return { id: `topic_${Date.now()}`, text, added_by: this.currentViewerId, created_at: new Date().toISOString() };
+    }
+    const res = await fetch(`${API_BASE_URL}/api/admin/sensitive-topics`, {
+      method: 'POST',
+      headers: this.getHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ text })
+    });
+    return handleResponse(res);
+  }
+
+  async deleteSensitiveTopic(topicId) {
+    if (this.useMock) return { id: topicId, deleted: true };
+    const res = await fetch(`${API_BASE_URL}/api/admin/sensitive-topics/${topicId}`, {
+      method: 'DELETE',
+      headers: this.getHeaders()
+    });
+    return handleResponse(res);
+  }
+
+  async patchAdminCircle({ chat_time, timezone }) {
+    const body = {};
+    if (chat_time !== undefined) body.chat_time = chat_time;
+    if (timezone !== undefined) body.timezone = timezone;
+    if (this.useMock) {
+      Object.assign(this.circle.circle, body);
+      return { id: this.circle.circle.id, chat_time: this.circle.circle.chat_time, timezone: this.circle.circle.timezone };
+    }
+    const res = await fetch(`${API_BASE_URL}/api/admin/circle`, {
+      method: 'PATCH',
+      headers: this.getHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body)
     });
     return handleResponse(res);
   }

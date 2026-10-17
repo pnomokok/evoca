@@ -3,6 +3,7 @@ import { useApp } from '../../context/useApp';
 import { apiClient } from '../../api/client';
 import { X, AlertTriangle, Send } from 'lucide-react';
 import { PERIOD_LABELS } from '../../utils/periods';
+import Modal from '../Modal';
 
 const SUGGESTIONS = [
   'How was your house kept warm in winter?',
@@ -56,8 +57,7 @@ export default function AskQuestionModal({ onClose, defaultPeriod = null, initia
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="ask-dialog-title">
-      <div className="modal-sheet archival-dialog" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose} labelledBy="ask-dialog-title">
         <div className="modal-title-row">
           <div>
             <h2 id="ask-dialog-title" className="archival-dialog-title">What would you like to know?</h2>
@@ -141,7 +141,6 @@ export default function AskQuestionModal({ onClose, defaultPeriod = null, initia
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

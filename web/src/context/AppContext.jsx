@@ -9,9 +9,20 @@ async function fetchInitialData() {
   const people = (await apiClient.getPeople()) || [];
   const centerId = people.find(p => p.circles?.some(c => c.role === 'center'))?.id || null;
 
+  // The last choice (localStorage), else the oldest person with role "member".
   let viewerId = apiClient.currentViewerId;
   if (!people.some(p => p.id === viewerId)) {
-    const preferred = people.find(p => p.circles?.some(c => c.role === 'member')) || people[0];
+    const members = people.filter(p => p.circles?.some(c => c.role === 'member'));
+    let preferred = members[0] || people[0];
+    if (members.length > 1) {
+      // Birth years come from GET /api/circle, which needs a person: ask as any member,
+      // without storing them as the viewer (a second run of this effect would keep them).
+      const circle = await apiClient.getCircle(preferred.id);
+      const oldest = (circle?.members || [])
+        .filter(m => m.role === 'member' && m.birth_year != null)
+        .sort((a, b) => a.birth_year - b.birth_year)[0];
+      if (oldest) preferred = oldest;
+    }
     viewerId = preferred?.id || '';
     apiClient.setViewer(viewerId);
   }
@@ -65,8 +76,13 @@ export function AppProvider({ children }) {
     setLoading(false);
   }, [showToast]);
 
+  // A refresh that finishes after the viewer was switched is dropped: it would put the
+  // previous viewer back (switchViewer has already loaded the new viewer's circle).
   const loadInitialData = useCallback(
-    () => fetchInitialData().then(applyInitialData, handleLoadError),
+    () => fetchInitialData().then(
+      result => { if (result.viewerId === apiClient.currentViewerId) applyInitialData(result); },
+      handleLoadError
+    ),
     [applyInitialData, handleLoadError]
   );
 

@@ -73,14 +73,18 @@ export default function FamilyTreeCard({
           <div className="counter-inline-row empty">
             <Sparkles size={13} className="sparkle-mini" />
             <span>No family stories yet</span>
-            <span className="counter-sep">·</span>
-            <button
-              type="button"
-              className="inline-record-link"
-              onClick={() => onOpenRecordModal && onOpenRecordModal()}
-            >
-              Record the first one today →
-            </button>
+            {onOpenRecordModal && (
+              <>
+                <span className="counter-sep">·</span>
+                <button
+                  type="button"
+                  className="inline-record-link"
+                  onClick={() => onOpenRecordModal()}
+                >
+                  Record the first one today →
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -188,15 +192,17 @@ export default function FamilyTreeCard({
         </div>
 
         {/* Add Memory Button */}
-        <button
-          type="button"
-          className="minimal-add-action-btn"
-          onClick={() => onOpenRecordModal && onOpenRecordModal()}
-          title="Record a memory"
-          aria-label="Record a memory"
-        >
-          <Plus size={16} />
-        </button>
+        {onOpenRecordModal && (
+          <button
+            type="button"
+            className="minimal-add-action-btn"
+            onClick={() => onOpenRecordModal()}
+            title="Record a memory"
+            aria-label="Record a memory"
+          >
+            <Plus size={16} />
+          </button>
+        )}
       </div>
 
       {/* 4. Footer Cue */}

@@ -17,11 +17,14 @@ import {
   Users,
   AlertTriangle,
   X,
-  Edit3
+  Edit3,
+  ImagePlus
 } from 'lucide-react';
 import { PERIOD_LABELS, periodLabel } from '../../utils/periods';
 import { formatDuration } from '../../utils/format';
 import BlobPhoto from './BlobPhoto';
+import AddPhotoModal from './AddPhotoModal';
+import Modal from '../Modal';
 
 const REACTIONS = [
   { key: 'heart', emoji: '❤️', label: 'Love it' },
@@ -86,7 +89,8 @@ export default function StoryView() {
     currentViewerId,
     viewerReady,
     showToast,
-    refreshData
+    refreshData,
+    circleData
   } = useApp();
 
   // Everything loaded for one story; `loading` is derived from data.storyId.
@@ -105,6 +109,7 @@ export default function StoryView() {
   const [isHiding, setIsHiding] = useState(false);
   const [showPeriodEditor, setShowPeriodEditor] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState('');
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
 
   const getPlayer = useAudioElement();
   // What the single <audio> element is playing: a queue of pieces and the current index.
@@ -431,6 +436,11 @@ export default function StoryView() {
   const tellerFirst = story.teller?.name?.split(' ')[0] || '';
   const playlistItems = data.playlist?.items || [];
   const storyMode = mode === 'story';
+  const canAddPhoto = Boolean(currentViewerId) && (
+    story.teller?.id === currentViewerId
+    || (story.subjects || []).some(s => s.person_id === currentViewerId)
+    || circleData?.me?.role === 'admin'
+  );
 
   return (
     <div className="story-archive-page">
@@ -489,8 +499,7 @@ export default function StoryView() {
       </nav>
 
       {showHideConfirm && (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="hide-dialog-title">
-          <div className="modal-sheet archival-dialog" style={{ maxWidth: '440px' }}>
+        <Modal onClose={() => !isHiding && setShowHideConfirm(false)} labelledBy="hide-dialog-title" sheetStyle={{ maxWidth: '440px' }}>
             <div className="modal-title-row">
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444' }}>
                 <AlertTriangle size={20} />
@@ -522,13 +531,11 @@ export default function StoryView() {
                 {isHiding ? "Hiding..." : "Yes, hide it"}
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {showPeriodEditor && (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="period-dialog-title">
-          <div className="modal-sheet archival-dialog" style={{ maxWidth: '440px' }}>
+        <Modal onClose={() => setShowPeriodEditor(false)} labelledBy="period-dialog-title" sheetStyle={{ maxWidth: '440px' }}>
             <div className="modal-title-row">
               <h3 id="period-dialog-title" className="archival-dialog-title">Change the chapter</h3>
               <button className="close-btn" onClick={() => setShowPeriodEditor(false)} aria-label="Close">
@@ -559,8 +566,20 @@ export default function StoryView() {
                 Save
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
+      )}
+
+      {showPhotoModal && (
+        <AddPhotoModal
+          storyId={story.id}
+          hasPhoto={Boolean(story.photo_url)}
+          onClose={() => setShowPhotoModal(false)}
+          onSaved={(res) => {
+            setStory(prev => ({ ...prev, photo_url: res.photo_url, photo_caption: res.photo_caption }));
+            setShowPhotoModal(false);
+            showToast('The photo is added to the story.', 'info');
+          }}
+        />
       )}
 
       <header className="story-hero-header">
@@ -765,11 +784,26 @@ export default function StoryView() {
         <aside className="story-side-showcase" aria-label="About this story">
           {story.photo_url && (
             <figure className="photo-matte-frame card-frame">
-              <BlobPhoto photoUrl={story.photo_url} alt={story.photo_caption || story.title} />
+              <BlobPhoto
+                photoUrl={story.photo_url}
+                alt={story.photo_caption || story.title}
+                fallback={{ title: story.title, period: primarySubject?.period, teller: story.teller?.name }}
+              />
               {story.photo_caption && (
                 <figcaption className="photo-caption"><span>{story.photo_caption}</span></figcaption>
               )}
             </figure>
+          )}
+
+          {canAddPhoto && (
+            <button
+              type="button"
+              className="editorial-btn secondary"
+              onClick={() => setShowPhotoModal(true)}
+            >
+              <ImagePlus size={15} />
+              <span>{story.photo_url ? 'Replace the photo' : 'Add a photo'}</span>
+            </button>
           )}
 
           {story.ai_summary && (
