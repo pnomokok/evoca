@@ -24,6 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from core.db import SessionLocal, init_db
 from core.models import Session as OrmSession
+from core.services.invitations import run_invitations
 from core.services.publisher import publish_due_stories
 from server.session_store import SessionStore
 from server.speech import PollyTTS, WhisperSTT
@@ -38,6 +39,7 @@ log = logging.getLogger(__name__)
 _store = SessionStore()
 
 PUBLISH_INTERVAL_S = 60
+INVITATION_INTERVAL_S = 60
 
 
 def _publish_once() -> int:
@@ -55,6 +57,23 @@ async def _publisher_loop() -> None:
         except Exception:
             log.exception("Publisher run failed")
         await asyncio.sleep(PUBLISH_INTERVAL_S)
+
+
+def _invite_once() -> int:
+    with SessionLocal() as db:
+        return len(run_invitations(db))
+
+
+async def _invitation_loop() -> None:
+    """Run the invitation scheduler at startup, then every minute (PROJECT.md "Arka plan işleri")."""
+    while True:
+        try:
+            count = await anyio.to_thread.run_sync(_invite_once)
+            if count:
+                log.info("Invitations: created %d", count)
+        except Exception:
+            log.exception("Invitation run failed")
+        await asyncio.sleep(INVITATION_INTERVAL_S)
 
 
 @asynccontextmanager
@@ -84,10 +103,12 @@ async def lifespan(app: FastAPI):
     app.state.tts   = PollyTTS()
 
     publisher = asyncio.create_task(_publisher_loop())
+    inviter = asyncio.create_task(_invitation_loop())
 
     yield
 
     publisher.cancel()
+    inviter.cancel()
 
     # Shutdown: close the DB sessions of live sessions (MCP clients are per request).
     for live in _store.all():

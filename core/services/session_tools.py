@@ -132,6 +132,8 @@ def get_session_context_data(
         raise ValueError(f"Center person for circle '{circle_id}' not found.")
 
     # --- today's invitation ------------------------------------------------
+    # "accepted" too: POST /api/device/session/start accepts the invitation
+    # before the opening turn reads this context.
     tz = ZoneInfo(circle.timezone)
     today_str = now_utc().astimezone(tz).strftime("%Y-%m-%d")
 
@@ -140,7 +142,7 @@ def get_session_context_data(
         .filter(
             Invitation.circle_id == circle_id,
             Invitation.date == today_str,
-            Invitation.status == InvitationStatus.sent,
+            Invitation.status.in_([InvitationStatus.sent, InvitationStatus.accepted]),
         )
         .first()
     )
