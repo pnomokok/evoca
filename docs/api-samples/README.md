@@ -45,6 +45,10 @@ Because Elif is a plain member, these samples also show what access control hide
 | `GET_story_mulberry_playlist.json` | `GET /api/stories/{id}/playlist` | "Listen from the start" |
 | `POST_story_reactions.json` | `POST /api/stories/{id}/reactions` | Emoji buttons |
 | `POST_recordings.json` | `POST /api/recordings` | Panel: record your own memory |
+| `GET_admin_sensitive_topics.json` | `GET /api/admin/sensitive-topics` (admin, Ayşe's view) | Admin: sensitive topic list |
+| `POST_admin_sensitive_topics.json` | `POST /api/admin/sensitive-topics` (admin) | Admin: add a topic |
+| `DELETE_admin_sensitive_topic.json` | `DELETE /api/admin/sensitive-topics/{id}` (admin) | Admin: remove a topic |
+| `PATCH_admin_circle.json` | `PATCH /api/admin/circle` (admin) | Admin: chat time and timezone |
 | `ERROR_example.json` | any | Error shape |
 
 ## Requests
@@ -64,6 +68,11 @@ Because Elif is a plain member, these samples also show what access control hide
   Returns `{id, status, access}`. Use `can_change_access` and `can_hide` from the story page to show the buttons.
 - `DELETE /api/links/{id}`: marks the link `removed`; the viewer must see both stories. Returns `{id, status}`.
 - `POST /api/recordings`: `multipart/form-data` with `audio`. Processing runs in the background, like a device session.
+- `/api/admin/*`: only the circle's `admin`; everyone else (center included) gets the same 403. Show the admin screens only when `me.role` in `GET /api/circle` is `admin`.
+- `GET /api/admin/sensitive-topics` lists only topics the family added. Topics the center refused herself are never listed, and their ids get the same 404 as a missing id.
+- `POST /api/admin/sensitive-topics`: JSON `{"text": "Selim's debt"}`. Empty text, or text with no word of 4+ letters the filter can match (for example "the war"), returns 400. The same text again (any case) returns the existing topic.
+- `DELETE /api/admin/sensitive-topics/{id}`: questions the topic already filtered stay filtered.
+- `PATCH /api/admin/circle`: JSON `{"chat_time": "09:30"}` and/or `{"timezone": "Europe/Istanbul"}` (24-hour `HH:MM`, IANA name; otherwise 400). The light follows the new time from the next scheduler pass; a day that already has its invitation is not changed.
 
 ## Shapes not shown with data
 
