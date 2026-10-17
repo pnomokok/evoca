@@ -12,6 +12,7 @@ Tool table from docs/PROJECT.md:
   add_question             — follow_up / gap question for the center person
   mark_question_declined   — the center declined to answer: "asked" -> "declined"
   reopen_question          — asked but not answered: "asked" -> "waiting"
+  add_refused_topic        — the center refused a topic: a SensitiveTopic with source "speaker"
 
 Private segments (is_private = True) never appear in any output here, and no
 story source or answer range may overlap one.
@@ -32,8 +33,10 @@ from core.enums import (
     PeriodSource,
     QuestionSource,
     QuestionStatus,
+    SessionStart,
     StoryKind,
     StoryStatus,
+    TopicSource,
 )
 from core.models import (
     Circle,
@@ -46,7 +49,9 @@ from core.models import (
     Story,
     StorySubject,
 )
-from core.services.session_tools import _matches_sensitive_topic
+from core.services.session_tools import _matches_sensitive_topic, _meaningful_words
+
+_MAX_TOPIC_CHARS = 200
 
 _PUBLISH_DELAY = timedelta(hours=24)
 _VALID_PERIODS = {p.value for p in LifePeriod}
@@ -456,3 +461,81 @@ def reopen_question_data(
     q = _require_asked_question(db, circle_id, question_id)
     q.status = QuestionStatus.waiting
     db.flush()
+
+
+# ---------------------------------------------------------------------------
+# add_refused_topic
+# ---------------------------------------------------------------------------
+
+def add_refused_topic_data(
+    db: DbSession,
+    viewer_id: str,
+    circle_id: str,
+    session_id: str,
+    text: str,
+    start_ms: int,
+    end_ms: int,
+) -> dict[str, Any]:
+    """Remember a topic the speaker refused on her own ("I don't want to talk
+    about Hatice"): a SensitiveTopic with source "speaker", added_by the center.
+
+    Same range rules as mark_question_declined: session_id is the session being
+    archived (the X-Evoca-Session-Id header, never a model argument), the range
+    must not overlap a private segment, and it must hold the center's own words
+    (a refusal by anyone else in a gathering is not the center's). Only the archivist of a center's session
+    may call it, never for a panel recording. The same topic text twice is
+    stored once. Returns {topic_id, added}.
+    """
+    topic = " ".join((text or "").split())
+    if not topic:
+        raise ValueError("text must not be empty.")
+    if len(topic) > _MAX_TOPIC_CHARS:
+        raise ValueError(f"text must be at most {_MAX_TOPIC_CHARS} characters: name the topic only.")
+    if not _meaningful_words(topic):
+        # It would filter no question, so saving it would promise what it cannot keep.
+        raise ValueError("text must name the topic itself: a name, a place or an event.")
+
+    circle: Circle | None = db.get(Circle, circle_id)
+    if circle is None:
+        raise ValueError(f"Circle '{circle_id}' not found.")
+    if viewer_id != circle.center_person_id:
+        raise ValueError("Only the archivist of the center's own sessions can add a refused topic.")
+    if not session_id:
+        raise ValueError("No session: a refused topic must be in the session being archived.")
+    sess = _require_session_in_circle(db, session_id, circle_id)
+    if sess.started_by == SessionStart.panel_recording:
+        raise ValueError("A panel recording cannot add a refused topic.")
+    _check_range(db, session_id, start_ms, end_ms)
+
+    spoken = (
+        db.query(Segment.id)
+        .filter(
+            Segment.session_id == session_id,
+            Segment.is_private == False,  # noqa: E712
+            Segment.speaker_id == circle.center_person_id,
+            Segment.start_ms < end_ms,
+            Segment.end_ms > start_ms,
+        )
+        .first()
+    )
+    if spoken is None:
+        raise ValueError(
+            f"Range {start_ms}-{end_ms} ms holds no words of the center person. "
+            f"Use the range of the segment where they refuse."
+        )
+
+    norm = topic.lower()
+    for existing in db.query(SensitiveTopic).filter(SensitiveTopic.circle_id == circle_id).all():
+        if " ".join(existing.text.lower().split()) == norm:
+            return {"topic_id": existing.id, "added": False}
+
+    row = SensitiveTopic(
+        circle_id=circle_id,
+        text=topic,
+        source=TopicSource.speaker,
+        added_by=circle.center_person_id,
+        created_at=now_utc().isoformat(),
+    )
+    db.add(row)
+    db.flush()
+    return {"topic_id": row.id, "added": True}

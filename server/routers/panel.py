@@ -27,7 +27,7 @@ from pydantic import BaseModel
 
 from core.clock import now_utc
 from core.db import SessionLocal
-from core.enums import LifePeriod, QuestionSource, QuestionStatus
+from core.enums import LifePeriod, QuestionSource, QuestionStatus, TopicSource
 from core.models import Circle, Membership, Person, Question, SensitiveTopic
 from core.services import stories as story_svc
 from core.services.feed import build_feed
@@ -183,7 +183,11 @@ async def post_question(
     Matches POST_questions_accepted.json and POST_questions_filtered.json.
     A filtered question returns HTTP 200 (not an error); the message never
     reveals which sensitive topic matched. Like every filtered question, it is
-    kept with status "filtered" (docs/PROJECT.md "Hassas konular").
+    kept with status "filtered" (docs/PROJECT.md "Hassas konular"). If only a
+    topic the center refused herself (source "speaker") matches, the response
+    is the normal accepted one with status "waiting": a filtered message would
+    tell the asker that the center refused something (like a declined question,
+    it looks unanswered).
     """
     if not body.text.strip():
         raise HTTPException(status_code=400, detail="Question text is required.")
@@ -214,7 +218,9 @@ async def post_question(
             .filter(SensitiveTopic.circle_id == circle_id)
             .all()
         )
-        filtered = any(_matches_sensitive_topic(body.text, t.text) for t in topics)
+        matched = [t for t in topics if _matches_sensitive_topic(body.text, t.text)]
+        filtered = bool(matched)
+        family_match = any(t.source != TopicSource.speaker for t in matched)
 
         # Save the question; a filtered one is kept but never asked.
         q = Question(
@@ -231,7 +237,7 @@ async def post_question(
         db.add(q)
         db.commit()
 
-        if filtered:
+        if family_match:
             return {
                 "status": "filtered",
                 "question": None,
@@ -251,7 +257,7 @@ async def post_question(
                 "text": q.text,
                 "source": q.source,
                 "period": q.period,
-                "status": q.status,
+                "status": QuestionStatus.waiting,   # even when filtered by a speaker topic
                 "answer": q.answer,
                 "created_at": q.created_at,
             },

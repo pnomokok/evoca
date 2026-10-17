@@ -10,7 +10,8 @@ They are a **draft contract**: when the real API differs, update the sample and 
 - IDs are opaque strings. The samples use readable IDs (`person_elif`); the real API returns UUIDs. Never parse them.
 - Times are UTC ISO 8601 strings. Audio positions are integer milliseconds.
 - Audio is never embedded. Play it from `/api/audio/{session_id}?start=<ms>&end=<ms>`.
-- Until the identity decision is made, the panel must fetch audio with the `X-Person-Id` header and play it as a blob (a plain `<audio src>` cannot send the header).
+- The panel fetches audio with the `X-Person-Id` header and plays it as a blob (a plain `<audio src>` cannot send the header).
+- The backend runs on port 8080 (`uvicorn server.app:app --port 8080`); the MCP server on port 8000 is not called by the web client.
 - In `GET /api/feed`, `answer.audio_url` is `null` when the answer's session has no audio file (for example a text-only test session). Show the answer without a play button.
 - Errors always look like `ERROR_example.json` (`{"detail": "..."}`, FastAPI's shape), with a matching HTTP status (400, 403, 404).
 - Every response is already filtered by `can_see()`. The client never hides things itself; if a story is missing, the viewer may not see it.
@@ -18,8 +19,8 @@ They are a **draft contract**: when the real API differs, update the sample and 
 ## Who is viewing?
 
 All panel samples are from **Elif's** point of view (granddaughter, `member`).
-How the panel identifies the viewer is still an open decision (see "Açık kararlar").
-Until then, the backend reads the viewer from an `X-Person-Id` request header.
+For the hackathon the panel opens with a password-less person picker (`GET /api/people`), and every request
+carries the chosen person in an `X-Person-Id` header (PROJECT.md, decision log 17 October).
 
 Because Elif is a plain member, these samples also show what access control hides:
 
@@ -48,10 +49,12 @@ Because Elif is a plain member, these samples also show what access control hide
 
 ## Requests
 
-- `POST /api/device/turn`: `multipart/form-data` with `audio` (the recorded clip) and `session_id` (empty on the first turn).
+- `POST /api/device/turn`: `multipart/form-data` with `audio` (the recorded clip) and `session_id`, the one returned by
+  `POST /api/device/session/start` (call that first; it also runs the opening turn).
   `heard_text` in the response is what speech-to-text understood, for showing on screen.
 - `POST /api/questions`: JSON `{"target_person_id": "...", "text": "...", "period": null}`.
   A blocked question returns HTTP 200 with `status: "filtered"`; the message never reveals the sensitive topic itself.
+  A question blocked only by a topic the center refused herself returns the normal accepted response (`status: "waiting"`); it is never asked, like an unanswered question.
 - `POST /api/stories/{id}/reactions`: JSON `{"emoji": "heart", "action": "add"}` or `"remove"`. Idempotent.
   Returns which emojis are `present` on the story and which are `mine`, never counts (PROJECT.md: "Sayaç gösterilmez").
 - `PATCH /api/stories/{id}/subjects/{person_id}`: JSON `{"period": "youth"}`. Anyone who can see the story.

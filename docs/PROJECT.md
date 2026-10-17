@@ -73,7 +73,7 @@ Her kavramın tek bir anlamı ve koddaki tek bir adı var. "Anlatmak" ile "merke
 | Boşluk | (hesaplanır) | Merkez kişinin hiç hikâyesi olmayan hayat dönemi. |
 | Davet | `Invitation` | Sohbet saatinde cihazın ışığının yanması. Hatırlatmadır, sohbetin tek kapısı değildir. |
 | Erişim | `Story.access` | Hikâyeyi kimin görebileceği: `circle`, `selected`, `private`, `all_family`. |
-| Hassas konu | `SensitiveTopic` | Yöneticinin belirlediği, büyüğe sorulmayacak konu. |
+| Hassas konu | `SensitiveTopic` | Yöneticinin belirlediği (`source = family`) ya da büyüğün kendisinin reddettiği (`source = speaker`), büyüğe sorulmayacak konu. |
 | Tepki | `Reaction` | Aile üyesinin hikâyeye bıraktığı emoji. Büyüğe sözle iletilir. |
 | Buluşma modu | `Session.kind = gathering` | Aile bir aradayken telefonların mikrofon olduğu oturum. |
 
@@ -182,6 +182,9 @@ Bu kurallar kodda zorunlu kontrollerdir; demo veya zaman baskısı yüzünden at
 **Hassas konular**
 
 - Yönetici konu ekler (ör. "1977 trafik kazası").
+- Büyük bir konuyu kendiliğinden açıkça reddederse ("Bugün Hatice hakkında konuşmak istemiyorum"; bir sorunun reddi değil), arşivci onu `source = speaker` hassas konu olarak kaydeder (`add_refused_topic`). Ret kalıcıdır, "bugün" dense bile. Büyüğün reddettiği konular **hiçbir panel ucunda, yönetici dahil, dönmez**; ileride eklenecek yönetici konu listesi ucu sadece `source = family` döner.
+- Aile sorusu sadece büyüğün reddettiği bir konuya takılırsa `filtered` olarak saklanır ama soran kişiye normal kabul cevabı (`waiting`) döner; aile konusuna takılırsa genel süzme mesajı döner. Böylece büyüğün reddi, `declined` soru gibi, merkez kişi dışındakilere cevaplanmamış görünür.
+- Sohbet ajanı iki kaynaktaki konuları da `get_session_context` içinde `avoid_topics` olarak (sadece izleyen merkez kişiyse), kaynak etiketi olmadan alır ve hiçbirini kendisi açmaz; büyük kendisi açarsa sıcakça dinler ama hakkında soru sormaz.
 - Aile sorusu eklenirken ve ajan soru seçerken kontrol edilir. Kontrol LLM ile anlamsal yapılır; şüphede soru sorulmaz.
 - Takılan soru silinmez, `filtered` durumunda kalır.
 - Büyük bir soruyu cevaplamayı reddederse soru `declined` olur ve bir daha sorulmaz. Soran kişi bunu **hiçbir zaman öğrenmez:** merkez kişi dışında herkese her API cevabında `declined` soru cevaplanmamış (`waiting`/`asked`) gibi görünür; reddetmek hassas bir konuya işaret edebilir (filtrelenen soru mesajıyla aynı ilke). Şu an soru durumunu dönen bir REST ucu yok; aile panelinin soru listesi ve bildirim akışı bu kurala uyar.
@@ -323,6 +326,7 @@ LinkStatus    = "suggested" | "confirmed" | "removed"
 QuestionSource = "family" | "follow_up" | "gap"
 QuestionStatus = "waiting" | "asked" | "answered" | "filtered" | "declined"
                                                  # declined = büyük cevaplamayı reddetti; bir daha sorulmaz
+TopicSource   = "family" | "speaker"            # speaker = büyük konuyu kendisi reddetti; panelde hiç görünmez
 InvitationStatus = "sent" | "accepted" | "postponed" | "declined" | "skipped"
 Emoji         = "heart" | "laugh" | "sad" | "pray"
 ```
@@ -381,7 +385,8 @@ Question:
   created_at
 
 SensitiveTopic:
-  id, circle_id, text, added_by, created_at
+  id, circle_id, text, source: TopicSource,     # varsayılan family
+  added_by, created_at                          # source = speaker ise added_by = merkez kişi
 
 Reaction:                                       # PK (story_id, person_id, emoji)
   story_id, person_id, emoji: Emoji,
@@ -424,7 +429,7 @@ Gizli `Segment`'ler (`is_private = true`) hiçbir hikâyenin `sources` alanına,
 
 | Araç | Kim çağırır | Girdi | Çıktı | Not |
 | --- | --- | --- | --- | --- |
-| `get_session_context` | Sohbet ajanı | – | merkez kişi, davet nedeni, iletilmemiş tepkiler, son 3 oturumun özeti | Oturum başında bir kez; hafıza buradan gelir |
+| `get_session_context` | Sohbet ajanı | – | merkez kişi, davet nedeni, iletilmemiş tepkiler, son 3 oturumun özeti, `avoid_topics` | Oturum başında bir kez; hafıza buradan gelir. `avoid_topics`: çemberin tüm hassas konularının metni (iki kaynak, kaynak etiketi yok), sadece izleyen merkez kişiyse; başkasına `[]`. Ajan bunları hiç açmaz |
 | `get_pending_questions` | Sohbet ajanı | `limit?` | sıralı soru listesi | Hassas konu ve erişim süzülmüş; sıra: aile → takip → boşluk |
 | `mark_question_asked` | Sohbet ajanı | `question_id` | ok | Ajan soruyu sorduğunda |
 | `add_question` | İki ajan | `text, source: follow_up\|gap, period?` | `question_id` | Hassas konu kontrolü burada da |
@@ -437,6 +442,7 @@ Gizli `Segment`'ler (`is_private = true`) hiçbir hikâyenin `sources` alanına,
 | `save_story` | Arşivci ajan | `title, summary, teller_id, subjects: [{person_id, period}], sources, place?, stated_year?, original_story_id?` | `story_id` | `status = pending`, erişim varsayılan `circle` |
 | `record_answer` | Arşivci ajan | `question_id, story_id, start_ms, end_ms` | ok | Soru `answered` olur, cevap iletimi tetiklenir. Ajan önce sıcaklık 0 bir kontrolle konuşmacının o aralıktaki sözlerinin soruyu gerçekten cevapladığını doğrular; emin değilse kaydetmez |
 | `mark_question_declined` | Arşivci ajan | `question_id, session_id, start_ms, end_ms` | ok | Büyük açıkça reddettiyse soru `declined` olur; aynı kontrolle doğrulanır, emin değilse reddedilmiş sayılmaz |
+| `add_refused_topic` | Arşivci ajan | `text, start_ms, end_ms`; oturum `X-Evoca-Session-Id` başlığından | `{topic_id, added}` | Büyük bir konuyu kendiliğinden açıkça reddettiyse `SensitiveTopic(source = speaker, added_by = merkez kişi)`; aynı metin ikinci kez eklenmez; `text` konunun kendisini adlandırır (ör. "Hatice", "kız kardeşi Hatice" değil, yoksa her "sister" sorusu süzülür) ve eşleşecek anlamlı kelimesi yoksa reddedilir. Aralık kuralları: arşivlenen oturum, sadece merkez kişinin kendi sözleri (buluşmada başka birinin reddi sayılmaz), gizli parçayla çakışma yok; geçmeyen aralık kontrole hiç gitmez. Sıcaklık 0 kontrol konuşmacının o aralıktaki sözlerinden "evet" demezse (hayır, emin değil, boş, hata) eklenmez. Panel kaydında sunulmaz |
 | `reopen_question` | Arşivci ajanın kodu (model değil) | `question_id` | ok | Oturum sonunda sorulup cevaplanmayan ve reddedilmeyen soru `waiting`e döner |
 | `link_stories` | Arşivci ajan | `from_story_id, to_story_id, reason` | `link_id` | `source = ai, status = suggested` |
 | `find_gaps` | Arşivci ajan | `person_id` | boş dönemler | Sonra `add_question(source = gap)` |
@@ -445,7 +451,7 @@ Gizli `Segment`'ler (`is_private = true`) hiçbir hikâyenin `sources` alanına,
 
 1. `get_session_transcript` ile oturumu okur.
 2. Hikâyeleri ayıklar; her biri için `save_story` (mevcut bir hikâyenin yeniden anlatımıysa `original_story_id` ile).
-3. Sorulan her soru için cevap aralığını bulur; `record_answer`. Büyük açıkça reddettiyse `mark_question_declined`.
+3. Sorulan her soru için cevap aralığını bulur; `record_answer`. Büyük açıkça reddettiyse `mark_question_declined`. Büyük bir konuyu kendiliğinden açıkça reddettiyse `add_refused_topic`.
 4. İlgili hikâyeler için `link_stories` (aynı yer, aynı olay, devamı).
 5. `find_gaps` ve gerekirse `add_question(source = gap)`.
 6. Kalan her `asked` soru (cevaplanmamış, reddedilmemiş) `reopen_question` ile `waiting`e döner; sonraki oturumda yeniden sorulur.
@@ -470,7 +476,7 @@ Cevap iletimi (bildirim) `record_answer`'ın yan etkisidir; ajan doğrudan bildi
 | `PATCH /api/stories/{id}/subjects/{person_id}` | Aile paneli | Dönem düzeltme (`period_source = family`, `corrected_by` = izleyen); hikâyeyi gören herkes |
 | `PATCH /api/stories/{id}` | Anlatan, konu kişi, merkez, yönetici | Erişimi (`circle`/`private`) sadece anlatan değiştirir. Gizlemeyi anlatan, hikâyenin konusu olan kişi, merkez kişi veya yönetici yapar; gizleme kesindir, `hidden: false` herkes için reddedilir |
 | `DELETE /api/links/{id}` | Aile paneli | Yanlış bağlantıyı kaldırır (`status = removed`, satır silinmez); izleyen iki hikâyeyi de görebilmeli |
-| `POST /api/admin/members`, `/sensitive-topics`, `PATCH /api/admin/circle` | Yönetici | Üye, hassas konu, sohbet saati |
+| `POST /api/admin/members`, `/sensitive-topics`, `PATCH /api/admin/circle` | Yönetici | Üye, hassas konu, sohbet saati. Konu listesi ucu (henüz yok) sadece `source = family` döner; büyüğün reddettiği konular hiçbir panel ucunda görünmez |
 | `GET /api/audio/{session_id}?start=&end=` | Herkes | Ses aralığını akıtır; erişim kontrolü burada da yapılır |
 | `GET /api/people` | Kişi seçici | **Sadece demo**, başlık istemez: kişiler ve çemberleri (`circle_id`, rol). Bkz. Bilinen sınırlar |
 | GET /api/circle | Aile paneli | Çember, "ben" ve üyeler (rol, relation\_to\_center). İzleyen kişi X-Person-Id başlığından okunur (hackathon kimlik kararı, bkz. Karar günlüğü 17 Ekim). Örnek cevaplar: docs/api-samples/ |
@@ -672,6 +678,7 @@ Kalan üç karar (ürün adı, LLM, konuşmadan metne servisi) 13 Ekim akşamın
 - Gizlilik kontrolü bir LLM yargısıdır; dolaylı bir isteğe ("bu aile kitabına girmesin") yanlış "hayır" diyebilir ve otomatik işaret düşer (reddedilen konuların gizlenmemesi için bilerek yapılan takas).
 - Prompt'taki "konuyu reddetmek sır değildir" kuralı, ret ve gizlilik isteğini karıştıran turlarda modelin `keep_private`'ı atlamasına yol açabilir; tek yedek kontrolden geçen otomatik işarettir.
 - API testleri gizlilik kontrolünü hep "evet" olarak taklit eder; "hayır" yolu sadece ajan testlerinde denenir.
+- Reddedilen konu sorulara sadece kelime eşleşmesiyle uygulanır: dolaylı bir bağlantı (Hatice'yi reddettikten sonra "Zehra nasıl biriydi?") yakalanmaz.
 
 ## Karar günlüğü
 
@@ -679,6 +686,8 @@ Yeni kararlar tablonun en üstüne eklenir. Bir karar geri alınırsa satır sil
 
 | Tarih | Karar | Gerekçe |
 | --- | --- | --- |
+| 17 Ekim | Büyüğün reddettiği konular için gizlilik incelemesi kararları: (1) `POST /api/questions` sadece `speaker` konusuna takılırsa soru `filtered` saklanır ama normal kabul cevabı (`waiting`) döner; aile konusuna takılırsa genel süzme mesajı kalır. (2) `add_refused_topic` sadece merkez kişinin kendi sözlerini sayar ("ya da oturum konuşmacısı" kaldırıldı). (3) `get_session_context` `avoid_topics`'i sadece izleyen merkez kişiyse doldurur, başkasına `[]` | (1) Aile konularını bilen biri, genel mesajla isimleri deneyerek büyüğün neyi reddettiğini çıkarabiliyordu; `declined` soru ilkesiyle aynı: merkez kişi dışındakilere cevaplanmamış görünür. (2) Buluşmada bir torunun reddi büyüğün konusu olmamalı. (3) Büyüğün retleri, merkez kişi dışında bir kimlikle açılan MCP bağlantısına gitmemeli |
+| 17 Ekim | Büyüğün kendiliğinden reddettiği konu hatırlanır: `SensitiveTopic`'e `source: family \| speaker` eklendi (varsayılan `family`; `init_db` sütunu mevcut veritabanına veri silmeden ekler). Arşivci açık bir konu reddinde `add_refused_topic(text, start_ms, end_ms)` çağırır; sıcaklık 0 kontrol konuşmacının o aralıktaki kendi sözlerinden "evet" demezse hiçbir şey eklenmez; aralık kuralları `mark_question_declined` ile aynıdır ve geçmeyen aralık kontrole gitmez. `add_question` ve `POST /api/questions` iki kaynağı da süzer, mesaj genel kalır. `get_session_context` tüm konuları kaynaksız `avoid_topics` olarak verir; sohbet ajanı bunları açmaz, büyük açarsa dinler ama soru sormaz. `speaker` konuları hiçbir panel ucunda, yönetici dahil, dönmez | Reddedilen konu oturumlar arası hatırlanmıyordu; arşivci onun hakkında takip sorusu üretebiliyordu ve sohbet ajanı aile konularını hiç bilmediği için kendisi açabiliyordu. Büyüğün reddini aileye göstermek, reddin kendisini paylaşmak olur (`declined` soru ilkesi) |
 | 17 Ekim | Panel kaydından (`panel_recording`) soru çıkmaz: arşivci bu oturumlarda takip/boşluk sorusu eklemez, cevap veya ret kaydetmez, `reopen_question` çalıştırmaz ve modele sorulan sorular hiç gösterilmez; sadece `get_session_transcript`, `save_story`, `link_stories` sunulur. Anlatan kod tarafından kaydeden kişiye sabitlenir; istenen erişim kayıttan hemen sonra ve arşivci bittikten sonra tekrar uygulanır | Sorular, cevaplar ve retler merkez kişinin kendi oturumları içindir; bir torunun kaydı büyüğün sorusunu cevaplayamaz ya da reddedemez. `reopen_question` canlı bir cihaz oturumunda sorulmuş soruyu yanlışlıkla beklemeye döndürürdü. `private` bir kayıt, bekleme süresinde merkez kişi ve yöneticiye görünmemeli |
 | 17 Ekim | Panel hikâye uçları: (1) `GET /api/people` sadece demo için, başlıksız kişi seçici listesi (Bilinen sınırlar). (2) Tepkiler hiçbir cevapta sayı taşımaz; sadece hangi emojilerin olduğu (`present`) ve izleyenin kendi emojileri (`mine`) döner; örnekteki `counts` kaldırıldı. (3) Baştan dinle cevabında `skipped_count` yok; görülemeyen bağlı hikâye iz bırakmadan atlanır. (4) Yapay zekâ dönemleri `estimated: true` taşır. (5) Görülemeyen hikâye olmayanla aynı 404'ü döner | (2) "Sayaç gösterilmez" kuralı. (3) Erişimi olmayan kişi gizli kaydın varlığını bile görmemeli; bir sayı bile varlığını söyler. (1) Şifresiz seçici başka türlü kişi listesini alamaz |
 | 17 Ekim | Gizlilik vaadi kuralı (17 Ekim "Bunu kimse duymasın" satırını günceller): modelin açık `keep_private` çağrısı her zaman işaretler. Cevap hattının en sonunda (koruyucu ve her yeniden üretimden sonra) tek bir kural çalışır: söylenecek cevap gizlilik vaat ediyorsa ve bu turu açık bir işaret (ya da önceki bir `next`) kapsamıyorsa, sıcaklık 0 bir kontrol konuşanın bu turdaki ve önceki turdaki kendi sözlerini görür. "Evet", "emin değilim", okunamayan cevap veya kontrol hatası: `previous_turn` işaretlenir (iki tur da gizlenir; günlüğe sadece oturum kimliği yazılır). Açık "hayır": vaat cevaptan çıkarılır; yerine gelen cevap onay gibi duyulamaz ("anlıyorum", "tabii" yok) ve gizli bir terime dokunamaz, yoksa nötr cevap kullanılır. Reddedilen konu sır değildir | Söylenen her gizlilik sözü doğru olmalı: istek bir önceki turda yapılmış ya da sır önceki turda söylenmiş olabilir, vaat koruyucunun yeniden üretiminde de ortaya çıkabilir; hepsini tek bir yerde yakalamak bunu garanti eder. Konuyu konuşmak istememek sır saklama isteğiyle karıştırılınca gerçek hikâyeler arşivden düşüyordu (declines_topic); açık "hayır" bu yüzden işareti durdurur |

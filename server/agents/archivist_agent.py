@@ -7,7 +7,8 @@ background, following the archivist steps in docs/PROJECT.md:
 1. get_session_transcript   — read the non-private segments
 2. save_story               — one story per distinct memory
 3. record_answer            — for asked questions answered in this session
-4. add_question             — at most two follow_up questions
+4. add_refused_topic        — a topic the speaker refused on her own
+5. add_question             — at most two follow_up questions
 
 link_stories and find_gaps are used only once the MCP server offers them.
 
@@ -33,6 +34,15 @@ Architecture
 - Declines work the same way: mark_question_declined goes through only when the
   checker confirms the speaker clearly declined that question in that range
   (when unsure, a question is not declined).
+- Refused topics too: add_refused_topic goes through only when the checker
+  confirms, from the center's own words in the range, that she refuses to talk
+  about that topic. A range that is not clear of private parts (it reaches
+  outside the non-private segments this run read) or holds no words of the
+  center (another person in a gathering does not count) is
+  rejected before the checker is asked; a checker error counts as no. The
+  server checks the range again. The session is the one being archived: the
+  tool takes it from the X-Evoca-Session-Id header, so the bridge must be
+  opened with it.
 - At the end of the run, every question that is still "asked" (not answered,
   not declined) is returned to "waiting" via reopen_question, so it is asked
   again in a later session. These calls are made by this code, not the model.
@@ -42,7 +52,7 @@ Panel recordings (A4)
 With panel_recording=True the session is one family member's own recording
 from the panel. Questions belong only to the center's own sessions, so:
 - only get_session_transcript, save_story and link_stories are offered (and
-  accepted); the circle's asked questions are dropped from the transcript the
+  accepted; no add_refused_topic); the circle's asked questions are dropped from the transcript the
   model sees, and nothing is reopened at the end of the run;
 - teller_id is always the recorder (person_id), whatever the model passes,
   and only this session can be read or cited (the recorder's identity must
@@ -87,6 +97,7 @@ _ARCHIVIST_TOOLS = {
     "record_answer",
     "add_question",
     "mark_question_declined",
+    "add_refused_topic",
     "link_stories",
     "find_gaps",
 }
@@ -112,6 +123,12 @@ Reply with exactly one word: yes or no.
 yes: the speaker talks about exactly what the question asks.
 no: the passage is about something else, only brushes the topic, or you are unsure.
 A warm or interesting story about something else is not an answer."""
+
+
+_REFUSAL_CHECK_PROMPT = """You check one thing: in a passage from a recorded conversation, does the speaker refuse to talk about a topic?
+Reply with exactly one word: yes or no.
+yes: the speaker clearly says they do not want to talk about that topic, for example "I don't want to talk about her today".
+no: the speaker talks about it, is only sad or quiet, changes the subject without refusing, refuses a different topic, or you are unsure."""
 
 
 _DECLINE_CHECK_PROMPT = """You check one thing: in a passage from a recorded conversation, does the speaker decline to talk about what a family member's question asks?
@@ -162,6 +179,7 @@ class ArchiveResult:
     questions_added: list[dict[str, str]] = field(default_factory=list)  # {question_id, status}
     questions_declined: list[str] = field(default_factory=list)  # question ids, confirmed declines
     questions_reopened: list[str] = field(default_factory=list)  # question ids, back to "waiting"
+    topics_refused: list[str] = field(default_factory=list)      # sensitive topic ids (source "speaker")
     final_text: str = ""
     trace: list[ToolTrace] = field(default_factory=list)
     latency: dict[str, int] = field(default_factory=dict)          # llm_ms, tools_ms, total_ms
@@ -221,6 +239,8 @@ class ArchivistAgent:
         self._waiting_texts: set[str] | None = None      # normalized
         # Per-run state for the answer check (filled from the transcript).
         self._speaker_segments: list[tuple[int, int, str]] = []   # (start_ms, end_ms, text)
+        self._read_ranges: list[tuple[int, int]] = []              # every non-private segment
+        self._center_segments: list[tuple[int, int, str]] = []    # the center's own words
         self._asked_by_id: dict[str, str] = {}                     # question_id -> text
         self._check_ms = 0
 
@@ -236,6 +256,7 @@ class ArchivistAgent:
         self._session_id = session_id
         self._companion_texts = self._asked_texts = self._waiting_texts = None
         self._speaker_segments, self._asked_by_id, self._check_ms = [], {}, 0
+        self._read_ranges, self._center_segments = [], []
 
         tool_config = await self._tool_config()
         allowed = {t["toolSpec"]["name"] for t in tool_config["tools"]}
@@ -363,6 +384,11 @@ class ArchivistAgent:
                 raise RuntimeError(
                     f"Decline not recorded: {reason}. Treat the question as not declined."
                 )
+        if name == "add_refused_topic":
+            reason = await self._refusal_rejection(arguments)
+            if reason:
+                log.info("Refused topic rejected (session %s): %s", self._session_id, reason)
+                raise RuntimeError(f"Topic not saved: {reason}. Do not try again.")
 
         out = await self._bridge.call_tool(name, arguments)
 
@@ -379,6 +405,12 @@ class ArchivistAgent:
             result.answers_recorded.append(arguments.get("question_id", ""))
         elif name == "mark_question_declined":
             result.questions_declined.append(arguments.get("question_id", ""))
+        elif name == "add_refused_topic" and isinstance(out, dict):
+            if out.get("added"):
+                result.topics_refused.append(out.get("topic_id", ""))
+            log.info("Refused topic %s (session %s): topic %s",
+                     "added" if out.get("added") else "already known",
+                     self._session_id, out.get("topic_id", ""))
         elif name == "add_question" and isinstance(out, dict):
             result.questions_added.append(
                 {"question_id": out.get("question_id", ""), "status": out.get("status", "")}
@@ -445,6 +477,15 @@ class ArchivistAgent:
         self._asked_by_id = {
             q.get("question_id", ""): q.get("text", "") for q in transcript.get("asked_questions", [])
         }
+        self._read_ranges = sorted(
+            (s.get("start_ms", 0), s.get("end_ms", 0)) for s in transcript.get("segments", [])
+        )
+        # person_id is the center outside panel recordings, the only mode with add_refused_topic.
+        self._center_segments = [
+            (s.get("start_ms", 0), s.get("end_ms", 0), s.get("transcript", ""))
+            for s in transcript.get("segments", [])
+            if s.get("speaker_id") == self._person_id
+        ]
 
     async def _ensure_transcript(self) -> None:
         if self._companion_texts is None:
@@ -488,6 +529,65 @@ class ArchivistAgent:
             strip_thinking(b["text"]) for b in response["output"]["message"]["content"] if "text" in b
         )
         return None if checker_said_yes(verdict) else failure
+
+    # ------------------------------------------------------------------
+    # Refused-topic check
+    # ------------------------------------------------------------------
+
+    def _covered_by_read_segments(self, start: int, end: int) -> bool:
+        """True if every ms of [start, end) lies in a non-private segment this
+        run read. Private segments are left out of the transcript, so a range
+        reaching into a gap may overlap one and is never sent to the checker."""
+        pos = start
+        for s_start, s_end in self._read_ranges:
+            if s_start > pos:
+                break
+            pos = max(pos, s_end)
+            if pos >= end:
+                return True
+        return False
+
+    async def _refusal_rejection(self, arguments: dict[str, Any]) -> str | None:
+        """Return why add_refused_topic must not go through, or None if the
+        checker confirmed the refusal. Range rules come before the checker."""
+        raw = arguments.get("text")
+        topic = " ".join(raw.split()) if isinstance(raw, str) else ""
+        start, end = arguments.get("start_ms"), arguments.get("end_ms")
+        if not topic:
+            return "the topic is empty"
+        if not isinstance(start, int) or not isinstance(end, int) or start >= end:
+            return "the range is not valid"
+        await self._ensure_transcript()
+        if not self._covered_by_read_segments(start, end):
+            return "the range is not inside the segments of the session being archived"
+        passage = " ".join(
+            text for s_start, s_end, text in self._center_segments
+            if s_start < end and s_end > start
+        ).strip()
+        if not passage:
+            return "the center person says nothing in that range"
+
+        t0 = time.monotonic()
+        try:
+            response = await anyio.to_thread.run_sync(
+                lambda: self._checker_llm.converse(
+                    [{"text": _REFUSAL_CHECK_PROMPT}],
+                    [{"role": "user", "content": [{"text": f"TOPIC: {topic}\n\nPASSAGE: {passage}"}]}],
+                    None,
+                )
+            )
+            verdict = " ".join(
+                strip_thinking(b["text"]) for b in response["output"]["message"]["content"]
+                if "text" in b
+            )
+        except Exception as exc:
+            log.warning("Refusal check failed (session %s): %s", self._session_id, type(exc).__name__)
+            verdict = ""
+        finally:
+            self._check_ms += int((time.monotonic() - t0) * 1000)
+        if checker_said_yes(verdict):
+            return None
+        return "the speaker does not clearly refuse that topic in that range"
 
     # ------------------------------------------------------------------
     # End of run: unanswered questions go back to "waiting"

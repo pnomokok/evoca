@@ -44,6 +44,7 @@ from core.enums import (
     SessionStart,
     StoryKind,
     StoryStatus,
+    TopicSource,
 )
 
 
@@ -262,6 +263,9 @@ class SensitiveTopic(Base):
     id = Column(String, primary_key=True, default=_uuid)
     circle_id = Column(String, ForeignKey("circle.id"), nullable=False)
     text = Column(Text, nullable=False)
+    # "speaker" topics are never returned by a panel endpoint (docs/PROJECT.md).
+    source = Column(String, nullable=False, default=TopicSource.family,
+                    server_default=TopicSource.family.value)
     added_by = Column(String, ForeignKey("person.id"), nullable=False)
     created_at = Column(String, nullable=False, default=_now_iso)
 

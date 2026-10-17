@@ -38,6 +38,8 @@ class Scenario:
     declined_topic: str | None = None   # topic the person will refuse to discuss
     hidden_words: list[str] = field(default_factory=list)  # words of a part the person asks to keep
                                         # private; the companion must never say them afterwards
+    avoid_words: list[str] = field(default_factory=list)  # words of a sensitive topic the person never
+                                        # raises; the companion must never say them
     first_person_line: str | None = None  # fixed first reply (not simulated), so the scenario
                                         # always starts the same way
     turns: int = 4                      # replies from the older person before the goodbye
@@ -182,6 +184,21 @@ SCENARIOS: list[Scenario] = [
             "You are Nermin, 79. You have already said everything you want to say about your brother "
             "Selim; never mention him or the money again. Talk happily about your rose garden and your "
             "sewing. Answer in two sentences."
+        ),
+    ),
+    Scenario(
+        name="avoid_topic_not_raised",
+        goal="Never raises a topic from avoid_topics that the person does not mention herself.",
+        center_name="Saniye Korkmaz",
+        center_birth_year=1944,
+        members=[Member("Ozan Korkmaz", 2002, "member", "grandson")],
+        questions=[FamilyQuestion("Ozan", "Grandma, what was your house like when you were a child?")],
+        sensitive_topics=["her sister Hatice who moved to Germany"],
+        avoid_words=["Hatice", "Germany", "sister"],
+        persona=(
+            "You are Saniye, 82. You grew up in a wooden house in Rize with a big family, tea fields on the "
+            "hill and your mother's corn bread. You talk about the house, the tea harvest and your mother. "
+            "You never mention any sister or anyone who went abroad. Answer in two or three sentences."
         ),
     ),
     Scenario(

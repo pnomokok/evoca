@@ -6,7 +6,7 @@ plus explicit viewer_id / circle_id so they can be called from tests without
 an MCP context.
 
 Tool table from docs/PROJECT.md:
-  get_session_context      — session start, one call
+  get_session_context      — session start, one call (incl. avoid_topics)
   get_pending_questions    — ordered waiting questions
   mark_question_asked      — flip status to "asked"
 """
@@ -103,6 +103,10 @@ class SessionContextResult:
     invitation_reason: str | None               # today's invitation reason, or None
     undelivered_reactions: list[ReactionItem]
     recent_session_summaries: list[SessionSummaryItem]
+    # Texts of every sensitive topic of the circle, family- or speaker-entered,
+    # with no source label: the agent must never raise them. Empty unless the
+    # viewer is the center (speaker topics are the center's own refusals).
+    avoid_topics: list[str] = field(default_factory=list)
 
 
 def get_session_context_data(
@@ -116,6 +120,8 @@ def get_session_context_data(
     - Today's Invitation reason (if any, using the circle's timezone)
     - Reactions on the center's stories where delivered_to_center = False
     - Summaries of the last 3 finished Sessions (stories the viewer can see)
+    - avoid_topics: texts of all the circle's sensitive topics (both sources),
+      only when the viewer is the center; [] for everyone else
     """
     circle: Circle | None = db.get(Circle, circle_id)
     if circle is None:
@@ -239,12 +245,21 @@ def get_session_context_data(
             )
         )
 
+    avoid_topics = [] if viewer_id != circle.center_person_id else [
+        t.text
+        for t in db.query(SensitiveTopic)
+        .filter(SensitiveTopic.circle_id == circle_id)
+        .order_by(SensitiveTopic.created_at)
+        .all()
+    ]
+
     return SessionContextResult(
         center_person_id=center_person.id,
         center_person_name=center_person.name,
         invitation_reason=invitation_reason,
         undelivered_reactions=undelivered,
         recent_session_summaries=recent_summaries,
+        avoid_topics=avoid_topics,
     )
 
 

@@ -42,6 +42,7 @@ from core.models import Question, Segment, Story
 from core.services.session_tools import get_pending_questions_data
 from core.services.archive_tools import (
     add_question_data,
+    add_refused_topic_data,
     get_session_transcript_data,
     mark_question_declined_data,
     record_answer_data,
@@ -95,16 +96,18 @@ def _spec(name: str) -> dict:
 class FakeArchiveBridge:
     """Calls the real archive services on the in-memory DB. No network."""
 
-    def __init__(self, db, person_id: str, circle_id: str) -> None:
+    def __init__(self, db, person_id: str, circle_id: str, session_id: str | None = None) -> None:
         self._db = db
         self._person_id = person_id
         self._circle_id = circle_id
+        self.session_id = session_id   # like the X-Evoca-Session-Id header
         self.tool_calls: list[tuple[str, dict]] = []
 
     async def bedrock_tool_config(self) -> dict:
         return {"tools": [_spec(n) for n in (
             "get_session_transcript", "save_story", "record_answer",
-            "add_question", "mark_question_declined", "mark_question_asked",
+            "add_question", "mark_question_declined", "add_refused_topic",
+            "mark_question_asked",
         )]}
 
     async def call_tool(self, name: str, arguments: dict) -> Any:
@@ -132,6 +135,10 @@ class FakeArchiveBridge:
             mark_question_declined_data(db, pid, cid, **arguments)
             db.commit()
             return {"status": "ok", "question_id": arguments["question_id"]}
+        if name == "add_refused_topic":
+            r = add_refused_topic_data(db, pid, cid, self.session_id or "", **arguments)
+            db.commit()
+            return {"status": "ok", **r}
         if name == "reopen_question":
             reopen_question_data(db, pid, cid, **arguments)
             db.commit()
@@ -224,7 +231,7 @@ async def test_chat_tools_are_not_offered(w):
     await agent.run(w.sess.id)
     names = {t["toolSpec"]["name"] for t in llm.calls[0]["tools"]["tools"]}
     assert names == {"get_session_transcript", "save_story", "record_answer", "add_question",
-                     "mark_question_declined"}
+                     "mark_question_declined", "add_refused_topic"}
     assert "reopen_question" not in names   # called by the agent's own code, never by the model
 
 

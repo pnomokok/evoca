@@ -31,6 +31,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from core.db import SessionLocal, init_db
 from core.services.archive_tools import (
     add_question_data,
+    add_refused_topic_data,
     get_session_transcript_data,
     mark_question_declined_data,
     record_answer_data,
@@ -107,8 +108,9 @@ def get_session_context(ctx: Context) -> dict[str, Any]:
     """Return the context the chat agent needs at the start of a session.
 
     Includes: center person, today's invitation reason (if any), undelivered
-    reactions on the center's stories, and summaries of the last 3 finished
-    sessions built from the stories the viewer can see.
+    reactions on the center's stories, summaries of the last 3 finished
+    sessions built from the stories the viewer can see, and avoid_topics:
+    topics never to raise in the conversation.
 
     Called once at the beginning of every conversation.
     """
@@ -296,6 +298,25 @@ def reopen_question(ctx: Context, question_id: str) -> dict[str, str]:
         reopen_question_data(db, viewer_id, circle_id, question_id)
         db.commit()
         return {"status": "ok", "question_id": question_id}
+
+
+@mcp.tool()
+def add_refused_topic(ctx: Context, text: str, start_ms: int, end_ms: int) -> dict[str, Any]:
+    """Remember a topic the speaker clearly refused to talk about on her own.
+
+    Only for a clear refusal of a topic ("I don't want to talk about Hatice"),
+    not for a declined question (use mark_question_declined for that). text
+    names the topic by its own name, place or event, e.g. "Hatice". start_ms / end_ms
+    is where the speaker refuses, in the session being archived. The topic is
+    never asked about again. When unsure, do not call this.
+    """
+    with SessionLocal() as db, tool_errors():
+        viewer_id, circle_id = get_viewer(ctx, db)
+        result = add_refused_topic_data(
+            db, viewer_id, circle_id, get_session_id(ctx), text, start_ms, end_ms
+        )
+        db.commit()
+        return {"status": "ok", **result}
 
 
 # ---------------------------------------------------------------------------
