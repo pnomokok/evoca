@@ -131,7 +131,8 @@ def test_search_archive_matches_keywords_best_first(w):
     _story(w, "The Wedding", "Fatma remembers her sister's wedding.", start=20_000, end=30_000)
     results = search_archive_data(w.db, w.fatma.id, w.circle.id, "fishing river summer")
     assert [r["story_id"] for r in results] == [river]
-    assert set(results[0]) == {"story_id", "title", "ai_summary", "place", "periods", "sources"}
+    assert set(results[0]) == {"story_id", "title", "ai_summary", "place", "periods", "sources",
+                               "teller_id", "access", "status"}
     assert search_archive_data(w.db, w.fatma.id, w.circle.id, "tractor") == []
 
 

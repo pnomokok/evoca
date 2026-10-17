@@ -39,10 +39,13 @@ import pytest
 
 from core.enums import QuestionStatus, StoryStatus
 from core.models import Question, Segment, Story
+from core.services.chat_tools import search_archive_data
 from core.services.session_tools import get_pending_questions_data
 from core.services.archive_tools import (
     add_question_data,
     add_refused_topic_data,
+    find_gaps_data,
+    link_stories_data,
     get_session_transcript_data,
     mark_question_declined_data,
     record_answer_data,
@@ -107,7 +110,7 @@ class FakeArchiveBridge:
         return {"tools": [_spec(n) for n in (
             "get_session_transcript", "save_story", "record_answer",
             "add_question", "mark_question_declined", "add_refused_topic",
-            "mark_question_asked",
+            "search_archive", "link_stories", "find_gaps", "mark_question_asked",
         )]}
 
     async def call_tool(self, name: str, arguments: dict) -> Any:
@@ -139,6 +142,15 @@ class FakeArchiveBridge:
             r = add_refused_topic_data(db, pid, cid, self.session_id or "", **arguments)
             db.commit()
             return {"status": "ok", **r}
+        if name == "search_archive":
+            # The real server wraps a list.
+            return {"result": search_archive_data(db, pid, cid, **arguments)}
+        if name == "link_stories":
+            r = link_stories_data(db, pid, cid, self.session_id or "", **arguments)
+            db.commit()
+            return {"status": "ok", **r}
+        if name == "find_gaps":
+            return {"result": find_gaps_data(db, pid, cid, **arguments)}
         if name == "reopen_question":
             reopen_question_data(db, pid, cid, **arguments)
             db.commit()
@@ -231,7 +243,8 @@ async def test_chat_tools_are_not_offered(w):
     await agent.run(w.sess.id)
     names = {t["toolSpec"]["name"] for t in llm.calls[0]["tools"]["tools"]}
     assert names == {"get_session_transcript", "save_story", "record_answer", "add_question",
-                     "mark_question_declined", "add_refused_topic"}
+                     "mark_question_declined", "add_refused_topic", "search_archive",
+                     "link_stories", "find_gaps"}
     assert "reopen_question" not in names   # called by the agent's own code, never by the model
 
 
@@ -394,8 +407,8 @@ UNCLE_AHMED = (
 
 
 def _answer_world(w):
-    """The real-check case: an asked 'anyone famous' question, a session whose
-    speaker segment is the Uncle Ahmed story, and a saved story for it."""
+    """The real-check case: an asked 'anyone famous' question and a session
+    whose speaker segment is the Uncle Ahmed story (saved by the run itself)."""
     from core.enums import QuestionSource
     q = Question(circle_id=w.circle.id, target_person_id=w.fatma.id, asker_id=w.elif_.id,
                  text=FAMOUS_Q, source=QuestionSource.family, status=QuestionStatus.asked,
@@ -405,9 +418,7 @@ def _answer_world(w):
                                      Segment.start_ms == 20_000).one()
     seg.transcript = UNCLE_AHMED
     w.db.commit()
-    story_id = save_story_data(w.db, w.fatma.id, w.circle.id, **_story_args(w, 20_000, 30_000))
-    w.db.commit()
-    return q, story_id
+    return q
 
 
 def _checker_input(checker) -> str:
@@ -416,12 +427,15 @@ def _checker_input(checker) -> str:
 
 @pytest.mark.anyio
 async def test_answer_check_rejects_unrelated_story(w):
-    q, story_id = _answer_world(w)
+    q = _answer_world(w)
     checker = ScriptedLLM(["no"])
     llm = DynamicScriptedLLM([
         [_tool_use("get_session_transcript", {"session_id": w.sess.id})],
-        [_tool_use("record_answer", {"question_id": q.id, "story_id": story_id,
-                                     "start_ms": 20_000, "end_ms": 30_000})],
+        [_tool_use("save_story", _story_args(w, 20_000, 30_000))],
+        lambda msgs: [_tool_use("record_answer", {
+            "question_id": q.id, "story_id": last_tool_json(msgs)["story_id"],
+            "start_ms": 20_000, "end_ms": 30_000,
+        })],
         "done",
     ])
     agent, bridge = _make_agent(w, llm, checker)
@@ -439,6 +453,21 @@ async def test_answer_check_rejects_unrelated_story(w):
     seen = _checker_input(checker)
     assert FAMOUS_Q in seen and "Uncle Ahmed was standing on the porch" in seen
     assert checker.calls[0]["tools"] is None
+
+
+@pytest.mark.anyio
+async def test_answer_must_be_in_a_story_saved_in_this_run(w):
+    older = save_story_data(w.db, w.fatma.id, w.circle.id, **_story_args(w))
+    w.db.commit()
+    checker = ScriptedLLM(["yes"])
+    llm = DynamicScriptedLLM([[_tool_use("record_answer", {
+        "question_id": w.q_asked.id, "story_id": older, "start_ms": 0, "end_ms": 10_000,
+    })], "done"])
+    agent, bridge = _make_agent(w, llm, checker)
+    result = await agent.run(w.sess.id)
+    assert result.answers_recorded == [] and checker.calls == []
+    assert "story you saved from this session" in result.trace[0].result_preview
+    assert "record_answer" not in [n for n, _ in bridge.tool_calls]
 
 
 @pytest.mark.anyio

@@ -432,28 +432,28 @@ Gizli `Segment`'ler (`is_private = true`) hiçbir hikâyenin `sources` alanına,
 | `get_session_context` | Sohbet ajanı | – | merkez kişi, davet nedeni, iletilmemiş tepkiler, son 3 oturumun özeti, `avoid_topics` | Oturum başında bir kez; hafıza buradan gelir. `avoid_topics`: çemberin tüm hassas konularının metni (iki kaynak, kaynak etiketi yok), sadece izleyen merkez kişiyse; başkasına `[]`. Ajan bunları hiç açmaz |
 | `get_pending_questions` | Sohbet ajanı | `limit?` | sıralı soru listesi | Hassas konu ve erişim süzülmüş; sıra: aile → takip → boşluk |
 | `mark_question_asked` | Sohbet ajanı | `question_id` | ok | Ajan soruyu sorduğunda |
-| `add_question` | İki ajan | `text, source: follow_up\|gap, period?` | `question_id` | Hassas konu kontrolü burada da |
-| `search_archive` | Sohbet ajanı | `query, person_id?, period?` | hikâye listesi (başlık, özet, ses aralığı) | "Dedem askerliği nerede yaptı?" Anahtar kelimeyle, `can_see` süzülmüş, en fazla 5; döküm metni dönmez |
+| `add_question` | İki ajan | `text, source: follow_up\|gap, period?` | `question_id` | Hassas konu kontrolü burada da. `gap` sorusu `period` ister; o dönem için bekleyen bir `gap` sorusu varsa reddedilir |
+| `search_archive` | Sohbet ajanı, arşivci ajan | `query, person_id?, period?` | hikâye listesi (başlık, özet, ses aralığı) | "Dedem askerliği nerede yaptı?" Anahtar kelimeyle, `can_see` süzülmüş, en fazla 5; döküm metni dönmez. Arşivci bağlantı ve yeniden anlatım adayı bulmak için kullanır; oturumun anlatanı adına çalışır (cihaz oturumunda merkez kişi, panel kaydında kaydeden), yani sadece onun görebildiği hikâyeleri görür. Arşivcinin kodu bunu daha da daraltır: modele sadece `circle` erişimli ve yayınlanmış (ya da anlatanın kendi bekleyen) hikâyeler gider, ses aralıkları, anlatan, erişim ve durum çıkarılarak; yeni bir aile hikâyesi gizli ya da bekleyen bir hikâyenin sözlerini tekrarlamasın, sesine işaret etmesin |
 | `get_linked_playlist` | Sohbet ajanı | `story_id` | sıralı ses aralıkları + anlatanlar | Baştan dinle; derinlik 1, yaşandığı döneme göre |
 | `mark_private` | Sohbet ajanının kodu (model değil) | `start_ms, end_ms`; oturum `X-Evoca-Session-Id` başlığından | ok | "Bunu kimse duymasın". Model milisaniye vermez: yerel `keep_private(scope)` aracını çağırır (`this_turn`, `previous_turn`, `next`), kod bunu tam parça sınırlarına çevirir; ajanın o turlara verdiği cevaplar da gizlenir |
 | `set_story_access` | Sohbet ajanı | `story_id, type` | ok | Sesle erişim seçimi; sadece anlatan; şimdilik `private` ve `circle` (`selected` sonra) |
 | `mark_reactions_delivered` | Sohbet ajanının kodu (model değil) | `story_ids` | ok | Cevapta o hikâyeye tepki veren herkesin adı geçtiyse; tepki bir sonraki oturumda tekrar söylenmez |
 | `get_session_transcript` | Arşivci ajan | `session_id` | gizli olmayan parçalar + kelime zamanları | İşlemenin girdisi |
-| `save_story` | Arşivci ajan | `title, summary, teller_id, subjects: [{person_id, period}], sources, place?, stated_year?, original_story_id?` | `story_id` | `status = pending`, erişim varsayılan `circle` |
-| `record_answer` | Arşivci ajan | `question_id, story_id, start_ms, end_ms` | ok | Soru `answered` olur, cevap iletimi tetiklenir. Ajan önce sıcaklık 0 bir kontrolle konuşmacının o aralıktaki sözlerinin soruyu gerçekten cevapladığını doğrular; emin değilse kaydetmez |
+| `save_story` | Arşivci ajan | `title, summary, teller_id, subjects: [{person_id, period}], sources, place?, stated_year?, original_story_id?` | `story_id` | `status = pending`, erişim varsayılan `circle`. Bağlantı `X-Evoca-Session-Id` taşıyorsa her kaynak o oturumdan olmalı (arşivcinin kodu da her modda kontrol eder); `original_story_id` izleyenin görebildiği bir hikâye olmalı |
+| `record_answer` | Arşivci ajan | `question_id, story_id, start_ms, end_ms` | ok | Soru `answered` olur, cevap iletimi tetiklenir. Arşivcinin kodu `story_id`'nin bu çalışmada kaydedilen bir hikâye olmasını ister. Ajan önce sıcaklık 0 bir kontrolle konuşmacının o aralıktaki sözlerinin soruyu gerçekten cevapladığını doğrular; emin değilse kaydetmez |
 | `mark_question_declined` | Arşivci ajan | `question_id, session_id, start_ms, end_ms` | ok | Büyük açıkça reddettiyse soru `declined` olur; aynı kontrolle doğrulanır, emin değilse reddedilmiş sayılmaz |
 | `add_refused_topic` | Arşivci ajan | `text, start_ms, end_ms`; oturum `X-Evoca-Session-Id` başlığından | `{topic_id, added}` | Büyük bir konuyu kendiliğinden açıkça reddettiyse `SensitiveTopic(source = speaker, added_by = merkez kişi)`; aynı metin ikinci kez eklenmez; `text` konunun kendisini adlandırır (ör. "Hatice", "kız kardeşi Hatice" değil, yoksa her "sister" sorusu süzülür) ve eşleşecek anlamlı kelimesi yoksa reddedilir. Aralık kuralları: arşivlenen oturum, sadece merkez kişinin kendi sözleri (buluşmada başka birinin reddi sayılmaz), gizli parçayla çakışma yok; geçmeyen aralık kontrole hiç gitmez. Sıcaklık 0 kontrol konuşmacının o aralıktaki sözlerinden "evet" demezse (hayır, emin değil, boş, hata) eklenmez. Panel kaydında sunulmaz |
 | `reopen_question` | Arşivci ajanın kodu (model değil) | `question_id` | ok | Oturum sonunda sorulup cevaplanmayan ve reddedilmeyen soru `waiting`e döner |
-| `link_stories` | Arşivci ajan | `from_story_id, to_story_id, reason` | `link_id` | `source = ai, status = suggested` |
-| `find_gaps` | Arşivci ajan | `person_id` | boş dönemler | Sonra `add_question(source = gap)` |
+| `link_stories` | Arşivci ajan | `from_story_id, to_story_id, reason`; oturum `X-Evoca-Session-Id` başlığından | `{link_id, added}` | `source = ai, status = suggested`. `reason`: `same_place`, `same_event`, `continuation` (`answer_to` değil). İki hikâye de çemberde ve izleyen (oturumun anlatanı) ikisini de görebiliyor; aynı hikâye kendine bağlanmaz; `from_story_id` bu oturumda kaydedilmiş olmalı. Aynı çift iki yönde de tek bağlantıdır (var olanın kimliği döner; ailenin kaldırdığı bağlantı yeniden önerilmez). İki hikâyenin de en fazla 3 canlı bağlantısı olabilir (sadece izleyenin görebildiği hikâyelere giden bağlantılar sayılır). Yeniden anlatım bağlantı değildir: `save_story(original_story_id)` |
+| `find_gaps` | Arşivci ajan | `person_id` | boş dönemler (`LifePeriod` sırasıyla) | Sadece çemberin merkez kişisi için (hem `person_id` hem izleyen); başkasına hata. Sunucuda hesaplanır: merkez kişinin konu olduğu, `hidden` dışındaki her hikâye sayılır (anlatan ve erişim ne olursa olsun); dışarı sadece dönem adları çıkar. Kişinin yaşı dönemin en erken makul yaşının altındaysa (gençlik 13, evlilik ve çocuk büyütme 18, orta yaş 40, emeklilik 55) o dönem boşluk sayılmaz; doğum yılı yoksa hiçbir dönem atlanmaz. Sonra en fazla bir `add_question(source = gap)` |
 
 **İki ajan, bir MCP sunucusu.** *Sohbet ajanı* büyükle canlı konuşur. *Arşivci ajan* oturum kapanınca arka planda çalışır ve şu sırayı izler:
 
 1. `get_session_transcript` ile oturumu okur.
-2. Hikâyeleri ayıklar; her biri için `save_story` (mevcut bir hikâyenin yeniden anlatımıysa `original_story_id` ile).
+2. Hikâyeleri ayıklar; her biri için önce `search_archive` (yer, kişi ya da nesneyle), sonra `save_story` (mevcut bir hikâyenin yeniden anlatımıysa bulunan hikâyenin `original_story_id`'si ile).
 3. Sorulan her soru için cevap aralığını bulur; `record_answer`. Büyük açıkça reddettiyse `mark_question_declined`. Büyük bir konuyu kendiliğinden açıkça reddettiyse `add_refused_topic`.
-4. İlgili hikâyeler için `link_stories` (aynı yer, aynı olay, devamı).
-5. `find_gaps` ve gerekirse `add_question(source = gap)`.
+4. Arama sonuçlarında açıkça aynı adlandırılmış yer, aynı olay ya da devamı olan hikâye için `link_stories`; emin değilse bağlamaz.
+5. Merkez kişi için `find_gaps`; boş dönem varsa oturum başına en fazla bir `add_question(source = gap, period)`, nazik ve açık uçlu ("What do you remember about your early married years?"). Kod sınırı da uygular: dönem bu çalışmada `find_gaps`'in döndürdüklerinden olmalı (model çağırmadıysa kod çağırır). Takip soruları ayrıca en fazla iki. Panel kaydında `find_gaps` ve soru araçları sunulmaz; sadece `get_session_transcript`, `save_story`, `search_archive`, `link_stories`.
 6. Kalan her `asked` soru (cevaplanmamış, reddedilmemiş) `reopen_question` ile `waiting`e döner; sonraki oturumda yeniden sorulur.
 
 Cevap iletimi (bildirim) `record_answer`'ın yan etkisidir; ajan doğrudan bildirim göndermez.
@@ -486,7 +486,7 @@ Cevap iletimi (bildirim) `record_answer`'ın yan etkisidir; ajan doğrudan bildi
 - **Davet zamanlayıcı** (dakikada bir, açılışta da; `core/services/invitations.py`, demo için `python -m server.run_invitations`): her `active` çemberde, çemberin saat dilimine göre sohbet saati geçtiyse ve o yerel gün için davet yoksa merkez kişiye tam bir `Invitation` açar. Merkez kişinin o yerel gün daha önce başlamış bir oturumu varsa ya da şu an canlı bir oturum varsa davet `skipped` olur (gün işlenmiş sayılır, ışık yanmaz); yoksa `sent`. Ailenin panel kayıtları sayılmaz. Günde birden fazla davet `(circle_id, date)` tekil indeksiyle eşzamanlı çalışmada da engellenir. Hatalar günlüğe yazılır, döngü durmaz.
   Sebep kodda üretilir (sohbet ajanı kendi sözleriyle söyler), şu öncelikle: (1) merkez kişinin hikâyelerine iletilmemiş tepki: "<ad> reacted to your story", birden fazla kişiyse "Your family reacted to your stories"; (2) bekleyen aile sorusu: "<soranın adı> has a question for you"; (3) bekleyen takip/boşluk sorusu: "I have a question about one of your stories"; (4) yoksa "Would you like to chat today?". Sadece `get_pending_questions`'ın sunacağı sorular sayılır (`waiting`, hassas konuya takılmayan); `filtered`, `declined`, `asked` asla. Sebepte soru metni, hikâye başlığı ya da konu kelimesi olmaz, en fazla bir ön ad.
 - **Yayınlayıcı** (dakikada bir): `publish_at` geçen `pending` hikâyeleri `published` yapar ve bildirim üretir.
-- **Boşluk denetimi** (yayından sonra): `gaps()` boş dönem bulursa `add_question(source = gap)`.
+- **Boşluk denetimi**: şimdilik ayrı bir iş değil; arşivci her cihaz oturumundan sonra `find_gaps` ile yapar (en fazla bir boşluk sorusu).
 
 Demoda zaman ileri sarılabilmeli: bir **demo saati** (`DEMO_NOW` ayarı) davet ve 24 saat beklemeyi test etmeyi ve videoyu çekmeyi kolaylaştırır.
 
@@ -524,24 +524,24 @@ Demoda zaman ileri sarılabilmeli: bir **demo saati** (`DEMO_NOW` ayarı) davet 
 
 **14 Ekim Çarşamba · İlk uçtan uca konuşma**
 
-- [ ] A: veri modeli, veritabanı, `can_see`, demo ailesi tohum verisi (Fatma, Ayşe, Elif, Can)
-- [ ] A: sohbet ajanı döngüsü; `get_session_context`, `get_pending_questions`, `mark_question_asked`
+- [x] A: veri modeli, veritabanı, `can_see`, demo ailesi tohum verisi (Fatma, Ayşe, Elif, Can)
+- [x] A: sohbet ajanı döngüsü; `get_session_context`, `get_pending_questions`, `mark_question_asked`
 - [ ] B: cihaz ekranı ↔ `POST /api/device/turn`: konuş, cevabı duy
 
 **15 Ekim Perşembe · Arşiv**
 
-- [ ] A: arşivci ajan; `get_session_transcript`, `save_story`, dönem tahmini; TTS
+- [x] A: arşivci ajan; `get_session_transcript`, `save_story`, dönem tahmini; TTS
 - [ ] B: hayat çizgisi ve hikâye sayfası (önce sahte veriyle), ses aralığı oynatıcı
 
 **16 Ekim Cuma · Soru döngüsü** (karar noktası)
 
-- [ ] A: `add_question`, hassas konu kontrolü, `record_answer`, ses aralığı akıtma ucu
+- [x] A: `add_question`, hassas konu kontrolü, `record_answer`, ses aralığı akıtma ucu
 - [ ] B: soru formu, bildirim akışı, cevap kartı
 - [ ] Ortak: **Döngü uçtan uca çalışıyor mu?** Elif soru sorar → Fatma cevaplar → Elif kendi sesiyle duyar. Çalışmıyorsa 17 Ekim'in tamamı buna.
 
 **17 Ekim Cumartesi · Ritim ve aile katılımı**
 
-- [ ] A: davet zamanlayıcı, yayınlayıcı, `DEMO_NOW`, `find_gaps`, `mark_private`, tepkilerin büyüğe iletilmesi
+- [x] A: davet zamanlayıcı, yayınlayıcı, `DEMO_NOW`, `find_gaps`, `mark_private`, tepkilerin büyüğe iletilmesi
 - [ ] B: panelden kendi anını kaydetme, emoji tepki, dönem düzeltme, bağlantı kaldırma, Baştan dinle
 
 **18 Ekim Pazar · Çekirdek donar** (karar noktası)
@@ -680,6 +680,8 @@ Kalan üç karar (ürün adı, LLM, konuşmadan metne servisi) 13 Ekim akşamın
 - Prompt'taki "konuyu reddetmek sır değildir" kuralı, ret ve gizlilik isteğini karıştıran turlarda modelin `keep_private`'ı atlamasına yol açabilir; tek yedek kontrolden geçen otomatik işarettir.
 - API testleri gizlilik kontrolünü hep "evet" olarak taklit eder; "hayır" yolu sadece ajan testlerinde denenir.
 - Davetin "sonra" ve "bugün değil" cevapları ayrı izlenmez: oturum başlayınca davet `accepted` olur ve öyle kalır; o gün yeni davet zaten açılmaz (günde bir). `postponed` ve `declined` durumları şimdilik kullanılmıyor. Davetler panelde hiçbir uçta görünmez, bu yüzden reddedilen davet aileye raporlanmaz.
+- Arşivci (Nova 2 Lite) tek bir anıyı bazen iki hikâyeye böler (gerçek denemede liman anısı, "pazar günleri liman" ve "balıkçı tekneleri" olarak iki kez); iki hikâye de aynı oturumdan ve doğru bağlantılı olduğu için kabul edildi.
+- Büyük sesle "baştan dinle" isteyemez: `get_linked_playlist` MCP aracı henüz yok; baştan dinle sadece panelde (`GET /api/stories/{id}/playlist`).
 - Reddedilen konu sorulara sadece kelime eşleşmesiyle uygulanır: dolaylı bir bağlantı (Hatice'yi reddettikten sonra "Zehra nasıl biriydi?") yakalanmaz.
 
 ## Karar günlüğü
@@ -688,6 +690,7 @@ Yeni kararlar tablonun en üstüne eklenir. Bir karar geri alınırsa satır sil
 
 | Tarih | Karar | Gerekçe |
 | --- | --- | --- |
+| 17 Ekim | `link_stories` ve `find_gaps` eklendi. Arşivci bağlantı adayını `search_archive` ile, oturumun anlatanı adına arar (cihaz oturumunda merkez kişi, panel kaydında kaydeden); her hikâyeden önce arar, yeniden anlatımı `original_story_id` ile kaydeder. Bağlantı: `answer_to` hariç neden, `ai`/`suggested`, iki yönde tek, hikâye başına en fazla 3, `from_story_id` bu oturumdan (oturum başlıktan). `find_gaps` sadece merkez kişi için; `hidden` dışındaki tüm hikâyeleri sunucuda sayar, sadece dönem adı döner; doğum yılına göre yaşanamamış dönemleri atlar. Oturum başına en fazla bir boşluk sorusu, `find_gaps`'in döndürdüğü bir dönem için ve o dönemde bekleyen boşluk sorusu yoksa; `gap` sorusu `period` ister | Arşivci sadece anlatanın görebildiği hikâyeleri görmeli; gizli bir hikâyeye bağlantı zaten görmeyen kişiden gizlenir ama model de onu bilmemeli. Boşluk hesabı tüm hikâyeleri saymazsa, başkasının gizli hikâyesi olan bir dönem için soru tekrar tekrar sorulurdu; dönem adı hikâyeyi açığa çıkarmaz. Gerçek denemede (Nova 2 Lite) model aramayı ayrı bir adım olarak atladı ve var olan bir hikâyeyi ikinci kez kaydetti; kaydetmeden önce arama adımı bunu düzeltti. Gizlilik incelemesi: arama sonuçları başka oturumların ses aralıklarını taşıdığı için model bunları yeni bir `circle` hikâyesine kopyalayabilirdi; bu yüzden kaynaklar oturuma bağlandı, arama sonuçları daraltıldı ve `record_answer` bu çalışmanın hikâyelerine sınırlandı |
 | 17 Ekim | Davet zamanlayıcı: çember başına yerel günde tek davet (`(circle_id, date)` tekil indeksi; `init_db` eski veritabanına ekler, çakışan satır varsa eklemez ve silmez). Atlama kuralı: merkez kişinin o yerel gün daha önce başlamış ya da şu an canlı bir oturumu varsa davet `skipped` açılır (gün işlenir, ışık yanmaz). Sebep metinleri kodda, öncelik sırasıyla: "<ad> reacted to your story" / "Your family reacted to your stories", "<ad> has a question for you", "I have a question about one of your stories", "Would you like to chat today?". `get_session_context` bugünün `sent` ya da `accepted` davetini okur | Açılış turu, `session/start` daveti `accepted` yaptıktan sonra bağlamı okuyordu; sadece `sent` aranınca sebep ajana hiç ulaşmıyordu. Atlama kuralı "sohbet saatinden önce" yerine "o gün daha önce" diye yazıldı: sunucu sohbet saatinden sonra açılırsa, büyük çoktan konuşmuşken ışık yanmasın. Sebepte içerik olmaması, cihaz ekranında ya da sesli sebepte sorunun veya hassas bir konunun açığa çıkmaması için |
 | 17 Ekim | Büyüğün reddettiği konular için gizlilik incelemesi kararları: (1) `POST /api/questions` sadece `speaker` konusuna takılırsa soru `filtered` saklanır ama normal kabul cevabı (`waiting`) döner; aile konusuna takılırsa genel süzme mesajı kalır. (2) `add_refused_topic` sadece merkez kişinin kendi sözlerini sayar ("ya da oturum konuşmacısı" kaldırıldı). (3) `get_session_context` `avoid_topics`'i sadece izleyen merkez kişiyse doldurur, başkasına `[]` | (1) Aile konularını bilen biri, genel mesajla isimleri deneyerek büyüğün neyi reddettiğini çıkarabiliyordu; `declined` soru ilkesiyle aynı: merkez kişi dışındakilere cevaplanmamış görünür. (2) Buluşmada bir torunun reddi büyüğün konusu olmamalı. (3) Büyüğün retleri, merkez kişi dışında bir kimlikle açılan MCP bağlantısına gitmemeli |
 | 17 Ekim | Büyüğün kendiliğinden reddettiği konu hatırlanır: `SensitiveTopic`'e `source: family \| speaker` eklendi (varsayılan `family`; `init_db` sütunu mevcut veritabanına veri silmeden ekler). Arşivci açık bir konu reddinde `add_refused_topic(text, start_ms, end_ms)` çağırır; sıcaklık 0 kontrol konuşmacının o aralıktaki kendi sözlerinden "evet" demezse hiçbir şey eklenmez; aralık kuralları `mark_question_declined` ile aynıdır ve geçmeyen aralık kontrole gitmez. `add_question` ve `POST /api/questions` iki kaynağı da süzer, mesaj genel kalır. `get_session_context` tüm konuları kaynaksız `avoid_topics` olarak verir; sohbet ajanı bunları açmaz, büyük açarsa dinler ama soru sormaz. `speaker` konuları hiçbir panel ucunda, yönetici dahil, dönmez | Reddedilen konu oturumlar arası hatırlanmıyordu; arşivci onun hakkında takip sorusu üretebiliyordu ve sohbet ajanı aile konularını hiç bilmediği için kendisi açabiliyordu. Büyüğün reddini aileye göstermek, reddin kendisini paylaşmak olur (`declined` soru ilkesi) |
