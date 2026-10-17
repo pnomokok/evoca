@@ -59,10 +59,11 @@ async def post_recording(
     audio: Annotated[UploadFile, File()],
     access: Annotated[str, Form()] = "circle",
     x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
+    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
     stt: STT = Depends(_get_stt),
 ):
     with SessionLocal() as db:
-        person_id, circle_id = _resolve_panel_viewer(x_person_id, db)
+        person_id, circle_id = _resolve_panel_viewer(x_person_id, db, x_circle_id)
     if access not in _ACCESS_TYPES:
         raise HTTPException(status_code=400, detail="access must be 'circle' or 'private'.")
 

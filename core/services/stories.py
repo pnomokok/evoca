@@ -288,8 +288,12 @@ def period_years(birth_year: int | None, period: str) -> dict[str, int | None] |
     return {"from": birth_year + age_from, "to": to}
 
 
-def build_lifeline(db: DbSession, viewer_id: str, person_id: str) -> dict[str, Any]:
+def build_lifeline(db: DbSession, viewer_id: str, person_id: str,
+                   circle_id: str | None = None) -> dict[str, Any]:
     """Stories about person_id that the viewer can_see(), grouped by period.
+
+    With circle_id (the panel's selected circle) the person must be in that
+    circle and only that circle's stories are listed.
 
     Periods come in LifePeriod order, all of them, empty ones as empty lists;
     inside a period the oldest story comes first. The period is the subject's
@@ -298,6 +302,7 @@ def build_lifeline(db: DbSession, viewer_id: str, person_id: str) -> dict[str, A
     """
     viewer_circles = [
         c for (c,) in db.query(Membership.circle_id).filter(Membership.person_id == viewer_id).all()
+        if circle_id is None or c == circle_id
     ]
     shared = (
         db.query(Membership)
@@ -313,6 +318,8 @@ def build_lifeline(db: DbSession, viewer_id: str, person_id: str) -> dict[str, A
     for subject in db.query(StorySubject).filter(StorySubject.person_id == person_id).all():
         story = db.get(Story, subject.story_id)
         if story is None or not can_see(db, viewer_id, story) or subject.period not in grouped:
+            continue
+        if circle_id is not None and story.circle_id != circle_id:
             continue
         grouped[subject.period].append((story.created_at, {
             "id": story.id,

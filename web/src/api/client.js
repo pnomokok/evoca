@@ -135,8 +135,11 @@ class EvocaApiClient {
         circles: [{ circle_id: this.circle.circle.id, role: m.role }]
       }));
     }
-    const res = await fetch(`${API_BASE_URL}/api/people`);
-    return handleResponse(res);
+    // The demo circle's people, kept in the older {id, name, circles} shape the picker uses.
+    const circle = await handleResponse(await fetch(`${API_BASE_URL}/api/circles/demo`));
+    const res = await fetch(`${API_BASE_URL}/api/people?circle_id=${encodeURIComponent(circle.id)}`);
+    const people = (await handleResponse(res)) || [];
+    return people.map(p => ({ id: p.id, name: p.name, circles: [{ circle_id: circle.id, role: p.role }] }));
   }
 
   // --- Circle & Identity ---

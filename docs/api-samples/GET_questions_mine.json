@@ -1,0 +1,20 @@
+[
+  {
+    "id": "question_famous",
+    "text": "Did you ever meet anyone famous growing up?",
+    "target_person_id": "person_fatma",
+    "period": null,
+    "status": "waiting",
+    "created_at": "2026-10-13T16:10:00+00:00",
+    "answer_story_id": null
+  },
+  {
+    "id": "question_school",
+    "text": "Grandma, what was school like when you were young?",
+    "target_person_id": "person_fatma",
+    "period": null,
+    "status": "answered",
+    "created_at": "2026-10-12T18:00:00+00:00",
+    "answer_story_id": "story_school"
+  }
+]

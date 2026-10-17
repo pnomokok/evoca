@@ -117,6 +117,7 @@ async def get_audio_slice(
     start: int = Query(..., ge=0),
     end: int = Query(..., gt=0),
     x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
+    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
 ):
     """Return a WAV slice of the session audio, if the viewer may hear it."""
     if end <= start:
@@ -126,7 +127,7 @@ async def get_audio_slice(
 
     with SessionLocal() as db:
         sess: OrmSession | None = db.get(OrmSession, session_id)
-        if sess is None:
+        if sess is None or (x_circle_id and x_circle_id != sess.circle_id):
             raise _deny()
 
         entitled = (
@@ -151,6 +152,7 @@ async def get_audio_slice(
 async def get_tts_file(
     file: str,
     x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
+    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
 ):
     """Serve a generated reply audio file to a participant of its session."""
     match = _TTS_NAME.match(file)
@@ -161,7 +163,8 @@ async def get_tts_file(
 
     with SessionLocal() as db:
         sess = db.get(OrmSession, match["session_id"])
-        if sess is None or x_person_id not in (sess.participant_ids or []):
+        if (sess is None or x_person_id not in (sess.participant_ids or [])
+                or (x_circle_id and x_circle_id != sess.circle_id)):
             raise _deny()
 
     path = TTS_DIR / file

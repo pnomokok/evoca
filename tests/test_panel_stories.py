@@ -13,7 +13,7 @@ a missing one; private segment words and ranges never appear; the playlist
 skips an invisible linked story without a trace; the lifeline leaves out
 invisible stories; reactions are idempotent and never counted; a family period
 correction wins; the hide permission matrix; an admin cannot change access; a
-removed link disappears; /api/people needs no header.
+removed link disappears; /api/people needs no header (only ?circle_id=).
 """
 
 from __future__ import annotations
@@ -140,11 +140,14 @@ def _ranges(payload):
 
 @pytest.mark.anyio
 async def test_people_without_header(world):
-    r = await _req(world["app"], "GET", "/api/people")
+    r = await _req(world["app"], "GET", f"/api/people?circle_id={world['circle'].id}")
     assert r.status_code == 200
     by_id = {p["id"]: p for p in r.json()}
-    assert by_id[world["fatma"].id]["circles"] == [{"circle_id": world["circle"].id, "role": "center"}]
-    assert set(by_id[world["ayse"].id]) == {"id", "name", "circles"}
+    assert by_id[world["fatma"].id]["role"] == "center"
+    assert set(by_id[world["ayse"].id]) == {"id", "name", "role", "relation_to_center", "birth_year"}
+    assert by_id[world["ayse"].id]["relation_to_center"] == "daughter"
+    assert (await _req(world["app"], "GET", "/api/people")).status_code == 400
+    assert (await _req(world["app"], "GET", "/api/people?circle_id=nope")).status_code == 404
 
 
 # ---------------------------------------------------------------------------

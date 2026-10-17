@@ -6,6 +6,9 @@ Business logic for the admin panel endpoints (docs/PROJECT.md "REST uçları").
   add_family_topic        POST   /api/admin/sensitive-topics
   delete_family_topic     DELETE /api/admin/sensitive-topics/{id}
   update_circle_settings  PATCH  /api/admin/circle
+  add_member              POST   /api/admin/members
+  update_member           PATCH  /api/admin/members/{person_id}
+  remove_member           DELETE /api/admin/members/{person_id}
 
 Privacy rules applied here:
 - Only the circle's admin gets past require_admin; everyone else gets the same
@@ -15,6 +18,10 @@ Privacy rules applied here:
   missing id. The duplicate check only looks at family topics, so adding a text
   that matches a speaker topic does not reveal it.
 - Deleting a topic does not re-evaluate questions it already filtered.
+- Removing a member deletes only the membership: the person and their stories
+  stay, and can_see() decides access as before (they are no longer a member).
+  The center cannot be removed or changed; the last admin cannot be removed
+  or demoted.
 
 Functions take an open SQLAlchemy session and an explicit viewer_id, like the
 other services, and commit their own writes.
@@ -31,7 +38,8 @@ from sqlalchemy.orm import Session as DbSession
 from core.access import role
 from core.clock import now_utc
 from core.enums import Role, TopicSource
-from core.models import Circle, SensitiveTopic
+from core.models import Circle, Membership, Person, SensitiveTopic
+from core.services.circles import clean_birth_year, clean_name
 from core.services.session_tools import _meaningful_words
 
 _MAX_TOPIC_CHARS = 200
@@ -39,6 +47,8 @@ _CHAT_TIME = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 
 ADMIN_ONLY = "Only an admin of this circle can do this."
 TOPIC_NOT_FOUND = "Topic not found."
+MEMBER_NOT_FOUND = "Member not found."
+_MEMBER_ROLES = {Role.member.value, Role.admin.value}
 
 
 class NotFound(Exception):
@@ -147,3 +157,85 @@ def update_circle_settings(
         circle.timezone = timezone
     db.commit()
     return {"id": circle.id, "chat_time": circle.chat_time, "timezone": circle.timezone}
+
+
+# ---------------------------------------------------------------------------
+# Members
+# ---------------------------------------------------------------------------
+
+def _member_dict(db: DbSession, m: Membership) -> dict[str, Any]:
+    p = db.get(Person, m.person_id)
+    return {"id": m.person_id, "name": p.name if p else None, "birth_year": p.birth_year if p else None,
+            "role": m.role, "relation_to_center": m.relation_to_center}
+
+
+def _clean_role(value: Any) -> str:
+    if value not in _MEMBER_ROLES:
+        raise ValueError("role must be 'member' or 'admin'.")
+    return value
+
+
+def _membership(db: DbSession, circle_id: str, person_id: str) -> Membership:
+    m = db.get(Membership, (person_id, circle_id))
+    if m is None:
+        raise NotFound(MEMBER_NOT_FOUND)
+    return m
+
+
+def _admin_count(db: DbSession, circle_id: str) -> int:
+    return db.query(Membership).filter(Membership.circle_id == circle_id,
+                                       Membership.role == Role.admin).count()
+
+
+def _guard(db: DbSession, m: Membership, losing_admin: bool) -> None:
+    if m.role == Role.center:
+        raise ValueError("The center of the circle cannot be removed or changed.")
+    if losing_admin and m.role == Role.admin and _admin_count(db, m.circle_id) <= 1:
+        raise ValueError("The circle needs at least one admin.")
+
+
+def add_member(
+    db: DbSession, viewer_id: str, circle_id: str,
+    name: Any, birth_year: Any, relation_to_center: Any, role_: Any,
+) -> dict[str, Any]:
+    """Add a new person to the circle as a member or an admin."""
+    require_admin(db, viewer_id, circle_id)
+    name = clean_name(name, "name")
+    birth_year = clean_birth_year(birth_year, "birth_year")
+    relation = clean_name(relation_to_center, "relation_to_center")
+    role_ = _clean_role(role_)
+    person = Person(name=name, birth_year=birth_year)
+    db.add(person)
+    db.flush()
+    m = Membership(person_id=person.id, circle_id=circle_id, role=role_, relation_to_center=relation)
+    db.add(m)
+    db.commit()
+    return _member_dict(db, m)
+
+
+def update_member(
+    db: DbSession, viewer_id: str, circle_id: str, person_id: str,
+    relation_to_center: Any = None, role_: Any = None,
+) -> dict[str, Any]:
+    """Change a member's relation_to_center and/or role (member | admin)."""
+    require_admin(db, viewer_id, circle_id)
+    m = _membership(db, circle_id, person_id)
+    relation = clean_name(relation_to_center, "relation_to_center") if relation_to_center is not None else None
+    new_role = _clean_role(role_) if role_ is not None else None
+    _guard(db, m, losing_admin=new_role == Role.member)
+    if relation is not None:
+        m.relation_to_center = relation
+    if new_role is not None:
+        m.role = new_role
+    db.commit()
+    return _member_dict(db, m)
+
+
+def remove_member(db: DbSession, viewer_id: str, circle_id: str, person_id: str) -> dict[str, Any]:
+    """Remove the membership only; the person and their stories stay."""
+    require_admin(db, viewer_id, circle_id)
+    m = _membership(db, circle_id, person_id)
+    _guard(db, m, losing_admin=True)
+    db.delete(m)
+    db.commit()
+    return {"id": person_id, "removed": True}

@@ -83,6 +83,7 @@ SessionLocal = sessionmaker(
 # (table, column, SQL type and default)
 _ADDED_COLUMNS: list[tuple[str, str, str]] = [
     ("sensitive_topic", "source", "VARCHAR NOT NULL DEFAULT 'family'"),
+    ("circle", "is_demo", "BOOLEAN NOT NULL DEFAULT 0"),
 ]
 
 

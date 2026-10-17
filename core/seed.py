@@ -170,6 +170,7 @@ def reset_and_seed(force: bool = False) -> None:
             status=CircleStatus.active,
             chat_time="10:00",
             timezone="Europe/Istanbul",
+            is_demo=True,
         )
         db.add(circle)
         db.flush()

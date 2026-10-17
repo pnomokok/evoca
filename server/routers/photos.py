@@ -49,11 +49,12 @@ async def post_story_photo(
     image: Annotated[UploadFile, File()],
     caption: Annotated[str | None, Form()] = None,
     x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
+    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
 ):
     """Add or replace the photo: the teller, a subject person or an admin. Matches POST_story_photo.json."""
     raw = await image.read(photo_svc.MAX_BYTES + 1)   # one byte more is enough to refuse it
     return await anyio.to_thread.run_sync(
-        lambda: _story_call(photo_svc.set_photo, x_person_id, story_id, raw, caption)
+        lambda: _story_call(x_circle_id, photo_svc.set_photo, x_person_id, story_id, raw, caption)
     )
 
 
@@ -61,17 +62,19 @@ async def post_story_photo(
 async def delete_story_photo(
     story_id: str,
     x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
+    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
 ):
     """Remove the photo: its uploader, the teller or an admin."""
-    return _story_call(photo_svc.delete_photo, x_person_id, story_id)
+    return _story_call(x_circle_id, photo_svc.delete_photo, x_person_id, story_id)
 
 
 @router.get("/api/photos/{photo_id}")
 async def get_photo(
     photo_id: str,
     x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
+    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
 ):
     """The JPEG, only if the viewer can see its story (otherwise 404, like a missing photo)."""
-    path = _story_call(photo_svc.photo_file, x_person_id, photo_id)
+    path = _story_call(x_circle_id, photo_svc.photo_file, x_person_id, photo_id)
     return Response(content=path.read_bytes(), media_type="image/jpeg",
                     headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
