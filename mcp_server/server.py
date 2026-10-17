@@ -41,6 +41,7 @@ from core.services.archive_tools import (
     save_story_data,
 )
 from core.services.chat_tools import (
+    get_linked_playlist_data,
     mark_private_data,
     mark_reactions_delivered_data,
     search_archive_data,
@@ -361,7 +362,7 @@ def find_gaps(ctx: Context, person_id: str) -> list[str]:
 
 
 # ---------------------------------------------------------------------------
-# Chat-agent tools: privacy, reactions, story access, archive search
+# Chat-agent tools: privacy, reactions, story access, archive search, playlist
 # ---------------------------------------------------------------------------
 
 @mcp.tool()
@@ -423,6 +424,21 @@ def search_archive(
     with SessionLocal() as db, tool_errors():
         viewer_id, circle_id = get_viewer(ctx, db)
         return search_archive_data(db, viewer_id, circle_id, query, person_id, period)
+
+
+@mcp.tool()
+def get_linked_playlist(ctx: Context, story_id: str) -> dict[str, Any]:
+    """Play a story to the person: the story and its directly linked stories.
+
+    Returns the stories in the order they happened in life (at most 5):
+    story_id, title, teller (name), period. The device plays them after your
+    reply. Empty items means nothing can be played. Call it
+    only when the person asks to hear or listen to a story; find the story_id
+    with search_archive first.
+    """
+    with SessionLocal() as db, tool_errors():
+        viewer_id, circle_id = get_viewer(ctx, db)
+        return get_linked_playlist_data(db, viewer_id, circle_id, story_id)
 
 
 # ---------------------------------------------------------------------------

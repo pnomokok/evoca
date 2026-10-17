@@ -1,0 +1,32 @@
+{
+  "session_id": "session_demo1",
+  "session_open": true,
+  "heard_text": "Play me what I told about the village house.",
+  "reply_text": "Here is your story The Village House, followed by The Mulberry Tree.",
+  "reply_audio_url": "/api/tts/turn_0004.mp3",
+  "cards": [
+    {
+      "type": "playlist",
+      "items": [
+        {
+          "story_id": "story_village_house",
+          "title": "The Village House",
+          "teller": "Fatma Yilmaz",
+          "url": "/api/audio/session_village?start=0&end=41000"
+        },
+        {
+          "story_id": "story_mulberry",
+          "title": "The Mulberry Tree",
+          "teller": "Fatma Yilmaz",
+          "url": "/api/audio/session_mulberry?start=12000&end=45500"
+        },
+        {
+          "story_id": "story_mulberry",
+          "title": "The Mulberry Tree",
+          "teller": "Fatma Yilmaz",
+          "url": "/api/audio/session_mulberry?start=51200&end=88000"
+        }
+      ]
+    }
+  ]
+}

@@ -36,6 +36,7 @@ Because Elif is a plain member, these samples also show what access control hide
 | `GET_circle.json` | `GET /api/circle` (new, see below) | Panel header, member list, names |
 | `GET_device_invitation.json` | `GET /api/device/invitation` | Device screen: light on or off |
 | `POST_device_turn.json` | `POST /api/device/turn` | Device screen: one spoken turn |
+| `POST_device_turn_playlist.json` | `POST /api/device/turn` | Device screen: the elder asked to hear a story |
 | `POST_device_session_end.json` | `POST /api/device/session/end` | Device screen |
 | `POST_questions_accepted.json` | `POST /api/questions` | Panel question form, success |
 | `POST_questions_filtered.json` | `POST /api/questions` | Panel question form, blocked by a sensitive topic |
@@ -56,6 +57,11 @@ Because Elif is a plain member, these samples also show what access control hide
 - `POST /api/device/turn`: `multipart/form-data` with `audio` (the recorded clip) and `session_id`, the one returned by
   `POST /api/device/session/start` (call that first; it also runs the opening turn).
   `heard_text` in the response is what speech-to-text understood, for showing on screen.
+  When the elder asks to hear stories ("Play me what I told about the village house"), the response has a
+  `playlist` card (`POST_device_turn_playlist.json`). Play `reply_audio_url` first, then each item's `url` in order,
+  with the `X-Person-Id` header like any other audio. The items are already filtered and cut around private parts;
+  one story can have several items (its audio continues across them). The card appears only in the turn where the
+  agent picked the stories.
 - `POST /api/questions`: JSON `{"target_person_id": "...", "text": "...", "period": null}`.
   A blocked question returns HTTP 200 with `status: "filtered"`; the message never reveals the sensitive topic itself.
   A question blocked only by a topic the center refused herself returns the normal accepted response (`status: "waiting"`); it is never asked, like an unanswered question.

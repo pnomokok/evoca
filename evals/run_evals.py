@@ -45,9 +45,14 @@ import anyio
 
 from core.clock import now_utc
 from core.db import SessionLocal, engine, init_db
-from core.enums import CircleStatus, QuestionSource, QuestionStatus, Role, SessionStart
-from core.services.sessions import start_session
-from core.models import Base, Circle, Membership, Person, Question, SensitiveTopic
+from core.enums import (
+    CircleStatus, LinkReason, LinkSource, LinkStatus, PeriodSource, QuestionSource, QuestionStatus,
+    Role, SessionStart, StoryKind, StoryStatus,
+)
+from core.services.sessions import add_segment, end_session, start_session
+from core.models import (
+    Base, Circle, Membership, Person, Question, SensitiveTopic, Story, StoryLink, StorySubject,
+)
 from evals.scenarios import SCENARIOS, Scenario
 from evals.text_checks import has_tech_words, parse_judge_json
 from server.agents.chat_agent import (
@@ -137,6 +142,8 @@ def build_family(sc: Scenario) -> dict[str, Any]:
         for text in sc.sensitive_topics:
             db.add(SensitiveTopic(circle_id=circle.id, text=text, added_by=center.id))
 
+        add_past_stories(db, sc, circle.id, center.id, people, now)
+
         db.commit()
         return {
             "center_id": center.id,
@@ -144,6 +151,36 @@ def build_family(sc: Scenario) -> dict[str, Any]:
             "people": people,
             "question_ids": question_ids,
         }
+
+
+def add_past_stories(db, sc: Scenario, circle_id: str, center_id: str,
+                     people: dict[str, dict[str, str]], now) -> None:
+    """Published stories from an earlier session of their teller (one segment
+    each, the summary as transcript), with their links."""
+    ids: list[str] = []
+    for i, ps in enumerate(sc.stories):
+        teller_id = people[ps.teller]["id"] if ps.teller else center_id
+        sess = start_session(db, circle_id, SessionStart.spontaneous, [teller_id])
+        add_segment(db, sess.id, teller_id, ps.summary, 0, 30_000)
+        end_session(db, sess.id)
+        story = Story(
+            circle_id=circle_id, teller_id=teller_id, kind=StoryKind.original, title=ps.title,
+            ai_summary=ps.summary, place=ps.place,
+            sources=[{"session_id": sess.id, "start_ms": 0, "end_ms": 30_000}],
+            access={"type": ps.access, "person_ids": []}, status=StoryStatus.published,
+            publish_at=(now - timedelta(days=2)).isoformat(),
+            created_at=(now - timedelta(days=3, minutes=len(sc.stories) - i)).isoformat(),
+        )
+        db.add(story)
+        db.flush()
+        db.add(StorySubject(story_id=story.id, person_id=teller_id, period=ps.period,
+                            period_source=PeriodSource.ai))
+        ids.append(story.id)
+    for i, ps in enumerate(sc.stories):
+        if ps.linked_to is not None:
+            db.add(StoryLink(from_story_id=ids[i], to_story_id=ids[ps.linked_to],
+                             reason=LinkReason.same_place, source=LinkSource.ai,
+                             status=LinkStatus.suggested))
 
 
 def question_status(question_id: str) -> str:
@@ -231,6 +268,35 @@ def avoid_checks(sc: Scenario, transcript: list[dict[str, str]]) -> dict[str, bo
     return {"avoid_topic_not_raised": not any(words.search(text) for text in companion)}
 
 
+def _words_re(words: list[str]) -> re.Pattern[str]:
+    return re.compile(r"(?:" + "|".join(map(re.escape, words)) + r")", re.IGNORECASE)
+
+
+def playlist_checks(sc: Scenario, transcript: list[dict[str, str]],
+                    turns: list[dict[str, Any]]) -> dict[str, bool]:
+    """For a scenario where the person asks to hear a story: get_linked_playlist
+    was called (never in the opening, before she asked), the reply that
+    introduces the playlist says none of the stories' details, and a story the
+    center cannot see is never mentioned."""
+    if not sc.stories:
+        return {}
+    called = [i for i, t in enumerate(turns) if "get_linked_playlist" in t["tools"]]
+    checks = {
+        "playlist_called": bool(called),
+        "playlist_not_in_opening": 0 not in called,
+    }
+    if sc.detail_words and called:
+        details = _words_re(sc.detail_words)
+        checks["playlist_reply_does_not_retell"] = not any(
+            details.search(turns[i]["reply"]) for i in called
+        )
+    if sc.unseen_words:
+        unseen = _words_re(sc.unseen_words)
+        companion = [t["text"] for t in transcript if t["speaker"] == "companion"]
+        checks["unseen_story_not_mentioned"] = not any(unseen.search(text) for text in companion)
+    return checks
+
+
 _INVENTED_ASKER = re.compile(
     r"\b(?!I\b)[A-Z][a-z]+ (?:would (?:love|like) to know|wants to know|is wondering|asked)"
 )
@@ -273,6 +339,9 @@ def judge(judge_llm: BedrockLLM, sc: Scenario, family: dict[str, Any], transcrip
         "family_questions": [{"asker": q.asker, "text": q.text} for q in sc.questions],
         "declined_topic": sc.declined_topic,
     }
+    visible = [ps for ps in sc.stories if ps.access != "private" or ps.teller is None]
+    if visible:
+        facts["archive_stories"] = [{"title": ps.title, "summary": ps.summary} for ps in visible]
     convo = "\n".join(f"{t['speaker'].upper()}: {t['text']}" for t in transcript)
     content = f"FACTS GIVEN TO THE COMPANION:\n{json.dumps(facts, ensure_ascii=False)}\n\nCONVERSATION:\n{convo}"
     response = judge_llm.converse(
@@ -365,6 +434,7 @@ async def run_scenario(
     scenario_checks.update(privacy_checks(sc, transcript, turns))
     scenario_checks.update(asker_checks(sc, family, turns))
     scenario_checks.update(avoid_checks(sc, transcript))
+    scenario_checks.update(playlist_checks(sc, transcript, turns))
     if family["question_ids"]:
         first_q = family["question_ids"][0]
         scenario_checks["first_question_marked_in_opening"] = "mark_question_asked" in opening_tools

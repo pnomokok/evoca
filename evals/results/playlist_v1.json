@@ -1,0 +1,348 @@
+[
+  {
+    "scenario": "asks_to_listen",
+    "run": 1,
+    "goal": "Plays a story the person asks to hear, introduces it briefly without retelling it, and never mentions a linked story she cannot see.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Welcome, Zeliha. It’s lovely to talk with you again.\nIs there a memory on your mind today that you would like to share?"
+      },
+      {
+        "speaker": "person",
+        "text": "Could you play me what I told you about the village house?"
+      },
+      {
+        "speaker": "companion",
+        "text": "I’ll play the stories about your village house, Zeliha. You’ll hear The Village House and Bread Day at the Village Oven, both told by you.\nEnjoy listening."
+      },
+      {
+        "speaker": "person",
+        "text": "That was lovely to hear my own voice again. I was thinking of my grandchildren in Ankara and how they would love to hear these stories too."
+      },
+      {
+        "speaker": "companion",
+        "text": "Your grandchildren would indeed love to hear these stories, Zeliha. Is there another memory you would like to share with them today?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you for sharing your memories today. Goodbye for now."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Welcome, Zeliha. It’s lovely to talk with you again.\nIs there a memory on your mind today that you would like to share?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3081,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I’ll play the stories about your village house, Zeliha. You’ll hear The Village House and Bread Day at the Village Oven, both told by you.\nEnjoy listening.",
+        "tools": [
+          "search_archive",
+          "get_linked_playlist"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3124,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Your grandchildren would indeed love to hear these stories, Zeliha. Is there another memory you would like to share with them today?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 853,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Thank you for sharing your memories today. Goodbye for now.",
+        "tools": [
+          "end_conversation"
+        ],
+        "tool_errors": [],
+        "latency_ms": 795,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "playlist_called": true,
+      "playlist_not_in_opening": true,
+      "playlist_reply_does_not_retell": true,
+      "unseen_story_not_mentioned": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": false,
+      "respected_declined_topic": null,
+      "warmth": 4,
+      "notes": "Follow-up question was generic rather than building on the specific detail about grandchildren in Ankara."
+    }
+  },
+  {
+    "scenario": "asks_to_listen",
+    "run": 2,
+    "goal": "Plays a story the person asks to hear, introduces it briefly without retelling it, and never mentions a linked story she cannot see.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Welcome, Zeliha. It’s lovely to talk with you again. Your daughter Ayşe would love to hear more about your early days in Tokat.\nIs there a memory on your mind today that you would like to share?"
+      },
+      {
+        "speaker": "person",
+        "text": "Could you play me what I told you about the village house?"
+      },
+      {
+        "speaker": "companion",
+        "text": "I’ll play the story about the village house for you, Zeliha, together with the one about bread day at the village oven.\nBoth are from your childhood in Tokat and were told by you."
+      },
+      {
+        "speaker": "person",
+        "text": "That’s kind of you, but just the village house, please."
+      },
+      {
+        "speaker": "companion",
+        "text": "I’ll play just the story about the village house for you now.\nIt’s the one you told titled The Village House, from your childhood in Tokat."
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you for sharing your memories today. Goodbye for now."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Welcome, Zeliha. It’s lovely to talk with you again. Your daughter Ayşe would love to hear more about your early days in Tokat.\nIs there a memory on your mind today that you would like to share?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions"
+        ],
+        "tool_errors": [],
+        "latency_ms": 1940,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I’ll play the story about the village house for you, Zeliha, together with the one about bread day at the village oven.\nBoth are from your childhood in Tokat and were told by you.",
+        "tools": [
+          "search_archive",
+          "get_linked_playlist"
+        ],
+        "tool_errors": [],
+        "latency_ms": 2968,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I’ll play just the story about the village house for you now.\nIt’s the one you told titled The Village House, from your childhood in Tokat.",
+        "tools": [
+          "get_linked_playlist"
+        ],
+        "tool_errors": [],
+        "latency_ms": 1904,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Thank you for sharing your memories today. Goodbye for now.",
+        "tools": [
+          "end_conversation"
+        ],
+        "tool_errors": [],
+        "latency_ms": 886,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "playlist_called": true,
+      "playlist_not_in_opening": true,
+      "playlist_reply_does_not_retell": true,
+      "unseen_story_not_mentioned": true
+    },
+    "judge": {
+      "invented_facts": [
+        "Your daughter Ayşe would love to hear more about your early days in Tokat"
+      ],
+      "followups_specific": false,
+      "respected_declined_topic": null,
+      "warmth": 4,
+      "notes": "Companion invented a daughter's name (Ayşe) when only Meral is documented as the daughter."
+    }
+  },
+  {
+    "scenario": "asks_to_listen",
+    "run": 3,
+    "goal": "Plays a story the person asks to hear, introduces it briefly without retelling it, and never mentions a linked story she cannot see.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Welcome, Zeliha. It's lovely to spend this time with you.\nIs there a memory on your mind today that you would like to share?"
+      },
+      {
+        "speaker": "person",
+        "text": "Could you play me what I told you about the village house?"
+      },
+      {
+        "speaker": "companion",
+        "text": "Zeliha, I found your story about the village house and the one about bread day at the village oven. I'll play them for you now."
+      },
+      {
+        "speaker": "person",
+        "text": "Oh lovely, I would like to hear the village house story please.\nOnce it is done, I will tell you about my grandchildren in Ankara."
+      },
+      {
+        "speaker": "companion",
+        "text": "Okay, Zeliha, I'll play the village house story for you now. Once it's done, I'd love to hear about your grandchildren in Ankara."
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Zeliha. It was wonderful spending this time with you. We can talk more about your grandchildren in Ankara another day. Goodbye for now."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Welcome, Zeliha. It's lovely to spend this time with you.\nIs there a memory on your mind today that you would like to share?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions"
+        ],
+        "tool_errors": [],
+        "latency_ms": 2022,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Zeliha, I found your story about the village house and the one about bread day at the village oven. I'll play them for you now.",
+        "tools": [
+          "search_archive",
+          "get_linked_playlist"
+        ],
+        "tool_errors": [],
+        "latency_ms": 2938,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Okay, Zeliha, I'll play the village house story for you now. Once it's done, I'd love to hear about your grandchildren in Ankara.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 928,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Zeliha. It was wonderful spending this time with you. We can talk more about your grandchildren in Ankara another day. Goodbye for now.",
+        "tools": [
+          "end_conversation"
+        ],
+        "tool_errors": [],
+        "latency_ms": 1035,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "playlist_called": true,
+      "playlist_not_in_opening": true,
+      "playlist_reply_does_not_retell": true,
+      "unseen_story_not_mentioned": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": false,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Companion did not actually play the story as requested, which may have confused the interaction flow."
+    }
+  }
+]

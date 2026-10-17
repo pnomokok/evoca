@@ -49,6 +49,7 @@ from core.models import (
     Session as OrmSession,
 )
 from core.services.chat_tools import (
+    get_linked_playlist_data,
     mark_private_data,
     mark_reactions_delivered_data,
     search_archive_data,
@@ -275,6 +276,12 @@ class FakeMCPBridge:
         elif name == "search_archive":
             return {"result": search_archive_data(self._db, self._person_id, self._circle_id,
                                                   arguments.get("query", ""))}
+        elif name == "get_linked_playlist":
+            try:
+                return get_linked_playlist_data(self._db, self._person_id, self._circle_id,
+                                                arguments["story_id"])
+            except ValueError as exc:
+                raise RuntimeError(f"MCP tool '{name}' returned error: {exc}") from exc
         else:
             raise RuntimeError(f"Unknown tool: {name}")
 

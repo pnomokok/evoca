@@ -88,8 +88,7 @@ log = logging.getLogger(__name__)
 _PROMPT_PATH = Path(__file__).parent / "prompts" / "chat_agent.md"
 _MAX_TOOL_ROUNDS = 5
 
-# MCP tools the model may call; get_linked_playlist is picked up
-# automatically once the MCP server provides it.
+# MCP tools the model may call.
 CHAT_TOOLS = frozenset({
     "get_session_context",
     "get_pending_questions",
