@@ -2,41 +2,29 @@
   {
     "id": "person_ayse",
     "name": "Ayşe Yilmaz",
-    "circles": [
-      {
-        "circle_id": "circle_yilmaz",
-        "role": "admin"
-      }
-    ]
+    "role": "admin",
+    "relation_to_center": "daughter",
+    "birth_year": 1975
   },
   {
     "id": "person_can",
     "name": "Can Yilmaz",
-    "circles": [
-      {
-        "circle_id": "circle_yilmaz",
-        "role": "member"
-      }
-    ]
+    "role": "member",
+    "relation_to_center": "grandson",
+    "birth_year": 2006
   },
   {
     "id": "person_elif",
     "name": "Elif Yilmaz",
-    "circles": [
-      {
-        "circle_id": "circle_yilmaz",
-        "role": "member"
-      }
-    ]
+    "role": "member",
+    "relation_to_center": "granddaughter",
+    "birth_year": 2003
   },
   {
     "id": "person_fatma",
     "name": "Fatma Yilmaz",
-    "circles": [
-      {
-        "circle_id": "circle_yilmaz",
-        "role": "center"
-      }
-    ]
+    "role": "center",
+    "relation_to_center": null,
+    "birth_year": 1948
   }
 ]

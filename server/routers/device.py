@@ -8,7 +8,9 @@ GET  /api/device/invitation
 
 Identity: the X-Person-Id header. Only a circle's center person can start a
 device session, and only the person who started a session can send turns to
-it or end it.
+it or end it. An optional X-Circle-Id header picks the circle when the person
+is the center of several; it must be a circle they are the center of (else
+the same 403), and on /turn and /session/end it must be the session's circle.
 
 The session audio is one WAV per session (server/wav_writer.py). Every user
 turn and every spoken agent reply is appended to it, and each Segment gets its
@@ -79,19 +81,23 @@ def _get_tts() -> TTS:
 # Identity helpers
 # ---------------------------------------------------------------------------
 
-def _resolve_center(x_person_id: str, db) -> tuple[str, str]:
-    """Return (person_id, circle_id) for the device caller, who must be a center."""
+def _resolve_center(x_person_id: str, db, x_circle_id: str = "") -> tuple[str, str]:
+    """Return (person_id, circle_id) for the device caller, who must be a center
+    (of the X-Circle-Id circle when given)."""
     if not x_person_id:
         raise HTTPException(status_code=403, detail="X-Person-Id header required.")
-    circle = db.query(Circle).filter(Circle.center_person_id == x_person_id).first()
+    q = db.query(Circle).filter(Circle.center_person_id == x_person_id)
+    if x_circle_id:
+        q = q.filter(Circle.id == x_circle_id)
+    circle = q.order_by(Circle.id).first()
     if circle is None:
         raise HTTPException(status_code=403, detail="No circle found where this person is the center.")
     return x_person_id, circle.id
 
 
-def _require_owner(live: LiveSession, x_person_id: str) -> None:
-    """Only the person who started the session may use it."""
-    if not x_person_id or x_person_id != live.owner_id:
+def _require_owner(live: LiveSession, x_person_id: str, x_circle_id: str = "") -> None:
+    """Only the person who started the session may use it (in its own circle)."""
+    if not x_person_id or x_person_id != live.owner_id or (x_circle_id and x_circle_id != live.circle_id):
         raise HTTPException(status_code=403, detail="Only the person who started this session can use it.")
 
 
@@ -345,12 +351,13 @@ async def _run_archivist(session_id: str, person_id: str, circle_id: str) -> Non
 @router.post("/api/device/session/start")
 async def session_start(
     x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
+    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
     store: SessionStore = Depends(_get_store),
     tts: TTS = Depends(_get_tts),
 ):
     total_t0 = time.monotonic()
     with SessionLocal() as db:
-        person_id, circle_id = _resolve_center(x_person_id, db)
+        person_id, circle_id = _resolve_center(x_person_id, db, x_circle_id)
 
         circle = db.get(Circle, circle_id)
         today_str = now_utc().astimezone(ZoneInfo(circle.timezone)).strftime("%Y-%m-%d")
@@ -376,7 +383,8 @@ async def session_start(
     agent = ChatAgent(llm=chat_llm(), person_id=person_id, circle_id=circle_id,
                       db_session=db_session, bridge=None, session_id=session_id,
                       flush_marks_in_turn=False, checker_llm=privacy_check_llm())
-    live = LiveSession(session_id=session_id, owner_id=person_id, agent=agent, db=db_session)
+    live = LiveSession(session_id=session_id, owner_id=person_id, agent=agent, db=db_session,
+                       circle_id=circle_id)
     store.put(live)
 
     async with live.lock:
@@ -424,6 +432,7 @@ async def device_turn(
     session_id: Annotated[str, Form()],
     audio: Annotated[UploadFile, File()],
     x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
+    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
     store: SessionStore = Depends(_get_store),
     stt: STT = Depends(_get_stt),
     tts: TTS = Depends(_get_tts),
@@ -433,7 +442,7 @@ async def device_turn(
     live = store.get(session_id)
     if live is None:
         raise HTTPException(status_code=404, detail="Session not found or already ended.")
-    _require_owner(live, x_person_id)
+    _require_owner(live, x_person_id, x_circle_id)
 
     async with live.lock:
         if store.get(session_id) is None:   # ended while this request waited
@@ -535,12 +544,13 @@ async def session_end(
     body: SessionEndRequest,
     background_tasks: BackgroundTasks,
     x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
+    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
     store: SessionStore = Depends(_get_store),
 ):
     live = store.get(body.session_id)
     if live is None:
         raise HTTPException(status_code=404, detail="Session not found or already ended.")
-    _require_owner(live, x_person_id)
+    _require_owner(live, x_person_id, x_circle_id)
 
     async with live.lock:
         if store.get(body.session_id) is None:
@@ -557,12 +567,13 @@ async def session_end(
 @router.get("/api/device/invitation")
 async def get_invitation(
     x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
+    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
 ):
     """Is the light on? "now" is the demo-aware current time (now_utc(), so
     DEMO_NOW moves it), for the device clock."""
     now = now_utc()
     with SessionLocal() as db:
-        _, circle_id = _resolve_center(x_person_id, db)
+        _, circle_id = _resolve_center(x_person_id, db, x_circle_id)
         circle = db.get(Circle, circle_id)
         today_str = now.astimezone(ZoneInfo(circle.timezone)).strftime("%Y-%m-%d")
         inv = (

@@ -4,7 +4,7 @@ on the page in demo mode).
 
 GET  /api/demo/clock     {now, offset_hours}
 POST /api/demo/advance   {hours} (1-72): move the clock, publish, run invitations
-POST /api/demo/reset     rebuild the demo database from the seed; returns the people list
+POST /api/demo/reset     rebuild the whole demo database from the seed; returns the demo circle's people
 
 Only with EVOCA_DEMO_MODE=1; otherwise every endpoint is a 404 and nothing
 changes. No X-Person-Id header (demo only). The logic is in core.services.demo.

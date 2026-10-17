@@ -24,8 +24,24 @@ They are a **draft contract**: when the real API differs, update the sample and 
 ## Who is viewing?
 
 All panel samples are from **Elif's** point of view (granddaughter, `member`).
-For the hackathon the panel opens with a password-less person picker (`GET /api/people`), and every request
-carries the chosen person in an `X-Person-Id` header (PROJECT.md, decision log 17 October).
+For the hackathon the panel opens with a password-less person picker (`GET /api/circles/demo`, then
+`GET /api/people?circle_id=<id>`), and every request carries the chosen person in an `X-Person-Id` header
+(PROJECT.md, decision log 17 October). There is no authentication in the preview: a circle id acts as an unlisted
+link (PROJECT.md "Bilinen sınırlar").
+
+## Which circle? (`X-Circle-Id`)
+
+A person can belong to several circles. Every panel, admin, audio and device endpoint takes an optional
+`X-Circle-Id` header that picks one:
+
+- It must be one of the person's circles; otherwise the response is the same 403 as for someone with no circle.
+  On the device it must be a circle the person is the center of, and on `/api/device/turn` and
+  `/api/device/session/end` it must be the session's circle.
+- Without it the person's first circle is used (fine for the demo family, where everyone has one circle).
+- The feed, my questions, the lifeline (only that circle's stories), `GET /api/circle`, recordings, the admin
+  endpoints and the device session all work in the selected circle. Story, photo and audio endpoints work by id and
+  are filtered by `can_see()`; the header is only checked there.
+- Send it on every request once the user has picked a circle (for example after `POST /api/circles`).
 
 Because Elif is a plain member, these samples also show what access control hides:
 
@@ -37,7 +53,13 @@ Because Elif is a plain member, these samples also show what access control hide
 
 | File | Endpoint | Used by |
 |---|---|---|
-| `GET_people.json` | `GET /api/people` (**demo only**, no header) | Password-less person picker |
+| `GET_circles_demo.json` | `GET /api/circles/demo` (no header) | Person picker: which circle is the demo family |
+| `GET_people.json` | `GET /api/people?circle_id=` (no header) | Password-less person picker: one circle's people |
+| `POST_circles.json` | `POST /api/circles` (no header) | "Start a new family" form |
+| `GET_questions_mine.json` | `GET /api/questions/mine` | Panel: my questions and whether they are answered |
+| `POST_admin_members.json` | `POST /api/admin/members` (admin) | Admin: add a family member |
+| `PATCH_admin_member.json` | `PATCH /api/admin/members/{person_id}` (admin) | Admin: change a relation or role |
+| `DELETE_admin_member.json` | `DELETE /api/admin/members/{person_id}` (admin) | Admin: remove a member |
 | `GET_circle.json` | `GET /api/circle` (new, see below) | Panel header, member list, names |
 | `GET_device_invitation.json` | `GET /api/device/invitation` | Device screen: light on or off |
 | `POST_device_turn.json` | `POST /api/device/turn` | Device screen: one spoken turn |
@@ -94,6 +116,26 @@ Because Elif is a plain member, these samples also show what access control hide
 - `DELETE /api/stories/{id}/photo`: the uploader, the teller or an admin. Returns the same shape with nulls.
 - `GET /api/photos/{photo_id}`: the JPEG, `Cache-Control: private, no-store` (the browser keeps no copy, so a photo is gone once the story turns private or hidden). A story the viewer cannot see, or a hidden story,
   gives the same 404 as a missing photo.
+- `GET /api/people?circle_id=<id>`: that circle's people only, `{id, name, role, relation_to_center, birth_year}`,
+  by name. Missing `circle_id`: 400; unknown circle: 404. `GET /api/circles/demo` is `{id, name}` of the seeded demo
+  family (404 if there is none).
+- `POST /api/circles`: JSON `{"circle_name": "The Demir Family", "timezone": "Europe/Berlin", "chat_time": "09:30",
+  "center": {"name": "Hasan Demir", "birth_year": 1944}, "creator": {"name": "Selin Demir", "birth_year": 1975,
+  "relation_to_center": "daughter"}}`. Creates the circle, the center (role `center`) and the creator (role `admin`);
+  returns `{circle_id, center_id, creator_id}`. Use `creator_id` as `X-Person-Id` and `circle_id` as `X-Circle-Id`
+  from then on. Names (and the relation) 1-60 characters, birth years 1900 to this year, an IANA timezone, `HH:MM`;
+  anything else is a 400 whose `detail` names the field (for example `center.birth_year`).
+- `GET /api/questions/mine`: the viewer's own questions in the circle, newest first. `status` is only `waiting` or
+  `answered`. A question the elder declined, one being asked, or one she cannot be asked looks `waiting`, forever if
+  so; the client must not guess why. A question that was "not sent" (the filtered response) is not listed.
+  `answer_story_id` is set only when `status` is `answered`; open the story page with it.
+- `POST /api/admin/members`: JSON `{"name": "Deniz Yilmaz", "birth_year": 2010, "relation_to_center": "grandson",
+  "role": "member"}` (`role` is `member` or `admin`, default `member`). Returns the new member, the shape of a
+  `GET /api/circle` member.
+- `PATCH /api/admin/members/{person_id}`: JSON `{"relation_to_center": "..."}` and/or `{"role": "admin"}`. Returns the member.
+- `DELETE /api/admin/members/{person_id}`: removes the person from the circle only; their stories stay. Returns
+  `{id, removed: true}`. The center can never be changed or removed, and the last admin can never be demoted or
+  removed (400). A person who is not in the circle: 404.
 - `/api/admin/*`: only the circle's `admin`; everyone else (center included) gets the same 403. Show the admin screens only when `me.role` in `GET /api/circle` is `admin`.
 - `GET /api/admin/sensitive-topics` lists only topics the family added. Topics the center refused herself are never listed, and their ids get the same 404 as a missing id.
 - `POST /api/admin/sensitive-topics`: JSON `{"text": "Selim's debt"}`. Empty text, or text with no word of 4+ letters the filter can match (for example "the war"), returns 400. The same text again (any case) returns the existing topic.
@@ -111,9 +153,10 @@ anyone on the page can use them (PROJECT.md "Bilinen sınırlar").
   publishes stories whose 24 hours are over and runs the invitation scheduler, so the light and the feed change right away.
   Returns the same shape as `GET /api/demo/clock`. It takes about two seconds (both servers must see the new time).
   After it, refetch the feed, lifeline, invitation and anything else time-dependent.
-- `POST /api/demo/reset`: no body. Rebuilds the demo database from the seed, sets the clock back (offset 0), ends live
-  device sessions and deletes the audio, reply audio and photos recorded since the seed. Returns the new people list
-  (the shape of `GET /api/people`); person ids change, so go back to the person picker. Works only on `data/demo.db` (the database
+- `POST /api/demo/reset`: no body. Rebuilds the whole demo database from the seed (circles made with
+  `POST /api/circles` are gone too), sets the clock back (offset 0), ends live
+  device sessions and deletes the audio, reply audio and photos recorded since the seed. Returns the demo circle's new people list
+  (the shape of `GET /api/people?circle_id=`); person ids change, so go back to the person picker. Works only on `data/demo.db` (the database
   `python scripts/run_demo.py` uses); any other database, `data/evoca.db` and `data/browser.db` included, gets a 400
   that says so.
 

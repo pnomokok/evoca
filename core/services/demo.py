@@ -25,8 +25,9 @@ from sqlalchemy.orm import Session as DbSession
 
 import core.db as cdb
 from core import clock
-from core.models import DemoClock, Membership, Person, StoryPhoto
+from core.models import DemoClock, StoryPhoto
 from core.models import Session as OrmSession
+from core.services.circles import demo_circle, people_in_circle
 from core.services.invitations import run_invitations
 from core.services.publisher import publish_due_stories
 
@@ -44,21 +45,6 @@ FILE_DIRS = (Path("data") / "audio", Path("data") / "tts", Path("data") / "photo
 
 class ResetRefused(RuntimeError):
     """Reset would touch the real database."""
-
-
-def people_list(db: DbSession) -> list[dict[str, Any]]:
-    """Everyone and their circles (GET /api/people)."""
-    return [
-        {
-            "id": p.id,
-            "name": p.name,
-            "circles": [
-                {"circle_id": m.circle_id, "role": m.role}
-                for m in db.query(Membership).filter(Membership.person_id == p.id).all()
-            ],
-        }
-        for p in db.query(Person).order_by(Person.name).all()
-    ]
 
 
 def clock_state(db: DbSession) -> dict[str, Any]:
@@ -125,7 +111,8 @@ def _inside_file_dirs(path: Path) -> bool:
 
 
 def reset() -> list[dict[str, Any]]:
-    """Rebuild the demo database from the seed; returns the new people list.
+    """Rebuild the demo database from the seed; returns the demo circle's
+    people (the shape of GET /api/people?circle_id=).
 
     The caller ends live device sessions (and closes their database sessions)
     first. Only files inside data/audio, data/tts and data/photos are deleted.
@@ -147,4 +134,4 @@ def reset() -> list[dict[str, Any]]:
             except OSError as exc:
                 log.warning("Demo reset could not delete %s: %s", f, exc)
     with cdb.SessionLocal() as db:
-        return people_list(db)
+        return people_in_circle(db, demo_circle(db)["id"])

@@ -90,6 +90,8 @@ class Circle(Base):
     status = Column(String, nullable=False, default=CircleStatus.active)
     chat_time = Column(String, nullable=False)   # "HH:MM"
     timezone = Column(String, nullable=False)    # e.g. "Europe/Istanbul"
+    # The seeded demo family (GET /api/circles/demo); circles made with POST /api/circles are not.
+    is_demo = Column(Boolean, nullable=False, default=False, server_default="0")
 
     memberships = relationship("Membership", back_populates="circle")
 

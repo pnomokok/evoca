@@ -36,6 +36,7 @@ class LiveSession:
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     seen_questions: dict[str, dict] = field(default_factory=dict)
     last_question: str | None = None   # the agent's latest question, a hint for Whisper
+    circle_id: str = ""                # the session's circle (X-Circle-Id must match it)
 
 
 class SessionStore:

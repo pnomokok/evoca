@@ -203,7 +203,7 @@ class Servers:
                 raise StepFailed(f"a server exited on start; see {self.logs}")
             if port_in_use(MCP_PORT):
                 try:
-                    if httpx.get(f"{API}/api/people", timeout=5).status_code == 200:
+                    if httpx.get(f"{API}/api/circles/demo", timeout=5).status_code == 200:
                         return
                 except httpx.HTTPError:
                     pass
@@ -366,10 +366,11 @@ class Demo:
         self.note(f"workdir {self.workdir}; D0 = {self.t0.isoformat()}")
 
     def step1_people(self) -> None:
-        people = self.json("GET", "/api/people")
+        circle = self.json("GET", "/api/circles/demo")
+        people = self.json("GET", f"/api/people?circle_id={circle['id']}")
         def pick(role: str, first: str) -> str:
             for p in people:
-                if p["name"].split()[0] == first and any(c["role"] == role for c in p["circles"]):
+                if p["name"].split()[0] == first and p["role"] == role:
                     return p["id"]
             raise StepFailed(f"no {role} named {first}")
         self.ids = {"elif": pick("member", "Elif"), "ayse": pick("admin", "Ayşe"),
