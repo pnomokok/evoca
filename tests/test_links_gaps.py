@@ -22,6 +22,8 @@ Coverage
 
 from __future__ import annotations
 
+import copy
+
 from datetime import timedelta
 
 import pytest
@@ -371,11 +373,15 @@ async def test_save_story_cannot_borrow_audio_from_another_session(w):
     w.db.commit()
     args = {"title": "Rize", "summary": "Fatma talks about Rize.", "teller_id": w.fatma.id,
             "subjects": [], "sources": [{"session_id": older.id, "start_ms": 0, "end_ms": 10_000}]}
-    llm = DynamicScriptedLLM([[_tool_use("save_story", args)], "done"])
+    llm = DynamicScriptedLLM([[_tool_use("save_story", copy.deepcopy(args))], "done"])
     agent, bridge = _agent(w, llm)
     result = await agent.run(w.sess.id)
-    assert result.story_ids == [] and result.trace[0].is_error
-    assert "save_story" not in [n for n, _ in bridge.tool_calls]
+    # The archivist always cites the session it archives: the older session's
+    # id never reaches the server, and no story points at its audio.
+    assert all(src["session_id"] == w.sess.id
+               for n, a in bridge.tool_calls if n == "save_story" for src in a["sources"])
+    for sid in result.story_ids:
+        assert all(src["session_id"] == w.sess.id for src in w.db.get(Story, sid).sources)
     # The server checks it again against the session header.
     from core.services.archive_tools import save_story_data
     with pytest.raises(ValueError, match="session being archived"):

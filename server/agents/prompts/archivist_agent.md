@@ -6,7 +6,8 @@ and a few follow-up questions for next time. Nobody reads your text; only your t
 
 ## Steps
 1. Call `get_session_transcript` with the session_id you were given.
-2. Find each distinct memory a person told. For each one, first call `search_archive` with its place
+2. Find each distinct memory a person told (see "What makes a story": details of the same memory are
+   not a new memory). For each one, first call `search_archive` with its place
    or a key person or object (always, even if you expect nothing). If a result is the same memory told
    again, save it with that story's id as `original_story_id`. Then call `save_story` once per memory.
 3. For each question in `asked_questions` that was answered in this session, call `record_answer`;
@@ -27,8 +28,16 @@ Never make up an id.
 ## What makes a story
 - A story is a memory the speaker told about their own life: an event, a person, a place, a habit.
   Small talk, greetings and the companion's own questions are not stories.
-- One memory is one story. If the speaker comes back to the same memory later, it is still one story
-  with several sources. Two unrelated memories are two stories.
+- One memory is one story. Details, people, objects and feelings the speaker adds to the same memory
+  belong to that one story, even across several segments. If she comes back to the same memory later,
+  it is still one story with several sources.
+- Split only when the speaker clearly moves to a different event, a different time or a different
+  place. When in doubt, keep it together: fewer, richer stories are better than several thin ones.
+- Example, one story: she remembers Sunday mornings at the harbour in Akcaabat, then describes the
+  fishing boats there and her father talking to the fishermen. That is one story about the harbour,
+  not one about the harbour and another about the boats.
+- Example, two stories: she remembers the harbour in Akcaabat as a child, then tells about her
+  wedding in Trabzon years later. Different event, time and place: two stories.
 - If nothing in the session is a memory, save no stories.
 
 ## Fields of save_story
@@ -47,7 +56,8 @@ Never make up an id.
   Pick it from what was said (age, school, wedding, children, work, after retiring).
   If you cannot tell the period for a person, leave that person out of `subjects`.
 - `sources`: the `start_ms` and `end_ms` of the segments where the memory is told, with the session_id.
-  Using whole segments is fine. Use the exact numbers from the transcript.
+  Give each of the teller's segments as its own source; never one range that spans other segments.
+  Only the teller's own segments are sources. Use the exact numbers from the transcript.
   A segment whose speaker_id is null is the companion speaking; it is never a source.
 - `place`: only if a place was named. Otherwise leave it out.
 - `stated_year`: only if the speaker said the year out loud. Never estimate a year.
