@@ -29,6 +29,7 @@ Coverage
 - POST /api/questions: accepted path
 - POST /api/questions: filtered path
 - POST /api/questions: non-member → 403
+- POST /api/questions: a repeated waiting question returns the existing one
 - Privacy rules on /api/audio: answers need can_see() on the answer's story
   (pending / private / hidden stories keep it from the asker); one generic 403
   for every refusal; a private part only for its own speaker; whole-session listening only for the recorder of a
@@ -63,7 +64,7 @@ from core.clock import now_utc
 from core.enums import (
     AccessType, CircleStatus, InvitationStatus,
     QuestionSource, QuestionStatus, Role,
-    SessionKind, SessionStart, StoryKind, StoryStatus,
+    SessionKind, SessionStart, StoryKind, StoryStatus, TopicSource,
 )
 from core.models import (
     Base, Circle, Invitation, Membership, Person, Question,
@@ -558,6 +559,65 @@ async def test_post_question_filtered(test_app):
     # Message must not leak the topic text.
     assert "Hatice" not in data["message"]
     assert "Germany" not in data["message"]
+
+
+@pytest.mark.anyio
+async def test_post_question_duplicate_returns_the_waiting_one(test_app):
+    app, db, fatma, elif_, circle, *_ = test_app
+    can = Person(name="Can", birth_year=2006, language="en")
+    db.add(can); db.flush()
+    db.add(Membership(person_id=can.id, circle_id=circle.id, role=Role.member,
+                      relation_to_center="grandson"))
+    db.commit()
+
+    async def ask(person, text):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.post("/api/questions", headers={"x-person-id": person.id},
+                             json={"target_person_id": fatma.id, "text": text})
+        assert r.status_code == 200, r.text
+        assert r.json()["status"] == "waiting"
+        return r.json()["question"]
+
+    first = await ask(elif_, "Grandma, what games did you play as a child?")
+    for again in ("What games did you play as a child?", "grandma,  WHAT games did you play as a child",
+                  "Grandpa, what games did you play, as a child?!"):
+        dup = await ask(elif_, again)
+        assert dup["id"] == first["id"] and dup["text"] == first["text"]
+    assert (await ask(elif_, "What games did you play as a teenager?"))["id"] != first["id"]
+    assert (await ask(can, "What games did you play as a child?"))["id"] != first["id"]
+
+    # Asked or declined still looks unanswered to Elif: the same question comes back,
+    # so a second send never tells her which it is. Answered: a new question.
+    for status in (QuestionStatus.asked, QuestionStatus.declined):
+        db.expire_all()
+        db.get(Question, first["id"]).status = status
+        db.commit()
+        assert (await ask(elif_, "What games did you play as a child?"))["id"] == first["id"]
+    db.expire_all()
+    db.get(Question, first["id"]).status = QuestionStatus.answered
+    db.commit()
+    assert (await ask(elif_, "What games did you play as a child?"))["id"] != first["id"]
+    games = db.query(Question).filter(Question.asker_id == elif_.id,
+                                      Question.text.contains("games")).count()
+    assert games == 3
+
+
+@pytest.mark.anyio
+async def test_post_question_duplicate_of_a_speaker_refused_topic_returns_the_same_id(test_app):
+    # Fatma refused the war herself: the question is filtered but answered as
+    # waiting, and a second send must look the same as for any other question.
+    app, db, fatma, elif_, circle, *_ = test_app
+    db.add(SensitiveTopic(circle_id=circle.id, text="the war years", source=TopicSource.speaker,
+                          added_by=fatma.id, created_at=now_utc().isoformat()))
+    db.commit()
+    ids = []
+    for _ in range(2):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.post("/api/questions", headers={"x-person-id": elif_.id},
+                             json={"target_person_id": fatma.id, "text": "Grandma, tell me about the war years"})
+        assert r.json()["status"] == "waiting"
+        ids.append(r.json()["question"]["id"])
+    assert ids[0] == ids[1]
 
 
 @pytest.mark.anyio

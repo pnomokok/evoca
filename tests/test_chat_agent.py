@@ -70,6 +70,7 @@ from server.agents.chat_agent import (
     asks_to_stop,
     chat_llm,
     clean_reply,
+    first_names_only,
     keep_last_question,
     remove_questions,
     split_sentences,
@@ -616,6 +617,28 @@ async def test_guards_applied_to_reply_segment_and_history(world):
     assert result.session_should_end is False
     assert expected in [s.transcript for s in world.db.query(Segment).all()]
     assert agent._history[-1]["content"][0]["text"] == expected
+
+
+def test_first_names_only():
+    names = {"Elif Yilmaz", "Fatma Yilmaz", "Can"}
+    assert first_names_only("Hello, Fatma Yilmaz! Your granddaughter Elif Yilmaz has a question.",
+                            names) == "Hello, Fatma! Your granddaughter Elif has a question."
+    assert first_names_only("Elif Yilmazlar came.", names) == "Elif Yilmazlar came."
+
+
+@pytest.mark.anyio
+async def test_reply_uses_first_names_from_the_tools(world):
+    world.elif_.name = "Elif Yilmaz"
+    world.fatma.name = "Fatma Yilmaz"
+    world.db.commit()
+    llm = ScriptedLLM([
+        [_tool_use("get_session_context", {}), _tool_use("get_pending_questions", {})],
+        "Hello, Fatma Yilmaz! Your granddaughter Elif Yilmaz has a question for you: "
+        "what was school like?",
+    ])
+    result = await _make_agent(world, llm).turn("Hello")
+    assert result.reply_text == ("Hello, Fatma! Your granddaughter Elif has a question for you: "
+                                 "what was school like?")
 
 
 # ---------------------------------------------------------------------------
