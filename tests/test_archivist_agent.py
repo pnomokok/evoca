@@ -48,6 +48,7 @@ from core.services.archive_tools import (
     link_stories_data,
     get_session_transcript_data,
     mark_question_declined_data,
+    merge_stories_data,
     record_answer_data,
     reopen_question_data,
     save_story_data,
@@ -152,6 +153,10 @@ class FakeArchiveBridge:
             return {"status": "ok", **r}
         if name == "find_gaps":
             return {"result": find_gaps_data(db, pid, cid, **arguments)}
+        if name == "merge_stories":
+            r = merge_stories_data(db, pid, cid, self.session_id or "", **arguments)
+            db.commit()
+            return {"status": "ok", **r}
         if name == "reopen_question":
             reopen_question_data(db, pid, cid, **arguments)
             db.commit()
@@ -161,7 +166,7 @@ class FakeArchiveBridge:
 
 def _make_agent(w, llm, checker=None) -> tuple[ArchivistAgent, FakeArchiveBridge]:
     bridge = FakeArchiveBridge(w.db, w.fatma.id, w.circle.id)
-    agent = ArchivistAgent(llm=llm, person_id=w.fatma.id,
+    agent = ArchivistAgent(story_guard_llm=ScriptedLLM(["no"]), llm=llm, person_id=w.fatma.id,
                            circle_id=w.circle.id, bridge=bridge, checker_llm=checker)
     return agent, bridge
 
@@ -368,8 +373,9 @@ async def test_question_equal_to_waiting_or_asked_rejected(w):
     assert [t.is_error for t in result.trace] == [True, True]
     assert all("already waiting or asked" in t.result_preview for t in result.trace)
     assert _added_questions(w) == []
-    # The guard looked up the transcript and waiting questions itself.
-    assert [n for n, _ in bridge.tool_calls][:2] == ["get_session_transcript", "get_pending_questions"]
+    # The waiting questions are read once at the start (for the first message);
+    # the guard looked up the transcript itself.
+    assert [n for n, _ in bridge.tool_calls][:2] == ["get_pending_questions", "get_session_transcript"]
 
 
 @pytest.mark.anyio
@@ -738,7 +744,8 @@ async def test_markdown_yes_from_checker_records_the_answer(w):
 
 
 # ---------------------------------------------------------------------------
-# Split guard: one memory saved as two stories is logged, never merged
+# Split guard: one memory saved as two stories is logged, then merged when
+# the parts share a subject period
 # ---------------------------------------------------------------------------
 
 def _src(start, end, session="s1"):
@@ -769,7 +776,7 @@ def test_possible_split(a, b, expected):
 
 
 @pytest.mark.anyio
-async def test_split_guard_logs_ids_only_and_keeps_both_stories(w, caplog):
+async def test_split_guard_logs_ids_only_and_merges_the_split(w, caplog):
     def story(title, start, end, place):
         return {**_story_args(w, start, end), "title": title, "place": place,
                 "summary": f"Fatma remembers {title.lower()}."}
@@ -779,20 +786,50 @@ async def test_split_guard_logs_ids_only_and_keeps_both_stories(w, caplog):
          _tool_use("save_story", story("The Fishing Boats", 6_000, 10_000, "Akcaabat")),
          _tool_use("save_story", story("Summer Fishing", 20_000, 30_000, "Rize"))],
         "done",
+        '{"title": "Harbour Mornings", "summary": "Fatma remembers the harbour and its boats."}',
     ])
-    agent, _ = _make_agent(w, llm)
-    with caplog.at_level("WARNING", logger="server.agents.archivist_agent"):
+    bridge = FakeArchiveBridge(w.db, w.fatma.id, w.circle.id, session_id=w.sess.id)
+    agent = ArchivistAgent(story_guard_llm=ScriptedLLM(["no"]), llm=llm, person_id=w.fatma.id,
+                           circle_id=w.circle.id, bridge=bridge, checker_llm=ScriptedLLM(["yes"]))
+    with caplog.at_level("INFO", logger="server.agents.archivist_agent"):
         result = await agent.run(w.sess.id)
 
-    assert len(result.story_ids) == 3                       # nothing merged
-    harbour, boats, summer = result.story_ids
     # Summer Fishing shares the childhood period but starts 10 s after the boats.
-    assert result.possible_splits == [(harbour, boats)]
-    lines = [r.getMessage() for r in caplog.records if "Possible story split" in r.getMessage()]
-    assert lines == [f"Possible story split in session {w.sess.id}: {harbour} and {boats}"]
-    assert "Harbour" not in lines[0] and "Akcaabat" not in lines[0]
+    harbour = result.stories_merged[0]["story_id"]
+    boats = result.stories_merged[0]["merged_ids"][0]
+    assert result.possible_splits[0] == (harbour, boats)
+    assert len(result.story_ids) == 2 and harbour in result.story_ids and boats not in result.story_ids
     w.db.expire_all()
-    assert w.db.query(Story).filter(Story.id.in_(result.story_ids)).count() == 3
+    merged = w.db.get(Story, harbour)
+    assert w.db.get(Story, boats) is None
+    assert merged.title == "Harbour Mornings"
+    assert merged.ai_summary == "Fatma remembers the harbour and its boats."
+    assert [(x["start_ms"], x["end_ms"]) for x in merged.sources] == [(0, 5_000), (6_000, 10_000)]
+    # The merge text came from the teller's words only, in one call.
+    merge_call = llm.calls[-1]
+    assert merge_call["tools"] is None
+    lines = [r.getMessage() for r in caplog.records
+             if "split" in r.getMessage().lower() or "Merged" in r.getMessage()]
+    assert lines and all("Harbour" not in x and "Akcaabat" not in x for x in lines)
+
+
+@pytest.mark.anyio
+async def test_split_sharing_only_a_place_is_not_merged(w):
+    def story(title, start, end, period):
+        return {**_story_args(w, start, end), "title": title, "place": "Akcaabat",
+                "subjects": [{"person_id": w.fatma.id, "period": period}]}
+
+    llm = DynamicScriptedLLM([
+        [_tool_use("save_story", story("The Harbour", 0, 5_000, "childhood")),
+         _tool_use("save_story", story("The Wedding", 6_000, 10_000, "marriage_early_years"))],
+        "done",
+    ])
+    bridge = FakeArchiveBridge(w.db, w.fatma.id, w.circle.id, session_id=w.sess.id)
+    agent = ArchivistAgent(story_guard_llm=ScriptedLLM(["no"]), llm=llm, person_id=w.fatma.id,
+                           circle_id=w.circle.id, bridge=bridge)
+    result = await agent.run(w.sess.id)
+    assert len(result.possible_splits) == 1            # flagged (same place) ...
+    assert result.stories_merged == [] and len(result.story_ids) == 2   # ... but different periods
 
 
 # The real case: her three segments are 5.0-5.4 s apart, each gap holding a
@@ -842,8 +879,17 @@ async def test_split_guard_catches_the_real_harbour_case(w):
          _tool_use("save_story", story("Father and the Fishermen", _TELLER[2]))],
         "done",
     ])
-    bridge = FakeArchiveBridge(w.db, w.fatma.id, w.circle.id)
-    agent = ArchivistAgent(llm=llm, person_id=w.fatma.id, circle_id=w.circle.id, bridge=bridge)
+    bridge = FakeArchiveBridge(w.db, w.fatma.id, w.circle.id, session_id=sess.id)
+    agent = ArchivistAgent(story_guard_llm=ScriptedLLM(["no"]), llm=llm, person_id=w.fatma.id,
+                           circle_id=w.circle.id, bridge=bridge)
     result = await agent.run(sess.id)
-    harbour, boats, father = result.story_ids
-    assert result.possible_splits == [(harbour, boats), (boats, father)]
+    assert len(result.possible_splits) == 2
+    (harbour, boats), (_, father) = result.possible_splits
+    assert result.possible_splits[1][0] == boats
+    # All three parts become one story; the merge text falls back to the first title.
+    assert result.story_ids == [harbour]
+    assert result.stories_merged == [{"story_id": harbour, "merged_ids": [boats, father]}]
+    w.db.expire_all()
+    story = w.db.get(Story, harbour)
+    assert story.title == "The Harbour"
+    assert [(x["start_ms"], x["end_ms"]) for x in story.sources] == _TELLER

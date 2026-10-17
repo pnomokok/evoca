@@ -8,13 +8,14 @@ an MCP context.
 Tool table from docs/PROJECT.md:
   get_session_transcript   — non-private segments + asked questions
   save_story               — new pending story with subjects and sources
-  record_answer            — flip an asked question to "answered"
+  record_answer            — flip an asked (or never-asked family) question to "answered"
   add_question             — follow_up / gap question for the center person
   mark_question_declined   — the center declined to answer: "asked" -> "declined"
   reopen_question          — asked but not answered: "asked" -> "waiting"
   add_refused_topic        — the center refused a topic: a SensitiveTopic with source "speaker"
   link_stories             — an ai-suggested link from a story of this session to a related one
   find_gaps                — life periods of the center with no story yet
+  merge_stories            — one memory saved as several stories in one run becomes one story
 
 Private segments (is_private = True) never appear in any output here, and no
 story source or answer range may overlap one.
@@ -53,7 +54,9 @@ from core.models import (
     SensitiveTopic,
     Session as OrmSession,
     Story,
+    Reaction,
     StoryLink,
+    StoryPhoto,
     StorySubject,
 )
 from core.services.session_tools import _matches_sensitive_topic, _meaningful_words
@@ -341,18 +344,30 @@ def record_answer_data(
     start_ms: int,
     end_ms: int,
 ) -> dict[str, Any]:
-    """Mark an asked question as answered by a range of a story's session.
+    """Mark a question as answered by a range of a story's session.
 
+    The question must be asked, or a waiting family question that was never
+    asked (the speaker sometimes answers it on her own; the archivist's checker
+    confirms the answer first). Follow-up and gap questions must be asked.
     The session is taken from the story's first source. The answer range is
     checked against private segments so a private range never reaches the asker.
     """
     q: Question | None = db.get(Question, question_id)
     if q is None or q.circle_id != circle_id:
         raise ValueError(f"Question '{question_id}' not found in this circle.")
-    if q.status != QuestionStatus.asked:
+    unasked_family = q.status == QuestionStatus.waiting and q.source == QuestionSource.family
+    if q.status != QuestionStatus.asked and not unasked_family:
         raise ValueError(
-            f"Question '{question_id}' has status '{q.status}', expected 'asked'."
+            f"Question '{question_id}' has status '{q.status}', expected 'asked' "
+            f"(or a waiting family question)."
         )
+    if unasked_family:
+        circle: Circle | None = db.get(Circle, circle_id)
+        topics = db.query(SensitiveTopic).filter(SensitiveTopic.circle_id == circle_id).all()
+        if (circle is None or q.target_person_id != circle.center_person_id
+                or any(_matches_sensitive_topic(q.text, t.text) for t in topics)):
+            # Same message as a missing question: a sensitive match is never revealed.
+            raise ValueError(f"Question '{question_id}' not found in this circle.")
 
     story: Story | None = db.get(Story, story_id)
     if story is None or story.circle_id != circle_id:
@@ -373,6 +388,122 @@ def record_answer_data(
     q.answer = answer
     db.flush()
     return answer
+
+
+# ---------------------------------------------------------------------------
+# merge_stories
+# ---------------------------------------------------------------------------
+
+def _merged_ranges(ranges: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Sorted ranges per session, with overlapping or touching ones joined."""
+    out: list[dict[str, Any]] = []
+    for r in sorted(ranges, key=lambda r: (r["session_id"], r["start_ms"], r["end_ms"])):
+        last = out[-1] if out else None
+        if last and last["session_id"] == r["session_id"] and r["start_ms"] <= last["end_ms"]:
+            last["end_ms"] = max(last["end_ms"], r["end_ms"])
+        else:
+            out.append(dict(r))
+    return out
+
+
+def merge_stories_data(
+    db: DbSession,
+    viewer_id: str,
+    circle_id: str,
+    session_id: str,
+    story_ids: list[str],
+    title: str,
+    summary: str,
+) -> dict[str, Any]:
+    """Merge stories saved as parts of one memory into the first one.
+
+    Called by the archivist's own code (never the model) after a run, for
+    stories its split guard flagged. Every story must be pending, told by the
+    same person and sourced only from session_id (the X-Evoca-Session-Id
+    header): only stories just saved from the session being archived can be
+    merged. The survivor gets the union of the sources, the first stated_year
+    (and place) any part has, every subject (the survivor's period wins for a
+    person in both), and the new title and summary. Answers, links, photos,
+    reactions and retellings that point at a merged story move to the
+    survivor; the merged stories are deleted. Returns {story_id, merged_ids}.
+    """
+    if not title or not title.strip():
+        raise ValueError("title must not be empty.")
+    ids = list(dict.fromkeys(story_ids or []))
+    if len(ids) < 2:
+        raise ValueError("Merging needs at least two stories.")
+    if not session_id:
+        raise ValueError("No session: only stories of the session being archived can be merged.")
+
+    stories: list[Story] = []
+    for sid in ids:
+        story: Story | None = db.get(Story, sid)
+        if story is None or story.circle_id != circle_id:
+            raise ValueError(f"Story '{sid}' not found in this circle.")
+        if story.status != StoryStatus.pending:
+            raise ValueError(f"Story '{sid}' is not pending; only just-saved stories can be merged.")
+        if not story.sources or any(src.get("session_id") != session_id for src in story.sources):
+            raise ValueError(f"Story '{sid}' is not from the session being archived.")
+        stories.append(story)
+    survivor, others = stories[0], stories[1:]
+    if any(s.teller_id != survivor.teller_id for s in others):
+        raise ValueError("Only stories by the same teller can be merged.")
+
+    sources = _merged_ranges([src for s in stories for src in s.sources])
+    for src in sources:
+        _check_range(db, src["session_id"], src["start_ms"], src["end_ms"])
+
+    other_ids = [s.id for s in others]
+    have = {s.person_id for s in db.query(StorySubject).filter(StorySubject.story_id == survivor.id)}
+    for subj in db.query(StorySubject).filter(StorySubject.story_id.in_(other_ids)).all():
+        if subj.person_id not in have:
+            db.add(StorySubject(story_id=survivor.id, person_id=subj.person_id, period=subj.period,
+                                period_source=subj.period_source, corrected_by=subj.corrected_by))
+            have.add(subj.person_id)
+        db.delete(subj)
+
+    for q in db.query(Question).filter(Question.circle_id == circle_id).all():
+        if q.answer and q.answer.get("story_id") in other_ids:
+            q.answer = {**q.answer, "story_id": survivor.id}
+
+    seen_links: set[tuple[str, str, str]] = set()
+    links = db.query(StoryLink).filter(
+        StoryLink.from_story_id.in_(ids) | StoryLink.to_story_id.in_(ids)
+    ).all()
+    for link in sorted(links, key=lambda link: link.from_story_id != survivor.id):
+        frm = survivor.id if link.from_story_id in other_ids else link.from_story_id
+        to = survivor.id if link.to_story_id in other_ids else link.to_story_id
+        key = (frm, to, link.reason)
+        if frm == to or key in seen_links:
+            db.delete(link)
+            continue
+        seen_links.add(key)
+        link.from_story_id, link.to_story_id = frm, to
+
+    for photo in db.query(StoryPhoto).filter(StoryPhoto.story_id.in_(other_ids)).all():
+        photo.story_id = survivor.id
+    reacted = {(r.person_id, r.emoji) for r in db.query(Reaction).filter(Reaction.story_id == survivor.id)}
+    for r in db.query(Reaction).filter(Reaction.story_id.in_(other_ids)).all():
+        if (r.person_id, r.emoji) not in reacted:
+            db.add(Reaction(story_id=survivor.id, person_id=r.person_id, emoji=r.emoji,
+                            delivered_to_center=r.delivered_to_center, created_at=r.created_at))
+            reacted.add((r.person_id, r.emoji))
+        db.delete(r)
+    for retelling in db.query(Story).filter(Story.original_story_id.in_(other_ids)).all():
+        retelling.original_story_id = survivor.id
+
+    survivor.sources = sources
+    survivor.title = title.strip()
+    survivor.ai_summary = summary
+    if survivor.stated_year is None:
+        survivor.stated_year = next((s.stated_year for s in others if s.stated_year is not None), None)
+    if survivor.place is None:
+        survivor.place = next((s.place for s in others if s.place), None)
+    db.flush()
+    for s in others:
+        db.delete(s)
+    db.flush()
+    return {"story_id": survivor.id, "merged_ids": other_ids}
 
 
 # ---------------------------------------------------------------------------

@@ -36,6 +36,7 @@ from core.services.archive_tools import (
     link_stories_data,
     get_session_transcript_data,
     mark_question_declined_data,
+    merge_stories_data,
     record_answer_data,
     reopen_question_data,
     save_story_data,
@@ -303,6 +304,22 @@ def reopen_question(ctx: Context, question_id: str) -> dict[str, str]:
         reopen_question_data(db, viewer_id, circle_id, question_id)
         db.commit()
         return {"status": "ok", "question_id": question_id}
+
+
+@mcp.tool()
+def merge_stories(ctx: Context, story_ids: list[str], title: str, summary: str) -> dict[str, Any]:
+    """Merge stories that are one memory saved in parts into the first story_id.
+
+    Called by the archivist's own code after a run, not by the model. Only
+    pending stories of the session in the X-Evoca-Session-Id header.
+    """
+    with SessionLocal() as db, tool_errors():
+        viewer_id, circle_id = get_viewer(ctx, db)
+        result = merge_stories_data(
+            db, viewer_id, circle_id, get_session_id(ctx), story_ids, title, summary
+        )
+        db.commit()
+        return {"status": "ok", **result}
 
 
 @mcp.tool()

@@ -134,6 +134,7 @@ async def run_once(sc: SplitScenario, run: int) -> dict[str, Any]:
             "scenario": sc.name, "run": run, "expected": sc.expected_stories,
             "stories": len(result.story_ids), "titles": titles,
             "possible_splits": [list(p) for p in result.possible_splits],
+            "stories_merged": result.stories_merged,
             "ok": len(result.story_ids) == sc.expected_stories,
             "tools": [t.tool for t in result.trace],
             "tool_errors": [f"{t.tool}: {t.result_preview[:150]}" for t in result.trace if t.is_error],

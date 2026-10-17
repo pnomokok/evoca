@@ -42,6 +42,7 @@ from core.services.archive_tools import (
     add_question_data,
     get_session_transcript_data,
     mark_question_declined_data,
+    merge_stories_data,
     record_answer_data,
     reopen_question_data,
     save_story_data,
@@ -361,8 +362,21 @@ def test_record_answer_happy_path(w):
     assert answer == expected
 
 
-def test_record_answer_rejects_waiting_question(w):
+def test_record_answer_accepts_unasked_family_question(w):
+    # The speaker sometimes answers a waiting family question on her own.
     story_id = _save(w)
+    answer = record_answer_data(w.db, w.fatma.id, w.circle.id, w.q_waiting.id, story_id, 0, 10_000)
+    w.db.commit()
+    q = w.db.get(Question, w.q_waiting.id)
+    assert q.status == QuestionStatus.answered
+    assert q.answer == answer and answer["story_id"] == story_id
+
+
+@pytest.mark.parametrize("source", [QuestionSource.follow_up, QuestionSource.gap])
+def test_record_answer_rejects_waiting_agent_question(w, source):
+    story_id = _save(w)
+    w.q_waiting.source = source
+    w.db.commit()
     with pytest.raises(ValueError, match="expected 'asked'"):
         record_answer_data(w.db, w.fatma.id, w.circle.id,
                            w.q_waiting.id, story_id, 0, 10_000)
@@ -465,3 +479,83 @@ def test_reopen_refuses_declined_and_answered(w):
     with pytest.raises(ValueError, match="expected 'asked'"):
         reopen_question_data(w.db, w.fatma.id, w.circle.id, w.q_asked.id)
     assert w.db.get(Question, w.q_asked.id).status == QuestionStatus.declined
+
+
+# ---------------------------------------------------------------------------
+# record_answer: unasked family questions, server-side rules
+# ---------------------------------------------------------------------------
+
+def test_record_answer_rejects_unasked_sensitive_family_question(w):
+    story_id = _save(w)
+    w.q_waiting.text = "What happened in the 1977 traffic accident?"
+    w.db.commit()
+    with pytest.raises(ValueError, match="not found"):
+        record_answer_data(w.db, w.fatma.id, w.circle.id, w.q_waiting.id, story_id, 0, 10_000)
+    assert w.db.get(Question, w.q_waiting.id).status == QuestionStatus.waiting
+
+
+def test_record_answer_rejects_unasked_question_for_someone_else(w):
+    story_id = _save(w)
+    w.q_waiting.target_person_id = w.elif_.id
+    w.db.commit()
+    with pytest.raises(ValueError, match="not found"):
+        record_answer_data(w.db, w.fatma.id, w.circle.id, w.q_waiting.id, story_id, 0, 10_000)
+
+
+# ---------------------------------------------------------------------------
+# merge_stories
+# ---------------------------------------------------------------------------
+
+def _merge(w, ids, session_id=None):
+    return merge_stories_data(w.db, w.fatma.id, w.circle.id, session_id or w.sess.id,
+                              ids, "One Memory", "Fatma remembers the river.")
+
+
+def test_merge_stories_unions_sources_and_moves_the_answer(w):
+    first = _save(w)
+    second = _save(w, title="Fishing", stated_year=1958,
+                   sources=[{"session_id": w.sess.id, "start_ms": 20_000, "end_ms": 30_000}])
+    record_answer_data(w.db, w.fatma.id, w.circle.id, w.q_asked.id, second, 20_000, 30_000)
+    out = _merge(w, [first, second])
+    w.db.commit()
+    assert out == {"story_id": first, "merged_ids": [second]}
+    story = w.db.get(Story, first)
+    assert story.title == "One Memory" and story.stated_year == 1958
+    assert [(x["start_ms"], x["end_ms"]) for x in story.sources] == [(0, 10_000), (20_000, 30_000)]
+    assert w.db.get(Story, second) is None
+    assert w.db.get(Question, w.q_asked.id).answer["story_id"] == first
+    assert w.db.query(StorySubject).filter(StorySubject.story_id == second).count() == 0
+
+
+def test_merge_stories_rejects_a_published_story(w):
+    first, second = _save(w), _save(w, title="Fishing")
+    w.db.get(Story, second).status = StoryStatus.published
+    w.db.commit()
+    with pytest.raises(ValueError, match="not pending"):
+        _merge(w, [first, second])
+
+
+def test_merge_stories_rejects_another_session(w):
+    first, second = _save(w), _save(w, title="Fishing")
+    with pytest.raises(ValueError, match="not from the session"):
+        _merge(w, [first, second], session_id=w.other_sess.id)
+
+
+def test_merge_stories_rejects_a_missing_session_header(w):
+    first, second = _save(w), _save(w, title="Fishing")
+    with pytest.raises(ValueError, match="No session"):
+        merge_stories_data(w.db, w.fatma.id, w.circle.id, "", [first, second], "T", "S")
+
+
+def test_merge_stories_rejects_another_teller(w):
+    first = _save(w)
+    second = _save(w, title="Elif's memory", teller_id=w.elif_.id,
+                   subjects=[{"person_id": w.elif_.id, "period": "childhood"}])
+    with pytest.raises(ValueError, match="same teller"):
+        _merge(w, [first, second])
+
+
+def test_merge_stories_rejects_another_circle(w):
+    first = _save(w)
+    with pytest.raises(ValueError, match="not found in this circle"):
+        _merge(w, [first, w.other_story.id])

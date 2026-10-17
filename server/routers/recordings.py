@@ -34,7 +34,7 @@ from core.enums import SessionStart, StoryStatus
 from core.models import Membership, Person, Story
 from core.services import stories as story_svc
 from core.services.sessions import add_segment, end_session, start_session
-from server.agents.archivist_agent import ArchivistAgent, archivist_llm
+from server.agents.archivist_agent import ArchivistAgent, answer_check_llm, archivist_llm
 from server.mcp_bridge import MCPBridge
 from server.routers.device import _get_stt, _whisper_prompt
 from server.routers.panel import _resolve_panel_viewer
@@ -165,7 +165,7 @@ async def _process_recording(
         async with MCPBridge(person_id, circle_id, session_id=session_id) as bridge:
             agent = ArchivistAgent(llm=archivist_llm(), person_id=person_id, circle_id=circle_id,
                                    bridge=bridge, panel_recording=True, members=members,
-                                   story_access=access)
+                                   story_access=access, story_guard_llm=answer_check_llm())
             result = await agent.run(session_id)
         log.info("Archivist finished recording session %s: %d stories (%d ms)",
                  session_id, len(result.story_ids), result.latency.get("total_ms", 0))

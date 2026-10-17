@@ -70,7 +70,7 @@ def _set_speaker_text(w, text_):
 
 def _agent(w, llm, checker, session_id=None, **kwargs):
     bridge = FakeArchiveBridge(w.db, w.fatma.id, w.circle.id, session_id=session_id or w.sess.id)
-    agent = ArchivistAgent(llm=llm, person_id=w.fatma.id, circle_id=w.circle.id,
+    agent = ArchivistAgent(story_guard_llm=ScriptedLLM(["no"]), llm=llm, person_id=w.fatma.id, circle_id=w.circle.id,
                            bridge=bridge, checker_llm=checker, **kwargs)
     return agent, bridge
 

@@ -84,7 +84,7 @@ async def test_core_loop_question_to_answer_in_fatmas_voice(test_app, monkeypatc
             "Saved one story and one answer.",
         ])
         checker = ScriptedLLM(["yes"])
-        agent = ArchivistAgent(llm=llm, person_id=person_id, circle_id=circle_id,
+        agent = ArchivistAgent(story_guard_llm=ScriptedLLM(["no"]), llm=llm, person_id=person_id, circle_id=circle_id,
                                bridge=FakeArchiveBridge(db, person_id, circle_id), checker_llm=checker)
         result = await agent.run(session_id)
         archive_runs.append((result, checker, found))
