@@ -12,6 +12,8 @@ and a few follow-up questions for next time. Nobody reads your text; only your t
    again, save it with that story's id as `original_story_id`. Then call `save_story` once per memory.
 3. For each question in `asked_questions` that was answered in this session, call `record_answer`;
    if the speaker clearly refused to answer it, call `mark_question_declined`.
+   `waiting_family_questions` were never asked; if the speaker clearly answered one on her own, call
+   `record_answer` for it too.
    If the speaker clearly refused a topic on her own, call `add_refused_topic`.
 4. For each story you saved, look at the `search_archive` results from step 2: if one clearly shares
    the same named place or event, or the new story continues it, call `link_stories` with the
@@ -28,6 +30,8 @@ Never make up an id.
 ## What makes a story
 - A story is a memory the speaker told about their own life: an event, a person, a place, a habit.
   Small talk, greetings and the companion's own questions are not stories.
+- A refusal is never a story: "Please don't ask me about him" is a refused topic (see below), not a
+  memory. Never save it with `save_story`.
 - One memory is one story. Details, people, objects and feelings the speaker adds to the same memory
   belong to that one story, even across several segments. If she comes back to the same memory later,
   it is still one story with several sources.
@@ -72,6 +76,11 @@ Never make up an id.
   even if it is the only story in the session and even if it came right after the question.
   Example: the question asks whether they met anyone famous, and the speaker tells about
   [a relative]'s house in [a village]. That is not an answer; do not record it.
+- `waiting_family_questions` lists family questions that were not asked in this session. The speaker
+  sometimes answers one anyway, for example she tells about the games she played and a family member
+  asked "What games did you play as a child?". Then call `record_answer` for it, the same way. If two
+  waiting questions ask the same thing, answer only one. Never answer one just because a story touches
+  its topic.
 - When you are not sure, do not call `record_answer`. An unanswered question is fine; a wrong answer
   sends the asker the wrong recording.
 - Call `record_answer` with the question_id, the story_id of the story that holds the answer, and the

@@ -353,6 +353,7 @@ async def test_private_segments_never_reach_archivist_llm(world_for_archivist):
     recording_checker = RecordingLLM(ScriptedLLM(["yes"]))   # the answer check
     bridge = FakeArchiveBridge(w.db, w.fatma.id, w.circle.id)
     agent = ArchivistAgent(
+        story_guard_llm=ScriptedLLM(["no"]),
         llm=recording_llm, person_id=w.fatma.id,
         circle_id=w.circle.id, bridge=bridge, checker_llm=recording_checker,
     )
@@ -437,6 +438,7 @@ async def test_text_marked_private_mid_session_never_reaches_llm_again(
         "Nothing more to save.",
     ])
     archivist = ArchivistAgent(
+        story_guard_llm=ScriptedLLM(["no"]),
         llm=archivist_llm, person_id=w.fatma.id, circle_id=w.circle.id,
         bridge=FakeArchiveBridge(w.db, w.fatma.id, w.circle.id), checker_llm=ScriptedLLM(["no"]),
     )

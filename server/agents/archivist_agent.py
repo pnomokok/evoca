@@ -6,7 +6,8 @@ background, following the archivist steps in docs/PROJECT.md:
 
 1. get_session_transcript   — read the non-private segments
 2. save_story               — one story per distinct memory
-3. record_answer            — for asked questions answered in this session
+3. record_answer            — for asked questions answered in this session, and
+                               waiting family questions the speaker answered unasked
 4. add_refused_topic        — a topic the speaker refused on her own
 5. search_archive + link_stories — links to related existing stories
 6. find_gaps + add_question — at most two follow_up questions and one gap question
@@ -60,21 +61,39 @@ Architecture
 - At the end of the run, every question that is still "asked" (not answered,
   not declined) is returned to "waiting" via reopen_question, so it is asked
   again in a later session. These calls are made by this code, not the model.
+- Unasked answers: waiting family questions (never asked, sensitive ones left
+  out) are added to the transcript the model reads as
+  waiting_family_questions. record_answer may name one of them when the
+  speaker clearly answers it on her own; the same answer checker must say
+  "yes". Follow-up and gap questions, and declines, still need "asked".
+- Refusal guard: before save_story reaches the MCP server, the story checker
+  (temperature 0) gets the speakers' own words in the story's sources (every
+  speaker, not only the model's teller_id) and is asked whether the passage
+  is mainly the speaker declining to talk about something. Only a clear "no"
+  lets the story through; "yes" or anything unclear means it is not saved.
+  A checker error is retried once; if it fails again the story is not saved
+  and the model may try once more. Sources where nobody speaks are rejected. The code then names the topic
+  (one more checker call) and sends it down the add_refused_topic path for
+  each source range, with the same range rules and refusal checker as a
+  model call. Only ids are logged.
 - Split guard: the model sometimes saves one memory as two stories. When two
   stories saved in the same run have overlapping or adjacent sources (a gap
   under SPLIT_GAP_MS, not counting the companion's segments in between, so a
   companion question does not separate two parts of one memory) and share a
-  place or a subject period, the pair is logged
-  as a possible split (story ids only) and kept in possible_splits. Nothing is
-  merged: telling a split from two short memories needs a person.
+  place or a subject period, the pair is logged as a possible split (story
+  ids only) and kept in possible_splits. After the run, flagged stories that
+  share a subject period are merged by this code (merge_stories): one new
+  title and summary come from one LLM call over the teller's words in the
+  merged sources (the non-private transcript). Different periods stay apart.
 
 Panel recordings (A4)
 ---------------------
 With panel_recording=True the session is one family member's own recording
 from the panel. Questions belong only to the center's own sessions, so:
 - only get_session_transcript, save_story, search_archive and link_stories
-  are offered (and accepted; no add_refused_topic, find_gaps or questions); the circle's asked questions are dropped from the transcript the
-  model sees, and nothing is reopened at the end of the run;
+  are offered (and accepted; no add_refused_topic, find_gaps or questions); the circle's asked and waiting questions are dropped from the transcript the
+  model sees, and nothing is reopened at the end of the run; a story the
+  refusal guard stops is simply not saved (no refused topic);
 - teller_id is always the recorder (person_id), whatever the model passes,
   and only this session can be read or cited (the recorder's identity must
   not reach other sessions of the circle);
@@ -194,6 +213,23 @@ yes: the speaker clearly says they do not want to talk about that topic, for exa
 no: the speaker talks about it, is only sad or quiet, changes the subject without refusing, refuses a different topic, or you are unsure."""
 
 
+_STORY_REFUSAL_PROMPT = """You check one thing: is a passage from a recorded conversation mainly the speaker declining to talk about something?
+Reply with exactly one word: yes or no.
+yes: most of the passage is the speaker saying they do not want to talk about a person, a topic or an event, for example "Please don't ask me about him", or you are unsure.
+no: the speaker mainly tells a memory, even a sad one, and any refusal is only a small part of it."""
+
+
+_TOPIC_NAME_PROMPT = """A speaker declines to talk about something in the passage below.
+Reply with the name of what they decline to talk about, in one to four words, using its own name, place or event as said (for example "Hatice", not "her sister Hatice").
+Reply with the name only. If you cannot tell, reply with: unknown"""
+
+
+_MERGE_TEXT_PROMPT = """You write the title and summary of one family story from the speaker's own words.
+Reply with JSON only: {"title": "...", "summary": "..."}
+title: short and warm, two to six words, like the name of a chapter.
+summary: one or two sentences in the third person, using the speaker's name. Use only what was said; never add feelings, details, names, dates or places that were not said. Leave out words that make no sense (speech recognition errors)."""
+
+
 _DECLINE_CHECK_PROMPT = """You check one thing: in a passage from a recorded conversation, does the speaker decline to talk about what a family member's question asks?
 Reply with exactly one word: yes or no.
 yes: the speaker clearly says they do not want to talk about it, for example "I'd rather not talk about that".
@@ -245,6 +281,8 @@ class ArchiveResult:
     questions_reopened: list[str] = field(default_factory=list)  # question ids, back to "waiting"
     topics_refused: list[str] = field(default_factory=list)      # sensitive topic ids (source "speaker")
     possible_splits: list[tuple[str, str]] = field(default_factory=list)  # story id pairs, see possible_split
+    stories_merged: list[dict[str, Any]] = field(default_factory=list)    # {story_id, merged_ids}
+    stories_refused: int = 0                                              # save_story calls stopped by the refusal guard
     final_text: str = ""
     trace: list[ToolTrace] = field(default_factory=list)
     latency: dict[str, int] = field(default_factory=dict)          # llm_ms, tools_ms, total_ms
@@ -265,6 +303,8 @@ class ArchivistAgent:
     bridge      : An already-entered MCPBridge (or a fake for tests).
     checker_llm : LLM for the answer check (answer_check_llm() in production);
                   defaults to llm.
+    story_guard_llm : LLM for the refusal guard on save_story
+                  (answer_check_llm() in production); defaults to checker_llm.
     panel_recording : True for a panel_recording session; person_id is then
                   the recorder (see "Panel recordings" above).
     members     : circle members offered as subjects of a panel recording:
@@ -283,9 +323,11 @@ class ArchivistAgent:
         panel_recording: bool = False,
         members: list[dict[str, Any]] | None = None,
         story_access: str = "circle",
+        story_guard_llm: LLM | None = None,
     ) -> None:
         self._llm = llm
         self._checker_llm = checker_llm or llm
+        self._story_guard_llm = story_guard_llm or self._checker_llm
         self._person_id = person_id
         self._circle_id = circle_id
         self._bridge = bridge
@@ -308,6 +350,9 @@ class ArchivistAgent:
         self._center_segments: list[tuple[int, int, str]] = []    # the center's own words
         self._companion_ranges: list[tuple[int, int]] = []         # the companion's segments
         self._asked_by_id: dict[str, str] = {}                     # question_id -> text
+        self._unasked_family: dict[str, str] | None = None         # waiting family question_id -> text
+        self._spoken: list[tuple[int, int, str | None, str]] = []  # (start_ms, end_ms, speaker_id, text)
+        self._speaker_names: dict[str, str] = {}                   # speaker_id -> name
         self._check_ms = 0
         # Per-run state for the question limits and the gap check.
         self._added_by_source: dict[str, int] = {}
@@ -327,6 +372,7 @@ class ArchivistAgent:
         self._session_id = session_id
         self._companion_texts = self._asked_texts = self._waiting_texts = None
         self._speaker_segments, self._asked_by_id, self._check_ms = [], {}, 0
+        self._unasked_family, self._spoken, self._speaker_names = None, [], {}
         self._read_ranges, self._center_segments, self._companion_ranges = [], [], []
         self._added_by_source, self._gaps = {}, None
         self._saved = []
@@ -345,6 +391,13 @@ class ArchivistAgent:
             )
         else:
             first += f"\nThe center person, for find_gaps, is person_id {self._person_id}."
+            waiting = await self._waiting_family_questions()
+            if waiting:
+                first += (
+                    "\n\nFamily questions that were never asked (waiting_family_questions). If the "
+                    "speaker clearly answers one in this session, call record_answer for it:\n"
+                    + "\n".join(f"- {text} (question_id {qid})" for qid, text in waiting.items())
+                )
         messages: list[dict[str, Any]] = [{"role": "user", "content": [{"text": first}]}]
 
         llm_ms_total = 0
@@ -408,6 +461,8 @@ class ArchivistAgent:
 
             messages.append({"role": "user", "content": tool_results_content})
 
+        llm_ms_total += await self._merge_splits(result)
+
         if not self._panel_recording:
             await self._reopen_unanswered(result)
 
@@ -455,6 +510,7 @@ class ArchivistAgent:
             reason = await self._passage_rejection(
                 arguments, _ANSWER_CHECK_PROMPT,
                 "the speaker's words in that range do not answer the question",
+                allow_unasked=True,
             )
             if reason:
                 raise RuntimeError(
@@ -474,6 +530,29 @@ class ArchivistAgent:
             if reason:
                 log.info("Refused topic rejected (session %s): %s", self._session_id, reason)
                 raise RuntimeError(f"Topic not saved: {reason}. Do not try again.")
+        if name == "save_story":
+            verdict = await self._refusal_verdict(arguments)
+            if verdict != "story":
+                result.stories_refused += 1
+                log.info("Story not saved (session %s): %s", self._session_id, verdict)
+                if verdict == "unchecked":
+                    raise RuntimeError(
+                        "Story not saved: it could not be checked just now. "
+                        "You may try save_story once more."
+                    )
+                if verdict == "no speech":
+                    raise RuntimeError(
+                        "Story not saved: nobody speaks in those sources. "
+                        "Use the start_ms / end_ms of the teller's own segments."
+                    )
+                remembered = (not self._panel_recording
+                              and await self._refuse_topic_from_story(arguments, result))
+                raise RuntimeError(
+                    "Story not saved: the passage is the speaker declining to talk about something, "
+                    "which is never a story. "
+                    + ("The refusal is remembered. " if remembered else "")
+                    + "Do not save it again."
+                )
 
         out = await self._bridge.call_tool(name, arguments)
 
@@ -487,6 +566,11 @@ class ArchivistAgent:
             if self._panel_recording:
                 out = {**out, "asked_questions": []}
             self._remember_transcript(out)
+            if not self._panel_recording and out.get("session_id") == self._session_id:
+                waiting = await self._waiting_family_questions()
+                out = {**out, "waiting_family_questions": [
+                    {"question_id": qid, "text": text} for qid, text in waiting.items()
+                ]}
 
         if name == "save_story" and isinstance(out, dict) and out.get("story_id"):
             result.story_ids.append(out["story_id"])
@@ -495,6 +579,8 @@ class ArchivistAgent:
             self._check_split(out["story_id"], arguments, result)
         elif name == "record_answer":
             result.answers_recorded.append(arguments.get("question_id", ""))
+            if self._unasked_family:
+                self._unasked_family.pop(arguments.get("question_id", ""), None)
         elif name == "mark_question_declined":
             result.questions_declined.append(arguments.get("question_id", ""))
         elif name == "add_refused_topic" and isinstance(out, dict):
@@ -587,6 +673,15 @@ class ArchivistAgent:
             for s in transcript.get("segments", [])
             if s.get("speaker_id") is not None
         ]
+        self._spoken = [
+            (s.get("start_ms", 0), s.get("end_ms", 0), s.get("speaker_id"), s.get("transcript", ""))
+            for s in transcript.get("segments", [])
+            if s.get("speaker_id") is not None
+        ]
+        self._speaker_names = {
+            s.get("speaker_id"): s.get("speaker_name") for s in transcript.get("segments", [])
+            if s.get("speaker_id") is not None and s.get("speaker_name")
+        }
         self._asked_by_id = {
             q.get("question_id", ""): q.get("text", "") for q in transcript.get("asked_questions", [])
         }
@@ -618,12 +713,16 @@ class ArchivistAgent:
     # ------------------------------------------------------------------
 
     async def _passage_rejection(
-        self, arguments: dict[str, Any], prompt: str, failure: str
+        self, arguments: dict[str, Any], prompt: str, failure: str, allow_unasked: bool = False
     ) -> str | None:
         """Ask the checker about the question and the speaker's words in the
-        range; return why the call must not go through, or None if it may."""
+        range; return why the call must not go through, or None if it may.
+        With allow_unasked (record_answer), a waiting family question counts too."""
         await self._ensure_transcript()
-        question = self._asked_by_id.get(arguments.get("question_id", ""))
+        question_id = arguments.get("question_id", "")
+        question = self._asked_by_id.get(question_id)
+        if not question and allow_unasked and not self._panel_recording:
+            question = (await self._waiting_family_questions()).get(question_id)
         if not question:
             return "that question was not asked in this circle"
         start, end = arguments.get("start_ms", 0), arguments.get("end_ms", 0)
@@ -647,6 +746,201 @@ class ArchivistAgent:
             strip_thinking(b["text"]) for b in response["output"]["message"]["content"] if "text" in b
         )
         return None if checker_said_yes(verdict) else failure
+
+    async def _waiting_family_questions(self) -> dict[str, str]:
+        """Waiting family questions of the circle (never asked; sensitive ones
+        are left out by the server), question_id -> text. Read once per run."""
+        if self._unasked_family is None:
+            out = await self._bridge.call_tool("get_pending_questions", {"limit": 1000})
+            items = out.get("result", []) if isinstance(out, dict) else list(out or [])
+            self._unasked_family = {
+                q.get("question_id", ""): q.get("text", "")
+                for q in items if q.get("source") == "family" and q.get("question_id")
+            }
+            if self._waiting_texts is None:
+                self._waiting_texts = {normalize_question(q.get("text", "")) for q in items}
+        return self._unasked_family
+
+    def _teller_words(self, teller_id: Any, sources: list[Any]) -> str:
+        """The teller's own words in the given source ranges (non-private transcript)."""
+        ranges = [(src.get("start_ms", 0), src.get("end_ms", 0))
+                  for src in sources or [] if isinstance(src, dict)]
+        return " ".join(
+            text for start, end, speaker, text in self._spoken
+            if speaker == teller_id and any(start < b and end > a for a, b in ranges)
+        ).strip()
+
+    def _speech_in(self, sources: list[Any]) -> str:
+        """Every speaker's words in the source ranges (not only the model's
+        teller_id: a wrong teller must not hide a refusal from the guard)."""
+        ranges = [(src.get("start_ms", 0), src.get("end_ms", 0))
+                  for src in sources or [] if isinstance(src, dict)]
+        return " ".join(
+            text for start, end, _speaker, text in self._spoken
+            if any(start < b and end > a for a, b in ranges)
+        ).strip()
+
+    async def _ask(self, llm: LLM, prompt: str, text: str) -> str | None:
+        """One checker-style call without tools; returns the reply text (None on error)."""
+        t0 = time.monotonic()
+        try:
+            response = await anyio.to_thread.run_sync(
+                lambda: llm.converse(
+                    [{"text": prompt}], [{"role": "user", "content": [{"text": text}]}], None
+                )
+            )
+            return " ".join(
+                strip_thinking(b["text"]) for b in response["output"]["message"]["content"]
+                if "text" in b
+            ).strip()
+        except Exception as exc:
+            log.warning("Check failed (session %s): %s", self._session_id, type(exc).__name__)
+            return None
+        finally:
+            self._check_ms += int((time.monotonic() - t0) * 1000)
+
+    # ------------------------------------------------------------------
+    # Refusal guard on save_story
+    # ------------------------------------------------------------------
+
+    async def _refusal_verdict(self, arguments: dict[str, Any]) -> str:
+        """"story" only when the story checker clearly says the speakers' words
+        in the sources are not mainly someone declining to talk about something;
+        "refusal" for yes or any unclear reply, "unchecked" when the checker
+        failed twice, "no speech" when nobody speaks in the sources. Fails closed."""
+        await self._ensure_transcript()
+        passage = self._speech_in(arguments.get("sources") or [])
+        if not passage:
+            return "no speech"
+        verdict = None
+        for _attempt in range(2):   # one retry on a checker error
+            verdict = await self._ask(self._story_guard_llm, _STORY_REFUSAL_PROMPT, f"PASSAGE: {passage}")
+            if verdict is not None:
+                break
+        if verdict is None:
+            return "unchecked"
+        first = _FIRST_WORD.search(verdict.lower())
+        return "story" if first is not None and first.group(0) == "no" else "refusal"
+
+    async def _refuse_topic_from_story(self, arguments: dict[str, Any], result: ArchiveResult) -> bool:
+        """Send a refusal that the model tried to save as a story down the
+        add_refused_topic path, range by range, with the same rules (the center's
+        own words only). True if the topic is now remembered. Never raises."""
+        try:
+            passage = self._speech_in(arguments.get("sources") or [])
+            topic = " ".join(
+                ((await self._ask(self._story_guard_llm, _TOPIC_NAME_PROMPT, f"PASSAGE: {passage}")) or "")
+                .strip(" .\"'*").split()
+            )
+            if not topic or topic.lower() == "unknown":
+                log.info("Refusal without a topic name (session %s)", self._session_id)
+                return False
+            for src in arguments.get("sources") or []:
+                if not isinstance(src, dict):
+                    continue
+                call = {"text": topic, "start_ms": src.get("start_ms"), "end_ms": src.get("end_ms")}
+                if await self._refusal_rejection(call):
+                    continue
+                out = await self._bridge.call_tool("add_refused_topic", call)
+                if isinstance(out, dict):
+                    if out.get("added"):
+                        result.topics_refused.append(out.get("topic_id", ""))
+                    log.info("Refused topic %s from a refusal story (session %s): topic %s",
+                             "added" if out.get("added") else "already known",
+                             self._session_id, out.get("topic_id", ""))
+                    return bool(out.get("topic_id"))
+                return False
+            log.info("Refusal story gave no refused topic (session %s)", self._session_id)
+        except Exception as exc:
+            log.error("Could not add the refused topic (session %s): %s",
+                      self._session_id, type(exc).__name__)
+        return False
+
+    # ------------------------------------------------------------------
+    # Merge of split stories
+    # ------------------------------------------------------------------
+
+    def _split_groups(self, result: ArchiveResult) -> list[list[str]]:
+        """Stories flagged as possible splits that share a subject period,
+        joined into groups (in save order). Pairs that only share a place stay apart."""
+        args = dict(self._saved)
+        order = {sid: i for i, (sid, _) in enumerate(self._saved)}
+        parent: dict[str, str] = {}
+
+        def find(x: str) -> str:
+            while parent.get(x, x) != x:
+                x = parent[x]
+            return x
+
+        for a, b in result.possible_splits:
+            if a not in result.story_ids or b not in result.story_ids:
+                continue
+            periods_a = {s.get("period") for s in args[a].get("subjects") or []} - {None}
+            periods_b = {s.get("period") for s in args[b].get("subjects") or []} - {None}
+            if periods_a & periods_b:
+                ra, rb = find(a), find(b)
+                if ra != rb:
+                    parent[max(ra, rb, key=order.get)] = min(ra, rb, key=order.get)
+        groups: dict[str, list[str]] = {}
+        for sid in sorted(set(parent) | set(parent.values()), key=order.get):
+            groups.setdefault(find(sid), []).append(sid)
+        return [g for g in groups.values() if len(g) > 1]
+
+    async def _merged_text(self, ids: list[str]) -> tuple[str, str, int]:
+        """Title and summary for the merged story from one LLM call over the
+        teller's words in all its sources; the first part's text if that fails."""
+        args = dict(self._saved)
+        first = args[ids[0]]
+        sources = [src for sid in ids for src in args[sid].get("sources") or []]
+        words = self._teller_words(first.get("teller_id"), sources)
+        fallback = (first.get("title") or "A family story",
+                    " ".join(args[sid].get("summary") or "" for sid in ids).strip())
+        if not words:
+            return (*fallback, 0)
+        t0 = time.monotonic()
+        try:
+            response = await anyio.to_thread.run_sync(
+                lambda: self._llm.converse(
+                    [{"text": _MERGE_TEXT_PROMPT}],
+                    [{"role": "user", "content": [{"text": (
+                        f"SPEAKER: {self._speaker_names.get(first.get('teller_id'), 'the speaker')}\n\n"
+                        f"SPEAKER'S WORDS: {words}"
+                    )}]}],
+                    None,
+                )
+            )
+            reply = " ".join(
+                strip_thinking(b["text"]) for b in response["output"]["message"]["content"] if "text" in b
+            )
+            match = re.search(r"\{.*\}", reply, re.DOTALL)
+            data = json.loads(match.group(0)) if match else {}
+            title, summary = str(data.get("title") or "").strip(), str(data.get("summary") or "").strip()
+            if title and summary:
+                return title, summary, int((time.monotonic() - t0) * 1000)
+        except Exception as exc:
+            log.warning("Merge text failed (session %s): %s", self._session_id, type(exc).__name__)
+        return (*fallback, int((time.monotonic() - t0) * 1000))
+
+    async def _merge_splits(self, result: ArchiveResult) -> int:
+        """Merge every group of split stories into its first story; returns the
+        LLM time used. Failures are logged (ids only) and leave the stories as they are."""
+        llm_ms = 0
+        for ids in self._split_groups(result):
+            try:
+                title, summary, ms = await self._merged_text(ids)
+                llm_ms += ms
+                out = await self._bridge.call_tool(
+                    "merge_stories", {"story_ids": ids, "title": title, "summary": summary}
+                )
+                merged = list(out.get("merged_ids", [])) if isinstance(out, dict) else []
+                result.story_ids = [sid for sid in result.story_ids if sid not in merged]
+                result.stories_merged.append({"story_id": ids[0], "merged_ids": merged})
+                log.info("Merged split stories in session %s: %s <- %s",
+                         self._session_id, ids[0], ", ".join(merged))
+            except Exception as exc:
+                log.error("Could not merge stories %s (session %s): %s",
+                          ", ".join(ids), self._session_id, type(exc).__name__)
+        return llm_ms
 
     # ------------------------------------------------------------------
     # Refused-topic check

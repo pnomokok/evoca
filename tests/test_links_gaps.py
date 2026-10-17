@@ -138,7 +138,7 @@ def test_at_most_three_links_per_story(w):
 
 def _agent(w, llm, person=None, **kwargs):
     bridge = FakeArchiveBridge(w.db, (person or w.fatma).id, w.circle.id, session_id=w.sess.id)
-    return ArchivistAgent(llm=llm, person_id=(person or w.fatma).id, circle_id=w.circle.id,
+    return ArchivistAgent(story_guard_llm=ScriptedLLM(["no"]), llm=llm, person_id=(person or w.fatma).id, circle_id=w.circle.id,
                           bridge=bridge, checker_llm=ScriptedLLM(["yes"]), **kwargs), bridge
 
 
