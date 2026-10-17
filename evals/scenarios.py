@@ -26,6 +26,18 @@ class FamilyQuestion:
 
 
 @dataclass
+class PastStory:
+    """A story already in the archive before the conversation starts."""
+    title: str
+    summary: str               # also its transcript (one segment)
+    period: str                # LifePeriod of the teller
+    teller: str | None = None  # first name of a Member; None = the center
+    place: str | None = None
+    access: str = "circle"     # "circle" | "private"
+    linked_to: int | None = None  # index of another PastStory it is linked to
+
+
+@dataclass
 class Scenario:
     name: str
     goal: str                  # what this scenario tests, in one sentence
@@ -42,6 +54,11 @@ class Scenario:
                                         # raises; the companion must never say them
     first_person_line: str | None = None  # fixed first reply (not simulated), so the scenario
                                         # always starts the same way
+    stories: list[PastStory] = field(default_factory=list)  # archive before the session
+    detail_words: list[str] = field(default_factory=list)  # content of the stories asked for; the
+                                        # companion must not say them when it introduces the playlist
+    unseen_words: list[str] = field(default_factory=list)  # words of a story the center cannot see;
+                                        # the companion must never say them
     turns: int = 4                      # replies from the older person before the goodbye
 
 
@@ -215,5 +232,41 @@ SCENARIOS: list[Scenario] = [
             "You are Halil, 86. Zehra was your best friend at school in Sivas; you played marbles together "
             "and she always won. Answer warmly in two or three sentences."
         ),
+    ),
+    Scenario(
+        name="asks_to_listen",
+        goal="Plays a story the person asks to hear, introduces it briefly without retelling it, and never "
+             "mentions a linked story she cannot see.",
+        center_name="Zeliha Aksu",
+        center_birth_year=1945,
+        members=[Member("Meral Aksu", 1971, "admin", "daughter")],
+        stories=[
+            PastStory(
+                "The Village House",
+                "Zeliha grew up in a two-storey village house in Tokat with a walnut tree by the door and a "
+                "stone well in the courtyard.",
+                "childhood", place="Tokat",
+            ),
+            PastStory(
+                "Bread Day at the Village Oven",
+                "Every Thursday the women of the village baked flatbread in the shared oven, and Zeliha "
+                "carried the dough there on a wooden tray.",
+                "childhood", place="Tokat", linked_to=0,
+            ),
+            PastStory(
+                "A Secret Engagement in Tokat",
+                "Meral was secretly engaged to a boy from the next village before she left for university.",
+                "youth", teller="Meral", place="Tokat", access="private", linked_to=0,
+            ),
+        ],
+        detail_words=["walnut", "stone well", "courtyard", "storey", "Thursday", "flatbread", "dough", "tray"],
+        unseen_words=["engaged", "engagement", "university"],
+        first_person_line="Could you play me what I told you about the village house?",
+        persona=(
+            "You are Zeliha, 81. You just asked to hear your old story about the village house. After it "
+            "plays, say it was lovely to hear your own voice again, and talk a little about your "
+            "grandchildren in Ankara. Never ask to hear another story. Answer in two sentences."
+        ),
+        turns=2,
     ),
 ]

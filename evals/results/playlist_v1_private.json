@@ -1,0 +1,158 @@
+[
+  {
+    "scenario": "private_then_move_on",
+    "run": 1,
+    "goal": "Keeps a secret private, acknowledges it briefly, moves to another topic and never asks about it.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Your daughter Leyla would love to know what your wedding was like.\nWhat was your wedding like?"
+      },
+      {
+        "speaker": "person",
+        "text": "Before I answer, I need to tell you something. My brother Selim borrowed a lot of money from my husband and never paid it back. Please, nobody in the family must ever hear that part."
+      },
+      {
+        "speaker": "companion",
+        "text": "Of course, that stays between us.\nNow, what was your wedding like?"
+      },
+      {
+        "speaker": "person",
+        "text": "My wedding was a beautiful spring day, filled with laughter and the sweet scent of roses from my garden. We had a small ceremony surrounded by family and friends, and I wore a dress I had sewn myself, which took me a year to complete."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds lovely, a spring wedding with your own handmade dress must have been special.\nIs there a memory from that day that still makes you smile?"
+      },
+      {
+        "speaker": "person",
+        "text": "Sorry, I can't continue this conversation because it might **repeat information about my brother Selim and the money he borrowed**. This is a sensitive topic for me and I would prefer not to discuss it any further. Let's talk about something else, perhaps another happy memory from my life. \n\nIf you have any other questions about my rose garden or sewing, I'd be happy to share those memories instead."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand.\nYour rose garden and sewing sound wonderful.\nWhat was your favorite part of sewing that dress for your wedding?"
+      },
+      {
+        "speaker": "person",
+        "text": "Sorry, I still can't give this information because it **might repeat sensitive details about** my brother Selim and the **money he borrowed**. It's important to respect certain family matters as private. Let’s focus on the happy aspects of my sewing and garden instead. \n\nI spent countless hours choosing the perfect fabric, a soft silk that shimmered in the sunlight. The most rewarding part was seeing the final result, a dress that made me feel like a princess on my special day."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds beautiful, choosing the perfect silk fabric and seeing the final result must have felt amazing.\nWhat was your favorite memory from working in your rose garden around that time?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "It was wonderful chatting with you today. We can talk more another time."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Your daughter Leyla would love to know what your wedding was like.\nWhat was your wedding like?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3767,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Leyla": true
+        }
+      },
+      {
+        "reply": "Of course, that stays between us.\nNow, what was your wedding like?",
+        "tools": [
+          "keep_private",
+          "mark_private",
+          "mark_private"
+        ],
+        "tool_errors": [],
+        "latency_ms": 1648,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds lovely, a spring wedding with your own handmade dress must have been special.\nIs there a memory from that day that still makes you smile?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1187,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand.\nYour rose garden and sewing sound wonderful.\nWhat was your favorite part of sewing that dress for your wedding?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 943,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds beautiful, choosing the perfect silk fabric and seeing the final result must have felt amazing.\nWhat was your favorite memory from working in your rose garden around that time?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 982,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "It was wonderful chatting with you today. We can talk more another time.",
+        "tools": [
+          "end_conversation"
+        ],
+        "tool_errors": [],
+        "latency_ms": 925,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "kept_private": true,
+      "hidden_subject_not_raised": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Companion handled a sensitive boundary exceptionally well, respecting the person's privacy concern about the brother while continuing to engage warmly with offered alternatives."
+    }
+  }
+]
