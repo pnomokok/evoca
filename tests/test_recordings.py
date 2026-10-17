@@ -41,6 +41,7 @@ from core.services.chat_tools import set_story_access_data
 from server.speech import FakeSTT
 from tests.test_api import _add_member, _client, _make_silent_pcm, anyio_backend, test_app  # noqa: F401
 from tests.test_archivist_agent import DynamicScriptedLLM, FakeArchiveBridge, last_tool_json
+from tests.test_chat_agent import ScriptedLLM
 from tests.test_chat_agent import _tool_use
 
 TOLD = "Grandma taught me to bake bread when I was eight"
@@ -131,6 +132,7 @@ def rec(test_app, monkeypatch):
     monkeypatch.setattr(rec_r, "MCPBridge", _bridge)
     llms = [_archivist_script(fatma, elif_)]
     monkeypatch.setattr(rec_r, "archivist_llm", lambda: llms[0])
+    monkeypatch.setattr(rec_r, "answer_check_llm", lambda: ScriptedLLM(["no"]))   # refusal guard: not a refusal
     stt = FakeSTT(text=TOLD, duration_ms=2000)
     app.dependency_overrides[dev_r._get_stt] = lambda: stt
     RecordingBridge.fail_access = False

@@ -1,0 +1,137 @@
+[
+  {
+    "scenario": "one_memory",
+    "run": 1,
+    "expected": 1,
+    "stories": 1,
+    "titles": [
+      "Sundays at the harbour"
+    ],
+    "possible_splits": [],
+    "stories_merged": [],
+    "ok": true,
+    "tools": [
+      "get_session_transcript",
+      "search_archive",
+      "save_story",
+      "find_gaps",
+      "add_question"
+    ],
+    "tool_errors": [],
+    "total_ms": 9229
+  },
+  {
+    "scenario": "one_memory",
+    "run": 2,
+    "expected": 1,
+    "stories": 1,
+    "titles": [
+      "The harbour in Akcaabat"
+    ],
+    "possible_splits": [],
+    "stories_merged": [],
+    "ok": true,
+    "tools": [
+      "get_session_transcript",
+      "search_archive",
+      "save_story",
+      "find_gaps",
+      "add_question"
+    ],
+    "tool_errors": [],
+    "total_ms": 8839
+  },
+  {
+    "scenario": "one_memory",
+    "run": 3,
+    "expected": 1,
+    "stories": 1,
+    "titles": [
+      "The harbour in Akcaabat"
+    ],
+    "possible_splits": [],
+    "stories_merged": [],
+    "ok": true,
+    "tools": [
+      "get_session_transcript",
+      "search_archive",
+      "save_story",
+      "find_gaps",
+      "add_question"
+    ],
+    "tool_errors": [],
+    "total_ms": 9476
+  },
+  {
+    "scenario": "two_memories",
+    "run": 1,
+    "expected": 2,
+    "stories": 2,
+    "titles": [
+      "Sundays at the harbour",
+      "Wedding in Trabzon"
+    ],
+    "possible_splits": [],
+    "stories_merged": [],
+    "ok": true,
+    "tools": [
+      "get_session_transcript",
+      "search_archive",
+      "search_archive",
+      "save_story",
+      "save_story",
+      "find_gaps",
+      "add_question"
+    ],
+    "tool_errors": [],
+    "total_ms": 11762
+  },
+  {
+    "scenario": "two_memories",
+    "run": 2,
+    "expected": 2,
+    "stories": 2,
+    "titles": [
+      "Sundays at the harbour",
+      "Wedding in Trabzon"
+    ],
+    "possible_splits": [],
+    "stories_merged": [],
+    "ok": true,
+    "tools": [
+      "get_session_transcript",
+      "search_archive",
+      "search_archive",
+      "save_story",
+      "save_story",
+      "find_gaps",
+      "add_question"
+    ],
+    "tool_errors": [],
+    "total_ms": 23013
+  },
+  {
+    "scenario": "two_memories",
+    "run": 3,
+    "expected": 2,
+    "stories": 2,
+    "titles": [
+      "Sundays at the harbour",
+      "Wedding in Trabzon"
+    ],
+    "possible_splits": [],
+    "stories_merged": [],
+    "ok": true,
+    "tools": [
+      "get_session_transcript",
+      "search_archive",
+      "search_archive",
+      "save_story",
+      "save_story",
+      "find_gaps",
+      "add_question"
+    ],
+    "tool_errors": [],
+    "total_ms": 24754
+  }
+]

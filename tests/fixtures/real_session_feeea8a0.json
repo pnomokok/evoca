@@ -1,0 +1,193 @@
+{
+ "_note": "Segments of real browser session feeea8a0 (data/browser.db, 17 Oct 2026). Speaker ids replaced by roles; the private range holds a made-up secret (Istanbul, train ticket). Elif's waiting games questions.",
+ "session_id": "feeea8a0-0cdd-478c-8de7-637fb9e883dc",
+ "segments": [
+  {
+   "start_ms": 0,
+   "end_ms": 10867,
+   "speaker": "companion",
+   "is_private": false,
+   "transcript": "Your granddaughter Elif Yilmaz would love to know what school was like when you were young.\nI remember you told a lovely story about climbing the mulberry tree with your sister every summer. What was school like for you?"
+  },
+  {
+   "start_ms": 10867,
+   "end_ms": 22027,
+   "speaker": "center",
+   "is_private": false,
+   "transcript": "Oh games, we didn't have toys like children today. We play hopstrack in the dirt roads in front of our house. My friends are here and I drive to squares with a stick."
+  },
+  {
+   "start_ms": 22027,
+   "end_ms": 29289,
+   "speaker": "companion",
+   "is_private": false,
+   "transcript": "That sounds like such fun, playing hopscotch on the dirt roads and driving to squares with a stick.\nWhat were your friends like back then?"
+  },
+  {
+   "start_ms": 29289,
+   "end_ms": 32829,
+   "speaker": "center",
+   "is_private": false,
+   "transcript": "And they play Five Stones, you draw one."
+  },
+  {
+   "start_ms": 32829,
+   "end_ms": 39203,
+   "speaker": "companion",
+   "is_private": false,
+   "transcript": "That’s interesting, playing Five Stones and drawing one stone as well.\nWhat was your favorite game to play with your friends?"
+  },
+  {
+   "start_ms": 39203,
+   "end_ms": 51683,
+   "speaker": "center",
+   "is_private": false,
+   "transcript": "In the evenings, all the children play hide and seek and the big mob were there. My mother would call us home when it got dark and our feet were always purple from the berries."
+  },
+  {
+   "start_ms": 51683,
+   "end_ms": 58448,
+   "speaker": "companion",
+   "is_private": false,
+   "transcript": "I can imagine all the children playing hide and seek together, what a lively evening!\nWhat would you do when your mother called you home?"
+  },
+  {
+   "start_ms": 58448,
+   "end_ms": 67028,
+   "speaker": "center",
+   "is_private": false,
+   "transcript": "Let me tell you about my wedding. I married your grandfather in the spring of 1971. I left the wedding today."
+  },
+  {
+   "start_ms": 67028,
+   "end_ms": 73193,
+   "speaker": "companion",
+   "is_private": false,
+   "transcript": "Your wedding in the spring of 1971 must have been beautiful.\nWhat was the most memorable part of your wedding day?"
+  },
+  {
+   "start_ms": 73193,
+   "end_ms": 86093,
+   "speaker": "center",
+   "is_private": false,
+   "transcript": "It went all morning and everyone said that was good luck. The whole reader talked with us to his family's house. His mother gave me a red scarf and I still have it in my chest."
+  },
+  {
+   "start_ms": 86093,
+   "end_ms": 93277,
+   "speaker": "companion",
+   "is_private": false,
+   "transcript": "It’s wonderful to hear that the wedding lasted all morning and everyone thought it was good luck.\nDo you still remember what the red scarf looks like?"
+  },
+  {
+   "start_ms": 93277,
+   "end_ms": 95437,
+   "speaker": "center",
+   "is_private": true,
+   "transcript": "Can I not find it?"
+  },
+  {
+   "start_ms": 95437,
+   "end_ms": 102568,
+   "speaker": "companion",
+   "is_private": true,
+   "transcript": "I’m sorry, I can’t find that red scarf in the stories we have so far.\nWould you like to tell me more about what it looked like or where you kept it?"
+  },
+  {
+   "start_ms": 102568,
+   "end_ms": 106528,
+   "speaker": "center",
+   "is_private": true,
+   "transcript": "Can I tell you something just between us?"
+  },
+  {
+   "start_ms": 106528,
+   "end_ms": 110969,
+   "speaker": "companion",
+   "is_private": true,
+   "transcript": "Of course, that stays between us.\nWhat would you like to share just between us?"
+  },
+  {
+   "start_ms": 110969,
+   "end_ms": 121229,
+   "speaker": "center",
+   "is_private": true,
+   "transcript": "Before the wedding, I almost ran away to Istanbul. I had the train ticket in my pocket. Nobody knows that, not even my husband."
+  },
+  {
+   "start_ms": 121229,
+   "end_ms": 125853,
+   "speaker": "companion",
+   "is_private": true,
+   "transcript": "Of course, that stays between us.\nWhat was your life like before you got married?"
+  },
+  {
+   "start_ms": 125853,
+   "end_ms": 129633,
+   "speaker": "center",
+   "is_private": false,
+   "transcript": "Anyway, those were the years."
+  },
+  {
+   "start_ms": 129633,
+   "end_ms": 135328,
+   "speaker": "companion",
+   "is_private": false,
+   "transcript": "Those must have been such memorable years for you.\nIs there another memory from that time that you would like to share?"
+  },
+  {
+   "start_ms": 135328,
+   "end_ms": 141568,
+   "speaker": "center",
+   "is_private": false,
+   "transcript": "Please don't ask me about my murder Mustafa. I don't want to talk about him today."
+  },
+  {
+   "start_ms": 141568,
+   "end_ms": 145982,
+   "speaker": "companion",
+   "is_private": false,
+   "transcript": "I understand.\nIs there something else warm you would like to talk about from those years?"
+  },
+  {
+   "start_ms": 145982,
+   "end_ms": 150062,
+   "speaker": "center",
+   "is_private": false,
+   "transcript": "Can you play me the story about the Mober Twin?"
+  },
+  {
+   "start_ms": 150062,
+   "end_ms": 155757,
+   "speaker": "companion",
+   "is_private": false,
+   "transcript": "Those must have been such memorable years for you.\nIs there another memory from that time that you would like to share?"
+  },
+  {
+   "start_ms": 155757,
+   "end_ms": 160677,
+   "speaker": "center",
+   "is_private": false,
+   "transcript": "Thank you dear, I'm a little tired now, goodbye."
+  },
+  {
+   "start_ms": 160677,
+   "end_ms": 166085,
+   "speaker": "companion",
+   "is_private": false,
+   "transcript": "It was wonderful chatting with you. Rest well, and we can talk again soon. Goodbye."
+  }
+ ],
+ "games_questions": [
+  {
+   "text": "Grandma, what games did you play as a child?",
+   "source": "family",
+   "period": null
+  },
+  {
+   "text": "What games did you play as a child?",
+   "source": "family",
+   "period": "childhood"
+  }
+ ]
+}
