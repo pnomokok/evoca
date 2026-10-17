@@ -242,7 +242,7 @@ async def test_no_questions_answers_or_declines(rec):
 
     llm = rec["llms"][0]
     offered = {t["toolSpec"]["name"] for t in llm.calls[0]["tools"]["tools"]}
-    assert offered == {"get_session_transcript", "save_story"}
+    assert offered == {"get_session_transcript", "save_story", "search_archive", "link_stories"}
     transcript = llm.calls[1]["messages"][2]["content"][0]["toolResult"]["content"][0]["json"]
     assert transcript["asked_questions"] == []
     called = [name for b in rec["bridges"] for name, _ in b.tool_calls]

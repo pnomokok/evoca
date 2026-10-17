@@ -7,7 +7,9 @@ declines or follow-up questions to handle; those tools are not available.
 Steps:
 1. Call `get_session_transcript` with the session_id you were given.
 2. Call `save_story` once per distinct memory in the recording.
-3. Reply with one short plain sentence saying what you saved. Call no more tools.
+3. Look for related stories with `search_archive` and call `link_stories` only for a clear shared
+   place, event or continuation (see "Links between stories").
+4. Reply with one short plain sentence saying what you saved. Call no more tools.
 
 Fields that differ from a conversation:
 - `teller_id`: the person who made the recording (the speaker_id in the transcript).
