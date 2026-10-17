@@ -40,6 +40,7 @@ from core.db import SessionLocal
 from core.enums import InvitationStatus, SessionStart
 from core.models import Circle, Invitation, Membership, Person, Question
 from core.models import Session as OrmSession
+from core.services.chat_tools import playlist_ranges
 from core.services.sessions import end_session, start_session
 from server.agents.archivist_agent import ArchivistAgent, answer_check_llm, archivist_llm
 from server.agents.chat_agent import ChatAgent, chat_llm, privacy_check_llm, split_sentences
@@ -126,10 +127,35 @@ def _remember_questions(live: LiveSession, trace) -> None:
                     live.seen_questions[q["question_id"]] = q
 
 
-def _build_cards(trace, seen_questions: dict[str, dict]) -> list[dict]:
+def _playlist_card(viewer_id: str, session_id: str, story_id: str) -> dict | None:
+    """A playlist card for the story get_linked_playlist played in this turn.
+
+    The model never sees audio ranges, so they are rebuilt here with the same
+    service, the same viewer (the center) and the same order: can_see()
+    filtered and cut around private parts. The device plays the reply audio
+    first, then these items in order."""
+    with SessionLocal() as db:
+        sess = db.get(OrmSession, session_id)
+        if sess is None:
+            return None
+        try:
+            ranges = playlist_ranges(db, viewer_id, sess.circle_id, story_id)
+        except ValueError:
+            return None
+    items = [
+        {"story_id": r["story_id"], "title": r["title"], "teller": r["teller"]["name"], "url": r["url"]}
+        for r in ranges
+    ]
+    return {"type": "playlist", "items": items} if items else None
+
+
+def _build_cards(trace, live: LiveSession) -> list[dict]:
     """Reaction cards from get_session_context; a question card only for a
-    question the agent actually marked as asked in this turn."""
+    question the agent actually marked as asked in this turn; a playlist card
+    only when get_linked_playlist ran in this turn (its last successful call)."""
+    seen_questions = live.seen_questions
     cards: list[dict] = []
+    playlist_story: str | None = None
     for t in trace:
         if t.is_error or t.result is None:
             continue
@@ -159,6 +185,12 @@ def _build_cards(trace, seen_questions: dict[str, dict]) -> list[dict]:
                         "relation_to_center": q.get("asker_relation_to_center"),
                     },
                 })
+        elif t.tool == "get_linked_playlist" and t.result.get("items"):
+            playlist_story = t.input.get("story_id")
+    if playlist_story:
+        card = _playlist_card(live.owner_id, live.session_id, playlist_story)
+        if card:
+            cards.append(card)
     return cards
 
 
@@ -369,7 +401,7 @@ async def session_start(
         "heard_text": None,
         "reply_text": result.reply_text,
         "reply_audio_url": audio_url,
-        "cards": _build_cards(result.trace, live.seen_questions),
+        "cards": _build_cards(result.trace, live),
         "trace": _trace_json(result.trace),
         "latency": {
             "stt_ms": 0,
@@ -477,7 +509,7 @@ async def device_turn(
         "heard_text": stt_result.text,
         "reply_text": result.reply_text,
         "reply_audio_url": audio_url,
-        "cards": _build_cards(result.trace, live.seen_questions),
+        "cards": _build_cards(result.trace, live),
         "trace": _trace_json(result.trace),
         "latency": {
             "stt_ms": stt_ms,

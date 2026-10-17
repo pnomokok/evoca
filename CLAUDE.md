@@ -22,3 +22,4 @@ Working style:
   then open decisions or blockers.
 - Tables only for eval or criteria results. No per-run narratives unless something failed.
 - Do not repeat the task description or list unchanged areas.
+- Commit messages: no Co-Authored-By or other attribution trailers.

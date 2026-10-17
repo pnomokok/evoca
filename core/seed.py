@@ -9,13 +9,21 @@ docs/PROJECT.md.  All text is English.
 
 Safety: the seed deletes the whole database. It refuses to run when the
 database contains any Session the seed did not create (recognised by the
-demo audio_path), unless --force is passed.
+seed session's fixed id), unless --force is passed.
+
+Audio: the seed session's audio and segment timings come from
+core/seed_assets/ (made once with Polly by scripts/make_seed_audio.py). The
+WAV is copied to data/audio/<session_id>.wav, relative to the working
+directory, which is where the audio endpoint reads it; run the seed from the
+same directory as the backend. No AWS call is made here.
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import os
+import shutil
 import sys
 from datetime import timedelta
 from pathlib import Path
@@ -64,8 +72,14 @@ from core.models import (
 
 _CIRCLE_TZ = ZoneInfo("Europe/Istanbul")
 
-# Marks the session the seed creates, so it can tell seeded data from real recordings.
-SEED_AUDIO_PATH = "data/audio/session_demo.m4a"
+# The session the seed creates has a fixed id, so the seed can tell seeded
+# data from real recordings. Databases seeded before it had this audio_path.
+SEED_SESSION_ID = "00000000-5eed-4000-8000-000000000001"
+LEGACY_SEED_AUDIO_PATH = "data/audio/session_demo.m4a"
+
+SEED_ASSETS = Path(__file__).parent / "seed_assets"
+# Where the backend's audio endpoint reads session audio (server/wav_writer.py).
+AUDIO_DIR = Path("data") / "audio"
 
 
 class SeedRefused(RuntimeError):
@@ -80,7 +94,8 @@ def find_recorded_sessions() -> list[tuple[str, str, int]]:
         rows = (
             db.query(Session.id, Session.started_at, func.count(Segment.id))
             .outerjoin(Segment, Segment.session_id == Session.id)
-            .filter((Session.audio_path.is_(None)) | (Session.audio_path != SEED_AUDIO_PATH))
+            .filter(Session.id != SEED_SESSION_ID)
+            .filter((Session.audio_path.is_(None)) | (Session.audio_path != LEGACY_SEED_AUDIO_PATH))
             .group_by(Session.id)
             .order_by(Session.started_at)
             .all()
@@ -183,17 +198,22 @@ def reset_and_seed(force: bool = False) -> None:
         db.flush()
 
         # ------------------------------------------------------------------
-        # Session  (finished, from ~2 hours ago)
+        # Session  (finished, from ~2 hours ago) with its audio
         # ------------------------------------------------------------------
         session_start = now - timedelta(hours=2)
         session_end   = now - timedelta(hours=1, minutes=30)
 
+        AUDIO_DIR.mkdir(parents=True, exist_ok=True)
+        audio_path = AUDIO_DIR / f"{SEED_SESSION_ID}.wav"
+        shutil.copyfile(SEED_ASSETS / "seed_session.wav", audio_path)
+
         session = Session(
+            id=SEED_SESSION_ID,
             circle_id=circle.id,
             kind=SessionKind.solo,
             started_by=SessionStart.spontaneous,
             participant_ids=[fatma.id],
-            audio_path=SEED_AUDIO_PATH,
+            audio_path=audio_path.as_posix(),
             started_at=session_start.isoformat(),
             ended_at=session_end.isoformat(),
         )
@@ -201,53 +221,33 @@ def reset_and_seed(force: bool = False) -> None:
         db.flush()
 
         # ------------------------------------------------------------------
-        # Segments
+        # Segments: Fatma and the agent, timings from the audio (Polly speech marks).
+        # The Hatice part is private: it never reaches any story's sources or summary.
         # ------------------------------------------------------------------
-        seg1 = Segment(
-            session_id=session.id,
-            speaker_id=fatma.id,
-            start_ms=0,
-            end_ms=45_000,
-            transcript=(
-                "When I was a little girl in the village, we had a big mulberry tree "
-                "in the garden. Every summer we would climb it and eat until our hands "
-                "turned purple."
-            ),
-            words=[
-                {"w": "When", "start_ms": 0,   "end_ms": 400},
-                {"w": "I",    "start_ms": 410,  "end_ms": 500},
-            ],
-            is_private=False,
-        )
-        seg2 = Segment(
-            session_id=session.id,
-            speaker_id=None,  # agent
-            start_ms=45_500,
-            end_ms=52_000,
-            transcript="That sounds wonderful. Did you have siblings to climb with?",
-            words=[],
-            is_private=False,
-        )
-        # This segment is private — it never reaches any story's sources or summary.
-        seg3 = Segment(
-            session_id=session.id,
-            speaker_id=fatma.id,
-            start_ms=52_500,
-            end_ms=95_000,
-            transcript=(
-                "Yes, my sister Hatice and I. We were inseparable. "
-                "She moved to Germany in 1972 — I did not see her for three years. "
-                "Those were hard times, but let us not talk about that today."
-            ),
-            words=[{"w": "Yes", "start_ms": 52_500, "end_ms": 52_900}],
-            is_private=True,
-        )
-        db.add_all([seg1, seg2, seg3])
+        timings = json.loads((SEED_ASSETS / "seed_session.json").read_text(encoding="utf-8"))
+        segments = [
+            Segment(
+                session_id=session.id,
+                speaker_id=fatma.id if seg["speaker"] == "center" else None,  # None = agent
+                start_ms=seg["start_ms"],
+                end_ms=seg["end_ms"],
+                transcript=seg["transcript"],
+                words=seg["words"],
+                is_private=seg["is_private"],
+            )
+            for seg in timings["segments"]
+        ]
+        db.add_all(segments)
         db.flush()
+        seg_mulberry, seg_tailor = segments[0], segments[4]
+        for seg in (seg_mulberry, seg_tailor):
+            # A story source must be Fatma's own words, never the private part.
+            if seg.is_private or seg.speaker_id != fatma.id:
+                raise RuntimeError("seed_session.json changed: a story source is private or not Fatma's")
 
         # ------------------------------------------------------------------
         # Stories
-        # Note: seg3 is private; no story is derived from it.
+        # Note: the Hatice segment is private; no story is derived from it.
         # ------------------------------------------------------------------
 
         # 1. Published, access = circle — childhood memory
@@ -261,7 +261,8 @@ def reset_and_seed(force: bool = False) -> None:
                 "Fatma recalls climbing the mulberry tree with her sister every summer "
                 "as a child in their village garden."
             ),
-            sources=[{"session_id": session.id, "start_ms": 0, "end_ms": 45_000}],
+            sources=[{"session_id": session.id, "start_ms": seg_mulberry.start_ms,
+                      "end_ms": seg_mulberry.end_ms}],
             place="Village of Akcaabat",
             stated_year=None,
             access={"type": AccessType.circle, "person_ids": []},
@@ -271,8 +272,6 @@ def reset_and_seed(force: bool = False) -> None:
         )
 
         # 2. Published, access = circle — youth memory (tailor's shop)
-        #    Sources point to seg1's session but a later time range to keep
-        #    it cleanly separate from the mulberry extract.
         story_tailor = Story(
             circle_id=circle.id,
             teller_id=fatma.id,
@@ -284,7 +283,8 @@ def reset_and_seed(force: bool = False) -> None:
                 "She learned to sew by hand and remembers the hum of the old Singer "
                 "machine and the smell of fresh cotton on warm afternoons."
             ),
-            sources=[{"session_id": session.id, "start_ms": 45_500, "end_ms": 52_000}],
+            sources=[{"session_id": session.id, "start_ms": seg_tailor.start_ms,
+                      "end_ms": seg_tailor.end_ms}],
             place="Village of Akcaabat",
             stated_year=None,
             access={"type": AccessType.circle, "person_ids": []},
@@ -430,6 +430,7 @@ def reset_and_seed(force: bool = False) -> None:
     print(f"  Stories : {story_mulberry.title!r}, {story_tailor.title!r}, {story_pending.title!r}")
     print(f"  Today   : {today_str} (circle timezone: Europe/Istanbul)")
     print(f"  Database: {os.environ.get('EVOCA_DB_PATH', 'data/evoca.db')}")
+    print(f"  Audio   : {audio_path.as_posix()}")
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -21,6 +21,8 @@ Coverage
   /api/lifeline/{id}) never contain a speaker topic, for the admin either.
 - get_session_context returns both sources in avoid_topics, without a label,
   to the center only; any other viewer gets [].
+- A refusal is stored even when a family topic has the same text, so deleting
+  that family topic leaves the refusal in place.
 - add_missing_columns adds sensitive_topic.source to an older database file,
   keeps its rows and is idempotent.
 """
@@ -32,9 +34,10 @@ from sqlalchemy import create_engine, inspect, text
 
 from core.clock import now_utc
 from core.db import add_missing_columns
-from core.enums import QuestionStatus, SessionKind, SessionStart, TopicSource
-from core.models import Base, Question, Segment, SensitiveTopic, Session as OrmSession
-from core.services.archive_tools import add_refused_topic_data
+from core.enums import QuestionStatus, Role, SessionKind, SessionStart, TopicSource
+from core.models import Base, Membership, Question, Segment, SensitiveTopic, Session as OrmSession
+from core.services import admin as admin_svc
+from core.services.archive_tools import add_question_data, add_refused_topic_data
 from core.services.session_tools import get_session_context_data
 from server.agents.archivist_agent import ArchivistAgent
 from tests.test_api import _client, anyio_backend, test_app  # noqa: F401  (fixtures)
@@ -213,6 +216,19 @@ def test_service_adds_a_speaker_topic_once(w):
     again = _add(w)
     assert first["added"] is True and again == {"topic_id": first["topic_id"], "added": False}
     assert len(_speaker_topics(w)) == 1
+
+
+def test_refusal_outlives_a_deleted_family_topic_with_the_same_text(w):
+    w.db.query(Membership).filter(Membership.person_id == w.elif_.id).update({"role": Role.admin})
+    w.db.commit()
+    family = admin_svc.add_family_topic(w.db, w.elif_.id, w.circle.id, TOPIC)
+    assert _add(w)["added"] is True            # the family row is not the center's refusal
+    admin_svc.delete_family_topic(w.db, w.elif_.id, w.circle.id, family["id"])
+
+    assert [t.text for t in _speaker_topics(w)] == [TOPIC]
+    assert TOPIC in get_session_context_data(w.db, w.fatma.id, w.circle.id).avoid_topics
+    q = add_question_data(w.db, w.fatma.id, w.circle.id, "What was Hatice like?", "follow_up")
+    assert q["status"] == QuestionStatus.filtered.value
 
 
 def test_service_rejects_a_topic_that_would_filter_nothing(w):

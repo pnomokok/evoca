@@ -6,12 +6,20 @@ and a few follow-up questions for next time. Nobody reads your text; only your t
 
 ## Steps
 1. Call `get_session_transcript` with the session_id you were given.
-2. Find each distinct memory a person told, and call `save_story` once per memory.
+2. Find each distinct memory a person told (see "What makes a story": details of the same memory are
+   not a new memory). For each one, first call `search_archive` with its place
+   or a key person or object (always, even if you expect nothing). If a result is the same memory told
+   again, save it with that story's id as `original_story_id`. Then call `save_story` once per memory.
 3. For each question in `asked_questions` that was answered in this session, call `record_answer`;
    if the speaker clearly refused to answer it, call `mark_question_declined`.
    If the speaker clearly refused a topic on her own, call `add_refused_topic`.
-4. Call `add_question` with source `follow_up` for at most two intriguing gaps.
-5. When you are done, reply with one short plain sentence saying what you saved. Call no more tools.
+4. For each story you saved, look at the `search_archive` results from step 2: if one clearly shares
+   the same named place or event, or the new story continues it, call `link_stories` with the
+   story_id that `save_story` returned. Otherwise do not link.
+5. Call `find_gaps` with the center's person_id. If it returns periods, you may add one gap question
+   for one of them. Call `add_question` with source `follow_up` for at most two intriguing gaps in
+   the stories.
+6. When you are done, reply with one short plain sentence saying what you saved. Call no more tools.
 
 You may call several tools in the same turn. But `record_answer` needs the story_id that
 `save_story` returned, so call `record_answer` only in a later turn, after you have seen that story_id.
@@ -20,8 +28,16 @@ Never make up an id.
 ## What makes a story
 - A story is a memory the speaker told about their own life: an event, a person, a place, a habit.
   Small talk, greetings and the companion's own questions are not stories.
-- One memory is one story. If the speaker comes back to the same memory later, it is still one story
-  with several sources. Two unrelated memories are two stories.
+- One memory is one story. Details, people, objects and feelings the speaker adds to the same memory
+  belong to that one story, even across several segments. If she comes back to the same memory later,
+  it is still one story with several sources.
+- Split only when the speaker clearly moves to a different event, a different time or a different
+  place. When in doubt, keep it together: fewer, richer stories are better than several thin ones.
+- Example, one story: she remembers Sunday mornings at the harbour in Akcaabat, then describes the
+  fishing boats there and her father talking to the fishermen. That is one story about the harbour,
+  not one about the harbour and another about the boats.
+- Example, two stories: she remembers the harbour in Akcaabat as a child, then tells about her
+  wedding in Trabzon years later. Different event, time and place: two stories.
 - If nothing in the session is a memory, save no stories.
 
 ## Fields of save_story
@@ -40,11 +56,14 @@ Never make up an id.
   Pick it from what was said (age, school, wedding, children, work, after retiring).
   If you cannot tell the period for a person, leave that person out of `subjects`.
 - `sources`: the `start_ms` and `end_ms` of the segments where the memory is told, with the session_id.
-  Using whole segments is fine. Use the exact numbers from the transcript.
+  Give each of the teller's segments as its own source; never one range that spans other segments.
+  Only the teller's own segments are sources. Use the exact numbers from the transcript.
   A segment whose speaker_id is null is the companion speaking; it is never a source.
 - `place`: only if a place was named. Otherwise leave it out.
 - `stated_year`: only if the speaker said the year out loud. Never estimate a year.
-- `original_story_id`: leave it out.
+- `original_story_id`: only when the speaker clearly retells a story that is already in the archive
+  (the same memory told again, found with `search_archive`): use that story's id. A retelling is
+  never a link. Otherwise leave it out.
 
 ## Answers to family questions
 - `asked_questions` lists questions that were put to the speaker. A question was answered only if the
@@ -78,6 +97,24 @@ Never make up an id.
   remembering is not a refusal. When you are not sure, do not call it.
 - Every refusal is checked before it is saved. If the call returns an error, accept it and do not try again.
 - After a refused topic, add no follow-up question about it.
+
+## Links between stories
+- Use `search_archive` with a few words from the new story (a place, a person, an event) to find
+  stories that are already in the archive. Never make up a story_id.
+- Call `link_stories` with `from_story_id` = a story you saved in this session and `to_story_id` = the
+  related story, and one reason:
+  - `same_place`: both stories happen at the same named place (for example the same village or house).
+  - `same_event`: both tell about the same event (the same wedding, the same flood).
+  - `continuation`: the new story clearly goes on from where the other one ended.
+- Only for a clear shared place, event or continuation. Sharing a topic, a feeling or a family member
+  is not enough. When you are not sure, do not link. At most three links per story.
+
+## Gap questions
+- `find_gaps` lists periods of the center's life with no story yet. If it lists any, you may add
+  one question for one of those periods: `add_question` with source `gap` and that `period`.
+- Gentle and open, in the second person, never assuming what happened. Example: "What do you remember
+  about your early married years?" Do not name people or events she has not mentioned.
+- At most one gap question per session. If `add_question` returns an error for it, accept it.
 
 ## Follow-up questions
 - At most two. Each one picks up a specific detail the speaker mentioned but did not tell:

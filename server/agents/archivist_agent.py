@@ -8,9 +8,8 @@ background, following the archivist steps in docs/PROJECT.md:
 2. save_story               — one story per distinct memory
 3. record_answer            — for asked questions answered in this session
 4. add_refused_topic        — a topic the speaker refused on her own
-5. add_question             — at most two follow_up questions
-
-link_stories and find_gaps are used only once the MCP server offers them.
+5. search_archive + link_stories — links to related existing stories
+6. find_gaps + add_question — at most two follow_up questions and one gap question
 
 Architecture
 ------------
@@ -18,8 +17,23 @@ Architecture
   speaker and nothing is stored as Segments.
 - The tool config is restricted to the archivist's tools, so the model cannot
   call chat-agent tools such as mark_question_asked.
-- The question limit is enforced here as well as in the prompt: extra
-  add_question calls get an error result and never reach the MCP server.
+- The question limits are enforced here as well as in the prompt: at most
+  two follow_up questions and one gap question per run; extra add_question
+  calls get an error result and never reach the MCP server. A gap question
+  must name a period that find_gaps returned for the center in this run (the
+  code calls find_gaps itself if the model has not).
+- search_archive runs as the bridge's identity, the session's teller (the
+  center, or the recorder of a panel recording), so the model only sees
+  stories that person can see when it looks for links. This code narrows it
+  further to stories at least as widely shared as a new story (access
+  "circle", and published or told by the teller) and drops their audio
+  sources, teller, access and status: a new circle story must not repeat a
+  private or pending story's words, nor point at its audio.
+- In every mode, the session is the one being archived, never the model's
+  choice: the session_id of get_session_transcript and mark_question_declined,
+  and of every save_story source, is replaced with it before the call (a
+  different value is logged, ids only). The server checks sources again
+  against the session header. record_answer must name a story saved in this run.
 - So are duplicates: an add_question whose normalized text appears in one of
   the companion's segments of this session, or equals a waiting or asked
   question of the circle, is rejected the same way. The guard reads the
@@ -46,13 +60,20 @@ Architecture
 - At the end of the run, every question that is still "asked" (not answered,
   not declined) is returned to "waiting" via reopen_question, so it is asked
   again in a later session. These calls are made by this code, not the model.
+- Split guard: the model sometimes saves one memory as two stories. When two
+  stories saved in the same run have overlapping or adjacent sources (a gap
+  under SPLIT_GAP_MS, not counting the companion's segments in between, so a
+  companion question does not separate two parts of one memory) and share a
+  place or a subject period, the pair is logged
+  as a possible split (story ids only) and kept in possible_splits. Nothing is
+  merged: telling a split from two short memories needs a person.
 
 Panel recordings (A4)
 ---------------------
 With panel_recording=True the session is one family member's own recording
 from the panel. Questions belong only to the center's own sessions, so:
-- only get_session_transcript, save_story and link_stories are offered (and
-  accepted; no add_refused_topic); the circle's asked questions are dropped from the transcript the
+- only get_session_transcript, save_story, search_archive and link_stories
+  are offered (and accepted; no add_refused_topic, find_gaps or questions); the circle's asked questions are dropped from the transcript the
   model sees, and nothing is reopened at the end of the run;
 - teller_id is always the recorder (person_id), whatever the model passes,
   and only this session can be read or cited (the recorder's identity must
@@ -84,7 +105,9 @@ log = logging.getLogger(__name__)
 _PROMPT_PATH = Path(__file__).parent / "prompts" / "archivist_agent.md"
 _PANEL_PROMPT_PATH = Path(__file__).parent / "prompts" / "archivist_panel_recording.md"
 _MAX_TOOL_ROUNDS = 15
-_MAX_QUESTIONS = 2
+_MAX_QUESTIONS = 2        # follow_up questions per run
+_MAX_GAP_QUESTIONS = 1    # gap questions per run
+SPLIT_GAP_MS = 5_000      # sources closer than this may be one memory saved twice
 
 DEFAULT_ARCHIVIST_MODEL = "us.amazon.nova-2-lite-v1:0"
 DEFAULT_ARCHIVIST_TEMPERATURE = 0.2
@@ -98,15 +121,55 @@ _ARCHIVIST_TOOLS = {
     "add_question",
     "mark_question_declined",
     "add_refused_topic",
+    "search_archive",
     "link_stories",
     "find_gaps",
 }
 
-# A panel recording only becomes stories; no answers, declines or questions.
-_PANEL_RECORDING_TOOLS = {"get_session_transcript", "save_story", "link_stories"}
+# A panel recording only becomes stories (and their links); no answers,
+# declines or questions.
+_PANEL_RECORDING_TOOLS = {"get_session_transcript", "save_story", "search_archive", "link_stories"}
+
+# Tools whose session_id argument is always the session being archived.
+_SESSION_TOOLS = {"get_session_transcript", "mark_question_declined"}
 
 
 _PUNCTUATION = re.compile(r"[^\w\s]", re.UNICODE)
+
+
+def _gap_ms(a: dict[str, Any], b: dict[str, Any], companion: list[tuple[int, int]]) -> int:
+    """Silence between two source ranges of one session, minus the companion's
+    segments inside it (0 when they overlap or touch)."""
+    first, second = (a, b) if a.get("start_ms", 0) <= b.get("start_ms", 0) else (b, a)
+    gap_start, gap_end = first.get("end_ms", 0), second.get("start_ms", 0)
+    if gap_end <= gap_start:
+        return 0
+    spoken = sum(max(0, min(e, gap_end) - max(s, gap_start)) for s, e in companion)
+    return gap_end - gap_start - spoken
+
+
+def possible_split(
+    a: dict[str, Any],
+    b: dict[str, Any],
+    companion: dict[str, list[tuple[int, int]]] | None = None,
+) -> bool:
+    """True if two save_story argument sets look like one memory saved twice:
+    sources in the same session that overlap or are less than SPLIT_GAP_MS
+    apart (companion segments in between do not count; companion maps a
+    session_id to its companion segment ranges), and the same place or a
+    shared subject period."""
+    companion = companion or {}
+    close = any(
+        sa.get("session_id") == sb.get("session_id")
+        and _gap_ms(sa, sb, companion.get(sa.get("session_id"), [])) < SPLIT_GAP_MS
+        for sa in a.get("sources") or [] for sb in b.get("sources") or []
+    )
+    if not close:
+        return False
+    place_a, place_b = (" ".join((x.get("place") or "").lower().split()) for x in (a, b))
+    periods_a = {s.get("period") for s in a.get("subjects") or []}
+    periods_b = {s.get("period") for s in b.get("subjects") or []}
+    return bool(place_a and place_a == place_b) or bool((periods_a & periods_b) - {None})
 
 
 def normalize_question(text: str) -> str:
@@ -177,9 +240,11 @@ class ArchiveResult:
     story_ids: list[str] = field(default_factory=list)
     answers_recorded: list[str] = field(default_factory=list)       # question ids
     questions_added: list[dict[str, str]] = field(default_factory=list)  # {question_id, status}
+    links_added: list[str] = field(default_factory=list)         # link ids (source "ai")
     questions_declined: list[str] = field(default_factory=list)  # question ids, confirmed declines
     questions_reopened: list[str] = field(default_factory=list)  # question ids, back to "waiting"
     topics_refused: list[str] = field(default_factory=list)      # sensitive topic ids (source "speaker")
+    possible_splits: list[tuple[str, str]] = field(default_factory=list)  # story id pairs, see possible_split
     final_text: str = ""
     trace: list[ToolTrace] = field(default_factory=list)
     latency: dict[str, int] = field(default_factory=dict)          # llm_ms, tools_ms, total_ms
@@ -241,8 +306,14 @@ class ArchivistAgent:
         self._speaker_segments: list[tuple[int, int, str]] = []   # (start_ms, end_ms, text)
         self._read_ranges: list[tuple[int, int]] = []              # every non-private segment
         self._center_segments: list[tuple[int, int, str]] = []    # the center's own words
+        self._companion_ranges: list[tuple[int, int]] = []         # the companion's segments
         self._asked_by_id: dict[str, str] = {}                     # question_id -> text
         self._check_ms = 0
+        # Per-run state for the question limits and the gap check.
+        self._added_by_source: dict[str, int] = {}
+        self._gaps: list[str] | None = None
+        # Per-run state for the split guard: (story_id, save_story arguments).
+        self._saved: list[tuple[str, dict[str, Any]]] = []
 
     async def _tool_config(self) -> dict[str, Any]:
         full = await self._bridge.bedrock_tool_config()
@@ -256,7 +327,9 @@ class ArchivistAgent:
         self._session_id = session_id
         self._companion_texts = self._asked_texts = self._waiting_texts = None
         self._speaker_segments, self._asked_by_id, self._check_ms = [], {}, 0
-        self._read_ranges, self._center_segments = [], []
+        self._read_ranges, self._center_segments, self._companion_ranges = [], [], []
+        self._added_by_source, self._gaps = {}, None
+        self._saved = []
 
         tool_config = await self._tool_config()
         allowed = {t["toolSpec"]["name"] for t in tool_config["tools"]}
@@ -270,6 +343,8 @@ class ArchivistAgent:
                 f"\n\nThis is a panel recording by person_id {self._person_id}."
                 f"\nCircle members you may use as subjects:\n{self._members_text()}"
             )
+        else:
+            first += f"\nThe center person, for find_gaps, is person_id {self._person_id}."
         messages: list[dict[str, Any]] = [{"role": "user", "content": [{"text": first}]}]
 
         llm_ms_total = 0
@@ -353,13 +428,26 @@ class ArchivistAgent:
         """Dispatch one tool call and record its outcome in result."""
         if name not in allowed:
             raise RuntimeError(f"Tool '{name}' is not available to the archivist.")
-        if self._panel_recording:
-            self._only_this_session(name, arguments)
+        self._pin_session(name, arguments)
+        if self._panel_recording and name == "save_story":
+            arguments["teller_id"] = self._person_id   # always the recorder
+        if name == "record_answer" and arguments.get("story_id") not in result.story_ids:
+            raise RuntimeError(
+                "Answer not recorded: the answer must be in a story you saved from this session."
+            )
         if name == "add_question":
-            if len(result.questions_added) >= _MAX_QUESTIONS:
+            source = arguments.get("source")
+            limit = _MAX_GAP_QUESTIONS if source == "gap" else _MAX_QUESTIONS
+            if self._added_by_source.get(source, 0) >= limit:
                 raise RuntimeError(
-                    f"Question limit reached: at most {_MAX_QUESTIONS} questions per session."
+                    f"Question limit reached: at most {limit} {source} question(s) per session."
                 )
+            if source == "gap":
+                gaps = await self._center_gaps()
+                if arguments.get("period") not in gaps:
+                    raise RuntimeError(
+                        f"A gap question needs a period from find_gaps: {', '.join(gaps) or 'none'}."
+                    )
             reason = await self._duplicate_reason(arguments.get("text", ""))
             if reason:
                 raise RuntimeError(f"Duplicate question rejected: {reason}.")
@@ -373,13 +461,10 @@ class ArchivistAgent:
                     f"Answer not recorded: {reason}. Leave this question unanswered."
                 )
         if name == "mark_question_declined":
-            if arguments.get("session_id") != self._session_id:
-                reason = "a decline must be in the session being archived"
-            else:
-                reason = await self._passage_rejection(
-                    arguments, _DECLINE_CHECK_PROMPT,
-                    "the speaker does not clearly decline the question in that range",
-                )
+            reason = await self._passage_rejection(
+                arguments, _DECLINE_CHECK_PROMPT,
+                "the speaker does not clearly decline the question in that range",
+            )
             if reason:
                 raise RuntimeError(
                     f"Decline not recorded: {reason}. Treat the question as not declined."
@@ -392,6 +477,12 @@ class ArchivistAgent:
 
         out = await self._bridge.call_tool(name, arguments)
 
+        if name == "search_archive":
+            out = self._shareable_results(out)
+
+        if name == "find_gaps" and isinstance(out, (dict, list)):
+            self._gaps = out.get("result", []) if isinstance(out, dict) else list(out)
+
         if name == "get_session_transcript" and isinstance(out, dict):
             if self._panel_recording:
                 out = {**out, "asked_questions": []}
@@ -401,6 +492,7 @@ class ArchivistAgent:
             result.story_ids.append(out["story_id"])
             if self._panel_recording and self._story_access != "circle":
                 await self._apply_story_access(out["story_id"])
+            self._check_split(out["story_id"], arguments, result)
         elif name == "record_answer":
             result.answers_recorded.append(arguments.get("question_id", ""))
         elif name == "mark_question_declined":
@@ -411,7 +503,11 @@ class ArchivistAgent:
             log.info("Refused topic %s (session %s): topic %s",
                      "added" if out.get("added") else "already known",
                      self._session_id, out.get("topic_id", ""))
+        elif name == "link_stories" and isinstance(out, dict) and out.get("added"):
+            result.links_added.append(out.get("link_id", ""))
         elif name == "add_question" and isinstance(out, dict):
+            source = arguments.get("source")
+            self._added_by_source[source] = self._added_by_source.get(source, 0) + 1
             result.questions_added.append(
                 {"question_id": out.get("question_id", ""), "status": out.get("status", "")}
             )
@@ -423,16 +519,33 @@ class ArchivistAgent:
     # Panel recordings
     # ------------------------------------------------------------------
 
-    def _only_this_session(self, name: str, arguments: dict[str, Any]) -> None:
-        """A panel recording reads and cites only its own session, and its
-        teller is always the recorder."""
-        if name == "get_session_transcript" and arguments.get("session_id") != self._session_id:
-            raise RuntimeError("Only the session being archived can be read.")
+    def _check_split(self, story_id: str, arguments: dict[str, Any], result: ArchiveResult) -> None:
+        """Log a possible split with an earlier story of this run (ids only, no text).
+
+        A diagnostic only: it runs after the access step and never raises.
+        """
+        try:
+            companion = {self._session_id: self._companion_ranges}
+            for other_id, other_args in self._saved:
+                if possible_split(other_args, arguments, companion):
+                    result.possible_splits.append((other_id, story_id))
+                    log.warning("Possible story split in session %s: %s and %s",
+                                self._session_id, other_id, story_id)
+        except Exception:
+            log.exception("Split check failed (session %s, story %s)", self._session_id, story_id)
+        self._saved.append((story_id, arguments))
+
+    def _pin_session(self, name: str, arguments: dict[str, Any]) -> None:
+        """Use the session being archived wherever a tool takes a session id;
+        the model's value is ignored (a mistyped id would lose the whole run)."""
+        targets = [arguments] if "session_id" in arguments or name in _SESSION_TOOLS else []
         if name == "save_story":
-            if any(src.get("session_id") != self._session_id
-                   for src in arguments.get("sources") or []):
-                raise RuntimeError("Sources must be ranges of the session being archived.")
-            arguments["teller_id"] = self._person_id
+            targets += [src for src in arguments.get("sources") or [] if isinstance(src, dict)]
+        for target in targets:
+            if target.get("session_id") != self._session_id:
+                log.info("Archivist %s: session id %s replaced with %s",
+                         name, target.get("session_id"), self._session_id)
+                target["session_id"] = self._session_id
 
     def _members_text(self) -> str:
         lines = []
@@ -480,6 +593,11 @@ class ArchivistAgent:
         self._read_ranges = sorted(
             (s.get("start_ms", 0), s.get("end_ms", 0)) for s in transcript.get("segments", [])
         )
+        self._companion_ranges = [
+            (s.get("start_ms", 0), s.get("end_ms", 0))
+            for s in transcript.get("segments", [])
+            if s.get("speaker_id") is None
+        ]
         # person_id is the center outside panel recordings, the only mode with add_refused_topic.
         self._center_segments = [
             (s.get("start_ms", 0), s.get("end_ms", 0), s.get("transcript", ""))
@@ -612,6 +730,28 @@ class ArchivistAgent:
             except Exception:
                 log.exception("Could not reopen question %s (session %s)",
                               question_id, self._session_id)
+
+    def _shareable_results(self, out: Any) -> dict[str, Any]:
+        """Search results the model may use for links and retellings: only
+        circle stories that are published or told by this run's teller, with
+        no audio sources, teller, access or status."""
+        items = out.get("result", []) if isinstance(out, dict) else list(out or [])
+        keep = []
+        for item in items:
+            if item.get("access") != "circle":
+                continue
+            if item.get("status") != "published" and item.get("teller_id") != self._person_id:
+                continue
+            keep.append({k: v for k, v in item.items()
+                         if k not in ("sources", "teller_id", "access", "status")})
+        return {"result": keep}
+
+    async def _center_gaps(self) -> list[str]:
+        """The center's empty periods, from this run's find_gaps call or a new one."""
+        if self._gaps is None:
+            out = await self._bridge.call_tool("find_gaps", {"person_id": self._person_id})
+            self._gaps = out.get("result", []) if isinstance(out, dict) else list(out or [])
+        return self._gaps
 
     async def _duplicate_reason(self, text: str) -> str | None:
         """Return why the question is a duplicate, or None if it is new."""

@@ -410,7 +410,7 @@ def test_add_question_waiting(w):
 
 def test_add_question_filtered_by_sensitive_topic(w):
     r = add_question_data(w.db, w.fatma.id, w.circle.id,
-                          "Can you tell me about the accident?", "gap")
+                          "Can you tell me about the accident?", "gap", "midlife")
     w.db.commit()
     assert r["status"] == "filtered"
     assert w.db.get(Question, r["question_id"]).status == QuestionStatus.filtered

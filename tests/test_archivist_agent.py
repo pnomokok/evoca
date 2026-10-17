@@ -39,10 +39,13 @@ import pytest
 
 from core.enums import QuestionStatus, StoryStatus
 from core.models import Question, Segment, Story
+from core.services.chat_tools import search_archive_data
 from core.services.session_tools import get_pending_questions_data
 from core.services.archive_tools import (
     add_question_data,
     add_refused_topic_data,
+    find_gaps_data,
+    link_stories_data,
     get_session_transcript_data,
     mark_question_declined_data,
     record_answer_data,
@@ -57,6 +60,7 @@ from server.agents.archivist_agent import (
     archivist_model_id,
     checker_said_yes,
     normalize_question,
+    possible_split,
 )
 from tests.test_archive_tools import PRIVATE_TEXT, db, w  # noqa: F401  (fixtures)
 from tests.test_chat_agent import ScriptedLLM, _tool_use
@@ -107,7 +111,7 @@ class FakeArchiveBridge:
         return {"tools": [_spec(n) for n in (
             "get_session_transcript", "save_story", "record_answer",
             "add_question", "mark_question_declined", "add_refused_topic",
-            "mark_question_asked",
+            "search_archive", "link_stories", "find_gaps", "mark_question_asked",
         )]}
 
     async def call_tool(self, name: str, arguments: dict) -> Any:
@@ -139,6 +143,15 @@ class FakeArchiveBridge:
             r = add_refused_topic_data(db, pid, cid, self.session_id or "", **arguments)
             db.commit()
             return {"status": "ok", **r}
+        if name == "search_archive":
+            # The real server wraps a list.
+            return {"result": search_archive_data(db, pid, cid, **arguments)}
+        if name == "link_stories":
+            r = link_stories_data(db, pid, cid, self.session_id or "", **arguments)
+            db.commit()
+            return {"status": "ok", **r}
+        if name == "find_gaps":
+            return {"result": find_gaps_data(db, pid, cid, **arguments)}
         if name == "reopen_question":
             reopen_question_data(db, pid, cid, **arguments)
             db.commit()
@@ -231,7 +244,8 @@ async def test_chat_tools_are_not_offered(w):
     await agent.run(w.sess.id)
     names = {t["toolSpec"]["name"] for t in llm.calls[0]["tools"]["tools"]}
     assert names == {"get_session_transcript", "save_story", "record_answer", "add_question",
-                     "mark_question_declined", "add_refused_topic"}
+                     "mark_question_declined", "add_refused_topic", "search_archive",
+                     "link_stories", "find_gaps"}
     assert "reopen_question" not in names   # called by the agent's own code, never by the model
 
 
@@ -394,8 +408,8 @@ UNCLE_AHMED = (
 
 
 def _answer_world(w):
-    """The real-check case: an asked 'anyone famous' question, a session whose
-    speaker segment is the Uncle Ahmed story, and a saved story for it."""
+    """The real-check case: an asked 'anyone famous' question and a session
+    whose speaker segment is the Uncle Ahmed story (saved by the run itself)."""
     from core.enums import QuestionSource
     q = Question(circle_id=w.circle.id, target_person_id=w.fatma.id, asker_id=w.elif_.id,
                  text=FAMOUS_Q, source=QuestionSource.family, status=QuestionStatus.asked,
@@ -405,9 +419,7 @@ def _answer_world(w):
                                      Segment.start_ms == 20_000).one()
     seg.transcript = UNCLE_AHMED
     w.db.commit()
-    story_id = save_story_data(w.db, w.fatma.id, w.circle.id, **_story_args(w, 20_000, 30_000))
-    w.db.commit()
-    return q, story_id
+    return q
 
 
 def _checker_input(checker) -> str:
@@ -416,12 +428,15 @@ def _checker_input(checker) -> str:
 
 @pytest.mark.anyio
 async def test_answer_check_rejects_unrelated_story(w):
-    q, story_id = _answer_world(w)
+    q = _answer_world(w)
     checker = ScriptedLLM(["no"])
     llm = DynamicScriptedLLM([
         [_tool_use("get_session_transcript", {"session_id": w.sess.id})],
-        [_tool_use("record_answer", {"question_id": q.id, "story_id": story_id,
-                                     "start_ms": 20_000, "end_ms": 30_000})],
+        [_tool_use("save_story", _story_args(w, 20_000, 30_000))],
+        lambda msgs: [_tool_use("record_answer", {
+            "question_id": q.id, "story_id": last_tool_json(msgs)["story_id"],
+            "start_ms": 20_000, "end_ms": 30_000,
+        })],
         "done",
     ])
     agent, bridge = _make_agent(w, llm, checker)
@@ -439,6 +454,21 @@ async def test_answer_check_rejects_unrelated_story(w):
     seen = _checker_input(checker)
     assert FAMOUS_Q in seen and "Uncle Ahmed was standing on the porch" in seen
     assert checker.calls[0]["tools"] is None
+
+
+@pytest.mark.anyio
+async def test_answer_must_be_in_a_story_saved_in_this_run(w):
+    older = save_story_data(w.db, w.fatma.id, w.circle.id, **_story_args(w))
+    w.db.commit()
+    checker = ScriptedLLM(["yes"])
+    llm = DynamicScriptedLLM([[_tool_use("record_answer", {
+        "question_id": w.q_asked.id, "story_id": older, "start_ms": 0, "end_ms": 10_000,
+    })], "done"])
+    agent, bridge = _make_agent(w, llm, checker)
+    result = await agent.run(w.sess.id)
+    assert result.answers_recorded == [] and checker.calls == []
+    assert "story you saved from this session" in result.trace[0].result_preview
+    assert "record_answer" not in [n for n, _ in bridge.tool_calls]
 
 
 @pytest.mark.anyio
@@ -592,16 +622,42 @@ async def test_unconfirmed_decline_is_not_recorded_and_question_reopened(w, verd
 
 
 @pytest.mark.anyio
-async def test_decline_in_another_session_is_rejected(w):
+async def test_decline_with_another_session_id_is_checked_in_this_session(w):
+    # The model names another session; the archivist uses its own, so the
+    # checker judges this session's words (here: no decline) and nothing
+    # reaches the other session.
     llm = DynamicScriptedLLM([[_tool_use("mark_question_declined", {
-        "question_id": w.q_asked.id, "session_id": w.other_sess.id, "start_ms": 0, "end_ms": 1,
+        "question_id": w.q_asked.id, "session_id": w.other_sess.id, "start_ms": 0, "end_ms": 10_000,
     })], "done"])
-    checker = ScriptedLLM(["yes"])
-    agent, _ = _make_agent(w, llm, checker)
+    checker = ScriptedLLM(["no"])
+    agent, bridge = _make_agent(w, llm, checker)
     result = await agent.run(w.sess.id)
-    assert "must be in the session being archived" in result.trace[0].result_preview
-    assert checker.calls == []
+    assert "Decline not recorded" in result.trace[0].result_preview
+    assert checker.calls and "I grew up next to the river." in json.dumps(checker.calls[0])
+    assert all(a.get("session_id") != w.other_sess.id for _, a in bridge.tool_calls)
     assert _status(w, w.q_asked.id) == QuestionStatus.waiting
+
+
+@pytest.mark.anyio
+async def test_wrong_session_id_from_the_model_still_saves_the_stories(w):
+    wrong = "bcdc8322-5389-4303-a6ed-bd5f528446b5"     # a mistyped id, as in eval split_v2
+    llm = DynamicScriptedLLM([
+        [_tool_use("get_session_transcript", {"session_id": wrong})],
+        lambda msgs: (
+            [_tool_use("save_story", {**_story_args(w), "sources": [
+                {"session_id": wrong, "start_ms": 0, "end_ms": 10_000}]})]
+            if last_tool_json(msgs) and last_tool_json(msgs).get("session_id") == w.sess.id
+            else "the transcript was not found"
+        ),
+        "done",
+    ])
+    agent, bridge = _make_agent(w, llm)
+    result = await agent.run(w.sess.id)
+    assert not any(t.is_error for t in result.trace)
+    assert len(result.story_ids) == 1
+    story = w.db.get(Story, result.story_ids[0])
+    assert story.sources == [{"session_id": w.sess.id, "start_ms": 0, "end_ms": 10_000}]
+    assert all(a.get("session_id") != wrong for _, a in bridge.tool_calls)
 
 
 @pytest.mark.anyio
@@ -679,3 +735,115 @@ async def test_markdown_yes_from_checker_records_the_answer(w):
     agent, _ = _make_agent(w, llm, checker)
     result = await agent.run(w.sess.id)
     assert result.answers_recorded == [w.q_asked.id]
+
+
+# ---------------------------------------------------------------------------
+# Split guard: one memory saved as two stories is logged, never merged
+# ---------------------------------------------------------------------------
+
+def _src(start, end, session="s1"):
+    return {"session_id": session, "start_ms": start, "end_ms": end}
+
+
+@pytest.mark.parametrize("a,b,expected", [
+    # Adjacent (gap 3 s) and the same place, in any case and spacing.
+    ({"sources": [_src(0, 10_000)], "place": "Akcaabat"},
+     {"sources": [_src(13_000, 20_000)], "place": " akcaabat "}, True),
+    # Overlapping and a shared subject period, no place.
+    ({"sources": [_src(0, 10_000)], "subjects": [{"person_id": "p", "period": "childhood"}]},
+     {"sources": [_src(8_000, 12_000)], "subjects": [{"person_id": "q", "period": "childhood"}]}, True),
+    # Gap of 5 s or more: separate memories.
+    ({"sources": [_src(0, 10_000)], "place": "Akcaabat"},
+     {"sources": [_src(15_000, 20_000)], "place": "Akcaabat"}, False),
+    # Adjacent but nothing shared.
+    ({"sources": [_src(0, 10_000)], "place": "Akcaabat", "subjects": [{"period": "childhood"}]},
+     {"sources": [_src(10_500, 20_000)], "place": "Trabzon", "subjects": [{"period": "marriage_early_years"}]},
+     False),
+    # Same numbers, different sessions.
+    ({"sources": [_src(0, 10_000, "s1")], "place": "Akcaabat"},
+     {"sources": [_src(0, 10_000, "s2")], "place": "Akcaabat"}, False),
+])
+def test_possible_split(a, b, expected):
+    assert possible_split(a, b) is expected
+    assert possible_split(b, a) is expected
+
+
+@pytest.mark.anyio
+async def test_split_guard_logs_ids_only_and_keeps_both_stories(w, caplog):
+    def story(title, start, end, place):
+        return {**_story_args(w, start, end), "title": title, "place": place,
+                "summary": f"Fatma remembers {title.lower()}."}
+
+    llm = DynamicScriptedLLM([
+        [_tool_use("save_story", story("The Harbour", 0, 5_000, "Akcaabat")),
+         _tool_use("save_story", story("The Fishing Boats", 6_000, 10_000, "Akcaabat")),
+         _tool_use("save_story", story("Summer Fishing", 20_000, 30_000, "Rize"))],
+        "done",
+    ])
+    agent, _ = _make_agent(w, llm)
+    with caplog.at_level("WARNING", logger="server.agents.archivist_agent"):
+        result = await agent.run(w.sess.id)
+
+    assert len(result.story_ids) == 3                       # nothing merged
+    harbour, boats, summer = result.story_ids
+    # Summer Fishing shares the childhood period but starts 10 s after the boats.
+    assert result.possible_splits == [(harbour, boats)]
+    lines = [r.getMessage() for r in caplog.records if "Possible story split" in r.getMessage()]
+    assert lines == [f"Possible story split in session {w.sess.id}: {harbour} and {boats}"]
+    assert "Harbour" not in lines[0] and "Akcaabat" not in lines[0]
+    w.db.expire_all()
+    assert w.db.query(Story).filter(Story.id.in_(result.story_ids)).count() == 3
+
+
+# The real case: her three segments are 5.0-5.4 s apart, each gap holding a
+# companion question (timings of evals/run_archivist_split.py, one_memory).
+_TELLER = [(0, 11_200), (16_600, 27_000), (32_000, 45_600)]
+_COMPANION = [(11_700, 16_100), (27_500, 31_500)]
+
+
+def test_possible_split_ignores_companion_segments_in_the_gap():
+    harbour = {"sources": [_src(*_TELLER[0])], "place": "Akcaabat"}
+    boats = {"sources": [_src(*_TELLER[1])], "place": "Akcaabat"}
+    father = {"sources": [_src(*_TELLER[2])], "place": "Akcaabat"}
+    companion = {"s1": _COMPANION}
+    # Without the companion ranges the gaps are 5.4 s and 5.0 s: not "adjacent".
+    assert not possible_split(harbour, boats) and not possible_split(boats, father)
+    # Not counting the companion's questions, 1 s of silence is left: one memory.
+    assert possible_split(harbour, boats, companion) and possible_split(boats, father, companion)
+    # Companion ranges of another session do not count.
+    assert not possible_split(harbour, boats, {"s2": _COMPANION})
+    # A long silence that is not the companion still separates them.
+    assert not possible_split({"sources": [_src(0, 10_000)], "place": "Akcaabat"},
+                              {"sources": [_src(20_000, 30_000)], "place": "Akcaabat"},
+                              {"s1": [(10_000, 12_000)]})
+
+
+@pytest.mark.anyio
+async def test_split_guard_catches_the_real_harbour_case(w):
+    from core.enums import SessionKind, SessionStart
+    from core.models import Session as OrmSession
+    sess = OrmSession(circle_id=w.circle.id, kind=SessionKind.solo, started_by=SessionStart.spontaneous,
+                      participant_ids=[w.fatma.id], started_at=w.sess.started_at, ended_at=w.sess.ended_at)
+    w.db.add(sess); w.db.flush()
+    for (start, end), speaker in zip(_TELLER + _COMPANION, [w.fatma.id] * 3 + [None] * 2):
+        w.db.add(Segment(session_id=sess.id, speaker_id=speaker, start_ms=start, end_ms=end,
+                         transcript="the harbour" if speaker else "Tell me more?", words=[]))
+    w.db.commit()
+
+    def story(title, rng):
+        return {"title": title, "summary": f"Fatma remembers {title.lower()}.", "teller_id": w.fatma.id,
+                "subjects": [{"person_id": w.fatma.id, "period": "childhood"}], "place": "Akcaabat",
+                "sources": [{"session_id": sess.id, "start_ms": rng[0], "end_ms": rng[1]}]}
+
+    llm = DynamicScriptedLLM([
+        [_tool_use("get_session_transcript", {"session_id": sess.id})],
+        [_tool_use("save_story", story("The Harbour", _TELLER[0])),
+         _tool_use("save_story", story("The Fishing Boats", _TELLER[1])),
+         _tool_use("save_story", story("Father and the Fishermen", _TELLER[2]))],
+        "done",
+    ])
+    bridge = FakeArchiveBridge(w.db, w.fatma.id, w.circle.id)
+    agent = ArchivistAgent(llm=llm, person_id=w.fatma.id, circle_id=w.circle.id, bridge=bridge)
+    result = await agent.run(sess.id)
+    harbour, boats, father = result.story_ids
+    assert result.possible_splits == [(harbour, boats), (boats, father)]

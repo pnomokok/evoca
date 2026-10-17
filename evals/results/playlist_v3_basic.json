@@ -1,0 +1,151 @@
+[
+  {
+    "scenario": "grandmother_basic",
+    "run": 1,
+    "goal": "Delivers the family question naturally, with the relation, and follows up on a concrete detail.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Your grandson Ali Arslan would love to know how you learned to cook.\nI was wondering, what was your first cooking lesson like?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, Ali would love those stories! My aunt Sabiha taught me in our tiny kitchen in Bursa, the one with the wood stove that always smelled of smoke and herbs. She showed me how to make stuffed peppers, her hands moving deftly as she stuffed each pepper with rice and ground meat, her patience endless as she guided me through every step."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds so warm and comforting, your aunt Sabiha must have been wonderful to learn from.\nWhat was your aunt Sabiha like?"
+      },
+      {
+        "speaker": "person",
+        "text": "Aunt Sabiha had a laugh that could light up the dimmest room, and her kindness was as abundant as the recipes she loved to share. She had a way of making every dish feel like a hug, and her wisdom filled our little kitchen with more than just the aroma of cooking. Every time I stir a pot, I feel her guiding hand and her warm smile beside me."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s beautiful, she sounds like she had a special way of connecting with people through her cooking.\nDo you still make her stuffed peppers recipe today?"
+      },
+      {
+        "speaker": "person",
+        "text": "I still make her stuffed peppers just as she taught me, and every time I do, it's like she's right there with me, her laughter and voice echoing in the steam. The taste of those peppers brings back memories of our little kitchen in Bursa and the love she poured into every meal. It's a tradition I hold dear, a taste of home and family that I'll always cherish."
+      },
+      {
+        "speaker": "companion",
+        "text": "It’s wonderful that you keep her memory alive through her recipes.\nIs there another family tradition or recipe that holds special meaning for you?"
+      },
+      {
+        "speaker": "person",
+        "text": "Another tradition close to my heart is the tulip festival in Bursa; we'd gather as a family to admire the flowers and share stories, just like Aunt Sabiha used to. There's also her apple pie recipe, passed down through generations, each bite a reminder of her warmth and the love she embedded in every dish. These recipes and traditions are threads in the tapestry of our family, each one a cherished memory."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds like such a beautiful way to honor her memory and keep your family close.\nWould you like to share more about the tulip festival gatherings, or perhaps another cherished memory from your childhood?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand. It was wonderful chatting with you today. We can talk more another time."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Your grandson Ali Arslan would love to know how you learned to cook.\nI was wondering, what was your first cooking lesson like?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3675,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Ali": true
+        }
+      },
+      {
+        "reply": "That sounds so warm and comforting, your aunt Sabiha must have been wonderful to learn from.\nWhat was your aunt Sabiha like?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1054,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s beautiful, she sounds like she had a special way of connecting with people through her cooking.\nDo you still make her stuffed peppers recipe today?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 918,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "It’s wonderful that you keep her memory alive through her recipes.\nIs there another family tradition or recipe that holds special meaning for you?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 942,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds like such a beautiful way to honor her memory and keep your family close.\nWould you like to share more about the tulip festival gatherings, or perhaps another cherished memory from your childhood?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 983,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand. It was wonderful chatting with you today. We can talk more another time.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1004,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": ""
+    }
+  }
+]
