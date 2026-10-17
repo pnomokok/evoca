@@ -12,7 +12,7 @@ They are a **draft contract**: when the real API differs, update the sample and 
 - Audio is never embedded. Play it from `/api/audio/{session_id}?start=<ms>&end=<ms>`.
 - Until the identity decision is made, the panel must fetch audio with the `X-Person-Id` header and play it as a blob (a plain `<audio src>` cannot send the header).
 - In `GET /api/feed`, `answer.audio_url` is `null` when the answer's session has no audio file (for example a text-only test session). Show the answer without a play button.
-- Errors always look like `ERROR_example.json`, with a matching HTTP status (400, 403, 404).
+- Errors always look like `ERROR_example.json` (`{"detail": "..."}`, FastAPI's shape), with a matching HTTP status (400, 403, 404).
 - Every response is already filtered by `can_see()`. The client never hides things itself; if a story is missing, the viewer may not see it.
 
 ## Who is viewing?
@@ -25,12 +25,13 @@ Because Elif is a plain member, these samples also show what access control hide
 
 - "Hatice Goes to Germany" is `private`, so it is missing from her lifeline, and `linked_stories` on the mulberry story is empty.
 - "Father's Workshop" is `pending` for 24 hours, so it is missing too.
-- The playlist reports `skipped_count: 1` for the linked private story.
+- The playlist leaves the linked private story out without a trace (no `skipped_count`: even a count would tell Elif a hidden story exists).
 
 ## Files
 
 | File | Endpoint | Used by |
 |---|---|---|
+| `GET_people.json` | `GET /api/people` (**demo only**, no header) | Password-less person picker |
 | `GET_circle.json` | `GET /api/circle` (new, see below) | Panel header, member list, names |
 | `GET_device_invitation.json` | `GET /api/device/invitation` | Device screen: light on or off |
 | `POST_device_turn.json` | `POST /api/device/turn` | Device screen: one spoken turn |
@@ -51,7 +52,14 @@ Because Elif is a plain member, these samples also show what access control hide
   `heard_text` in the response is what speech-to-text understood, for showing on screen.
 - `POST /api/questions`: JSON `{"target_person_id": "...", "text": "...", "period": null}`.
   A blocked question returns HTTP 200 with `status: "filtered"`; the message never reveals the sensitive topic itself.
-- `POST /api/stories/{id}/reactions`: JSON `{"emoji": "heart", "action": "add"}` or `"remove"`. Returns the new counts.
+- `POST /api/stories/{id}/reactions`: JSON `{"emoji": "heart", "action": "add"}` or `"remove"`. Idempotent.
+  Returns which emojis are `present` on the story and which are `mine`, never counts (PROJECT.md: "Sayaç gösterilmez").
+- `PATCH /api/stories/{id}/subjects/{person_id}`: JSON `{"period": "youth"}`. Anyone who can see the story.
+  Returns the updated subject (`period_source: "family"`, `estimated: false`, `corrected_by`).
+- `PATCH /api/stories/{id}`: JSON `{"access": "circle" | "private"}` and/or `{"hidden": true | false}`.
+  Access: teller only. `hidden: true`: teller, a subject, the center or an admin. Hiding is final: `hidden: false` returns 400 for everyone.
+  Returns `{id, status, access}`. Use `can_change_access` and `can_hide` from the story page to show the buttons.
+- `DELETE /api/links/{id}`: marks the link `removed`; the viewer must see both stories. Returns `{id, status}`.
 - `POST /api/recordings`: `multipart/form-data` with `audio`. Processing runs in the background, like a device session.
 
 ## Shapes not shown with data
@@ -75,6 +83,9 @@ Some lists are empty for Elif. When they have items, they look like this:
 
 ## Notes
 
+- Periods carry `estimated: true` when they are an AI guess (`period_source: "ai"`); show the "estimated" label for them.
+- `has_private_part` on the story page is `true` only for the teller, when a part they kept private overlaps this story's own audio sources. It is always `false` for everyone else.
+- A story the viewer cannot see returns the same 404 as a missing one.
 - `GET /api/circle` is not yet in the doc's REST table. The panel needs it for names, roles and `relation_to_center`.
 - The feed's `question_answered` item uses a story that is not in the seed yet ("Walking to School in the Snow"). It shows the shape of the answer card.
 - `gaps` in the lifeline is computed from the stories the **viewer** can see, so it never hints that a hidden story exists.
