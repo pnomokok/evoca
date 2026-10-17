@@ -1,82 +1,191 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/useApp';
+import { useAudioElement } from '../utils/useAudioElement';
 import { apiClient } from '../api/client';
-import { Mic, MicOff, Volume2, Sparkles, MessageSquare, Heart, CheckCircle2, XSquare, Play, RefreshCw } from 'lucide-react';
+import { Mic, MicOff, Volume2, Sparkles, XSquare, MessageCircle } from 'lucide-react';
+
+const REACTION_EMOJI = { heart: '❤️', laugh: '😂', sad: '😢', pray: '🙏' };
 
 export default function DeviceScreen() {
-  const { invitationData, centerPersonId, showToast, circleData } = useApp();
+  const { invitationData, setInvitationData, centerPersonId, viewerReady, showToast, circleData, peopleList } = useApp();
+  // 'idle': light only, nothing started · 'starting' · 'active': a session is open · 'ended'
+  const [phase, setPhase] = useState('idle');
   const [isRecording, setIsRecording] = useState(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [currentTurn, setCurrentTurn] = useState(null);
-  const [sessionId, setSessionId] = useState(null);
-  const [sessionActive, setSessionActive] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [deviceError, setDeviceError] = useState(null);
+  const [now, setNow] = useState(() => new Date());
+  const getPlayer = useAudioElement();
 
+  // The open session lives in a ref so a double tap (or StrictMode) can never start two,
+  // and so unload/unmount handlers can still read it.
+  const sessionRef = useRef({ id: null, centerId: null, starting: false });
+  const playbackRef = useRef({ token: 0, resolve: null });
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
-  const audioPlayerRef = useRef(null);
 
-  const centerName = circleData?.members?.find(m => m.id === centerPersonId)?.name || 'Fatma';
+  const centerName =
+    circleData?.members?.find(m => m.id === centerPersonId)?.name ||
+    peopleList?.find(p => p.id === centerPersonId)?.name ||
+    '';
+  const firstName = centerName.split(' ')[0];
 
-  // Play audio reply using blob URL with X-Person-Id = center
-  const playAudioReply = async (audioUrl) => {
-    if (!audioUrl) return;
-    try {
-      if (audioPlayerRef.current) {
-        audioPlayerRef.current.pause();
-      }
-      const blobUrl = await apiClient.fetchAudioBlobUrl(audioUrl, centerPersonId);
-      if (blobUrl) {
-        const audio = new Audio(blobUrl);
-        audioPlayerRef.current = audio;
-        audio.onplay = () => setIsPlayingAudio(true);
-        audio.onended = () => setIsPlayingAudio(false);
-        audio.onerror = () => setIsPlayingAudio(false);
-        await audio.play();
-      }
-    } catch (err) {
-      console.warn("Could not play reply audio:", err);
-      // If 403 or unavailable, silent as per requirements
-    }
+  // Refresh the light when the screen opens (GET only; no session yet).
+  useEffect(() => {
+    if (!viewerReady || !centerPersonId) return;
+    let cancelled = false;
+    apiClient.getDeviceInvitation(centerPersonId)
+      .then(inv => { if (!cancelled) setInvitationData(inv); })
+      .catch(err => console.warn('Could not refresh the invitation light:', err));
+    return () => { cancelled = true; };
+  }, [viewerReady, centerPersonId, setInvitationData]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // End the session when the page goes away or the elder leaves this screen (best effort).
+  useEffect(() => {
+    const session = sessionRef.current;
+    const playback = playbackRef.current;
+    const endOpenSession = () => {
+      if (!session.id) return;
+      apiClient.endDeviceSessionOnUnload(session.id, session.centerId);
+      session.id = null;
+    };
+    window.addEventListener('pagehide', endOpenSession);
+    return () => {
+      window.removeEventListener('pagehide', endOpenSession);
+      endOpenSession();
+      playback.token += 1;
+      getPlayer().pause();
+    };
+  }, [getPlayer]);
+
+  const stopAudio = () => {
+    playbackRef.current.token += 1;
+    getPlayer().pause();
+    playbackRef.current.resolve?.();
+    setIsPlayingAudio(false);
   };
 
-  // Start new device session (POST /api/device/session/start with X-Person-Id = center)
-  const startSession = async () => {
-    setLoading(true);
+  // Play the reply, then any playlist items, in order (each fetched with X-Person-Id = center).
+  const playTurnAudio = async (turn) => {
+    const urls = [
+      turn?.reply_audio_url,
+      ...(turn?.cards || [])
+        .filter(c => c.type === 'playlist')
+        .flatMap(c => (c.items || []).map(i => i.url))
+    ].filter(Boolean);
+    if (urls.length === 0) return;
+
+    stopAudio();
+    const token = playbackRef.current.token;
+    setIsPlayingAudio(true);
+    for (const url of urls) {
+      if (token !== playbackRef.current.token) return;
+      let blobUrl = null;
+      try {
+        blobUrl = await apiClient.fetchBlobUrl(url, centerPersonId);
+      } catch (err) {
+        console.warn('Could not fetch reply audio:', err);
+      }
+      if (!blobUrl || token !== playbackRef.current.token) continue;
+      await new Promise(resolve => {
+        playbackRef.current.resolve = resolve;
+        getPlayer().onended = resolve;
+        getPlayer().onerror = resolve;
+        getPlayer().src = blobUrl;
+        getPlayer().play().catch(resolve);
+      });
+      URL.revokeObjectURL(blobUrl);
+    }
+    if (token === playbackRef.current.token) setIsPlayingAudio(false);
+  };
+
+  // "Alexa, what's new?" — the only place a session is started.
+  const handleTalk = async () => {
+    const session = sessionRef.current;
+    if (session.starting || session.id) return;
+    session.starting = true;
+    setPhase('starting');
     setDeviceError(null);
+    setCurrentTurn(null);
     try {
       const turn = await apiClient.postDeviceSessionStart(centerPersonId);
+      session.centerId = centerPersonId;
       setCurrentTurn(turn);
-      setSessionId(turn.session_id);
-      setSessionActive(turn.session_open !== false);
-      if (turn.reply_audio_url) {
-        playAudioReply(turn.reply_audio_url);
+      if (turn.session_open === false) {
+        setPhase('ended');
+      } else {
+        session.id = turn.session_id;
+        setPhase('active');
       }
+      playTurnAudio(turn);
     } catch (err) {
-      console.error("Device session start failed:", err);
-      setDeviceError(err.message || "Cihaz oturumu başlatılamadı.");
-      showToast(err.message || "Cihaz oturumu başlatılamadı.", "error");
+      console.error('Device session start failed:', err);
+      setDeviceError("Evoca couldn't start just now. Please tap Talk again.");
+      setPhase('idle');
     } finally {
-      setLoading(false);
+      session.starting = false;
     }
   };
 
-  // Automatically start device session on mount
-  useEffect(() => {
-    startSession();
-    return () => {
-      if (audioPlayerRef.current) {
-        audioPlayerRef.current.pause();
-      }
-    };
-  }, [centerPersonId]);
-
-  // Start real microphone recording
-  const startRecording = async () => {
-    if (!sessionActive && !sessionId) {
-      await startSession();
+  const refreshLight = async () => {
+    try {
+      setInvitationData(await apiClient.getDeviceInvitation(centerPersonId));
+    } catch (err) {
+      console.warn('Could not refresh the invitation light:', err);
     }
+  };
+
+  // "Goodbye": POST /api/device/session/end {"session_id": ...}
+  const handleGoodbye = async () => {
+    const session = sessionRef.current;
+    const sessionId = session.id;
+    if (!sessionId) return;
+    session.id = null;
+    stopAudio();
+    setPhase('ended');
+    try {
+      await apiClient.postDeviceSessionEnd(sessionId, centerPersonId);
+      showToast("Goodbye! Today's memories are being saved.", "info");
+      refreshLight();
+    } catch (err) {
+      console.error(err);
+      showToast("Couldn't close the conversation properly.", "error");
+    }
+  };
+
+  // Submit a spoken turn (POST /api/device/turn multipart: audio + session_id, no text field)
+  const submitTurn = async (audioBlob) => {
+    const session = sessionRef.current;
+    if (!audioBlob || audioBlob.size === 0 || !session.id) return;
+    setBusy(true);
+    try {
+      const turn = await apiClient.postDeviceTurn(audioBlob, session.id, centerPersonId);
+      setCurrentTurn(turn);
+      if (turn.session_open === false) {
+        session.id = null;
+        setPhase('ended');
+        refreshLight();
+      } else if (turn.session_id) {
+        session.id = turn.session_id;
+      }
+      playTurnAudio(turn);
+    } catch (err) {
+      console.error(err);
+      showToast("Sorry, I didn't catch that. Please try again.", "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const startRecording = async () => {
+    if (phase !== 'active' || busy || isRecording) return;
+    stopAudio();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
@@ -95,13 +204,8 @@ export default function DeviceScreen() {
 
       mediaRecorder.start();
       setIsRecording(true);
-      showToast("Dinleniyor... (Konuşmanızı yapın)", "info");
     } catch {
-      setIsRecording(true);
-      showToast("Mikrofon erişimi alınamadı. Lütfen mikrofon iznini kontrol edin.", "error");
-      setTimeout(() => {
-        setIsRecording(false);
-      }, 2000);
+      showToast("The microphone isn't available. Please check the permission.", "error");
     }
   };
 
@@ -112,62 +216,26 @@ export default function DeviceScreen() {
     setIsRecording(false);
   };
 
-  // Submit spoken turn (POST /api/device/turn multipart: audio + session_id, no text field)
-  const submitTurn = async (audioBlob) => {
-    if (!audioBlob || audioBlob.size === 0) return;
-    setLoading(true);
-    try {
-      const turn = await apiClient.postDeviceTurn(audioBlob, sessionId, centerPersonId);
-      setCurrentTurn(turn);
-      if (turn.session_id) setSessionId(turn.session_id);
-      if (turn.session_open === false) {
-        setSessionActive(false);
-        showToast("Oturum tamamlandı.", "info");
-      } else {
-        setSessionActive(true);
-      }
-
-      if (turn.reply_audio_url) {
-        playAudioReply(turn.reply_audio_url);
-      }
-    } catch (err) {
-      console.error(err);
-      showToast(err.message || "Konuşma iletilemedi", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // End session (POST /api/device/session/end {"session_id": ...})
-  const handleEndSession = async () => {
-    if (!sessionId) return;
-    try {
-      await apiClient.postDeviceSessionEnd(sessionId, centerPersonId);
-      setSessionActive(false);
-      showToast("Oturum sonlandırıldı. Anılar arşivleniyor.", "info");
-    } catch (err) {
-      console.error(err);
-      showToast(err.message || "Oturum sonlandırılamadı", "error");
-    }
-  };
+  const timeLabel = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const dateLabel = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
     <div className="device-wrapper">
-      {/* Echo Show Notification Light Bar (Glows when family invitation is waiting) */}
+      {/* Notification light: glows while a family invitation is waiting */}
       {invitationData?.active && (
-        <div className="device-ambient-glow" title="Aile daveti aktif: Işık yanıyor" />
+        <div className="device-ambient-glow" title="Your family has something for you" aria-hidden="true" />
       )}
 
       <div className="device-header">
         <div>
-          <div className="device-time">10:00</div>
-          <div className="device-date">Çarşamba · İstanbul · Living Room Echo</div>
+          <div className="device-time">{timeLabel}</div>
+          <div className="device-date">{dateLabel} · Living room</div>
         </div>
 
         {invitationData?.active && (
-          <div className="device-invitation-banner">
+          <div className="device-invitation-banner" role="status">
             <Sparkles size={16} />
-            <span>Davet: "{invitationData.invitation?.reason || 'Ailenizden yeni bir soru var'}"</span>
+            <span>{invitationData.invitation?.reason || 'Your family has something for you.'}</span>
           </div>
         )}
       </div>
@@ -175,60 +243,58 @@ export default function DeviceScreen() {
       <div className="device-content">
         <div className="device-speech-bubble-area">
           {deviceError && (
-            <div className="elder-heard-card" style={{ borderColor: 'rgba(239, 68, 68, 0.4)' }}>
-              <div className="elder-label" style={{ color: '#fca5a5' }}>Cihaz Bildirimi</div>
+            <div className="elder-heard-card" role="alert" style={{ borderColor: 'rgba(239, 68, 68, 0.4)' }}>
               <div className="elder-text">{deviceError}</div>
-              <button
-                type="button"
-                className="quick-prompt-chip"
-                style={{ marginTop: '12px' }}
-                onClick={startSession}
-              >
-                <RefreshCw size={14} /> Yeniden Başlat
-              </button>
             </div>
           )}
 
-          {/* Center Person Heard Speech Bubble */}
+          {phase === 'ended' && !currentTurn?.reply_text && (
+            <div className="agent-reply-card">
+              <div className="agent-text">Goodbye{firstName ? `, ${firstName}` : ''}! Talk to you soon.</div>
+            </div>
+          )}
+
+          {/* What the device heard */}
           {currentTurn?.heard_text && (
             <div className="elder-heard-card">
-              <div className="elder-label">{centerName} (Duyulan Sözler)</div>
+              <div className="elder-label">{firstName || 'You'} said</div>
               <div className="elder-text">"{currentTurn.heard_text}"</div>
             </div>
           )}
 
-          {/* Evoca Agent Response Card */}
+          {/* Evoca's reply */}
           {currentTurn?.reply_text && (
             <div className="agent-reply-card">
               <div className="agent-label">
                 <Sparkles size={14} />
-                Evoca Asistan
+                Evoca
                 {isPlayingAudio && (
                   <span style={{ color: 'var(--accent-gold)', marginLeft: '8px' }}>
-                    ● Seslendiriliyor...
+                    ● Speaking...
                   </span>
                 )}
               </div>
               <div className="agent-text">{currentTurn.reply_text}</div>
 
-              {/* Cards row for related reaction & question */}
               {currentTurn.cards && currentTurn.cards.length > 0 && (
                 <div className="device-cards-row">
                   {currentTurn.cards.map((card, i) => (
                     <div key={i} className="device-subcard">
-                      <div className="subcard-emoji">
-                        {card.type === 'reaction' ? (
-                          card.emoji === 'laugh' ? '😂' : card.emoji === 'heart' ? '❤️' : card.emoji === 'sad' ? '😢' : '🙏'
-                        ) : '❓'}
+                      <div className="subcard-emoji" aria-hidden="true">
+                        {card.type === 'reaction' ? (REACTION_EMOJI[card.emoji] || '💛')
+                          : card.type === 'playlist' ? '🎧' : '❓'}
                       </div>
                       <div>
                         <div className="subcard-title">
-                          {card.type === 'reaction'
-                            ? `${card.from?.name || 'Aile üyesi'} tepki bıraktı`
-                            : `${card.asker?.name || 'Aile üyesi'} sordu`}
+                          {card.type === 'reaction' && `${card.from?.name || 'Someone in your family'} reacted`}
+                          {card.type === 'question' && `${card.asker?.name || 'Someone in your family'} asked`}
+                          {card.type === 'playlist' && 'Playing your stories'}
                         </div>
                         <div className="subcard-desc">
-                          {card.type === 'reaction' ? `"${card.story_title || 'Hikâye'}" üzerine` : card.text}
+                          {card.type === 'reaction' && `to "${card.story_title || 'your story'}"`}
+                          {card.type === 'question' && card.text}
+                          {card.type === 'playlist' && (card.items || []).map(i => i.title)
+                            .filter((t, idx, all) => all.indexOf(t) === idx).join(', ')}
                         </div>
                       </div>
                     </div>
@@ -238,54 +304,68 @@ export default function DeviceScreen() {
             </div>
           )}
 
-          {loading && (
-            <div style={{ textAlign: 'center', padding: '16px', color: 'var(--accent-gold)' }}>
-              Ses işleniyor ve yanıt hazırlanıyor...
+          {(phase === 'starting' || busy) && (
+            <div style={{ textAlign: 'center', padding: '16px', color: 'var(--accent-gold)' }} role="status">
+              One moment...
             </div>
           )}
         </div>
 
-        {/* Push-to-Talk and Session Action Bar */}
         <div className="device-bottom-action">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <button
-              className={`push-to-talk-btn ${isRecording ? 'recording' : ''}`}
-              onMouseDown={startRecording}
-              onMouseUp={stopRecording}
-              onTouchStart={startRecording}
-              onTouchEnd={stopRecording}
-              disabled={loading}
-              title="Basılı tutarak konuşun (Echo Show simülasyonu)"
-            >
-              {isRecording ? <MicOff className="ptt-icon" /> : <Mic className="ptt-icon" />}
-              <span className="ptt-label">{isRecording ? "Dinliyor..." : "Basılı Tut ve Konuş"}</span>
-            </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
+            {phase === 'active' ? (
+              <>
+                <button
+                  type="button"
+                  className={`push-to-talk-btn ${isRecording ? 'recording' : ''}`}
+                  onPointerDown={startRecording}
+                  onPointerUp={stopRecording}
+                  onPointerLeave={() => isRecording && stopRecording()}
+                  disabled={busy}
+                  aria-label="Hold to speak"
+                >
+                  {isRecording ? <MicOff className="ptt-icon" /> : <Mic className="ptt-icon" />}
+                  <span className="ptt-label">{isRecording ? 'Listening...' : 'Hold to speak'}</span>
+                </button>
 
-            {currentTurn?.reply_audio_url && (
+                {currentTurn?.reply_audio_url && (
+                  <button
+                    type="button"
+                    className="quick-prompt-chip"
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                    onClick={() => playTurnAudio(currentTurn)}
+                  >
+                    <Volume2 size={16} /> Hear it again
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  className="quick-prompt-chip"
+                  style={{ borderColor: 'rgba(239, 68, 68, 0.4)', color: '#fca5a5' }}
+                  onClick={handleGoodbye}
+                >
+                  <XSquare size={16} /> Goodbye
+                </button>
+              </>
+            ) : (
               <button
                 type="button"
-                className="quick-prompt-chip"
-                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                onClick={() => playAudioReply(currentTurn.reply_audio_url)}
+                className="push-to-talk-btn"
+                style={{ width: '200px', height: '200px' }}
+                onClick={handleTalk}
+                disabled={phase === 'starting' || !viewerReady || !centerPersonId}
+                aria-label="Talk: Alexa, what's new?"
               >
-                <Volume2 size={16} /> Yanıtı Dinle
-              </button>
-            )}
-
-            {sessionActive && (
-              <button
-                type="button"
-                className="quick-prompt-chip"
-                style={{ borderColor: 'rgba(239, 68, 68, 0.4)', color: '#fca5a5' }}
-                onClick={handleEndSession}
-              >
-                <XSquare size={16} /> Oturumu Bitir (Arşivle)
+                <MessageCircle className="ptt-icon" />
+                <span className="ptt-label" style={{ fontSize: '22px', fontWeight: 700 }}>Talk</span>
+                <span className="ptt-label">"Alexa, what's new?"</span>
               </button>
             )}
           </div>
 
           <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-            Echo Show Simülasyonu: {centerName} (center) kimliğiyle çalışır · Sadece gerçek ses gönderilir
+            Living room device{firstName ? ` · ${firstName}` : ''} · tap Talk to begin
           </div>
         </div>
       </div>

@@ -1,21 +1,18 @@
 import React, { useState } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../context/useApp';
 import FamilyDashboard from './FamilyDashboard';
 import LifelineView from './LifelineView';
 import StoryView from './StoryView';
 import AskQuestionModal from './AskQuestionModal';
 import RecordMemoryModal from './RecordMemoryModal';
-import { BookOpen, Hourglass, MessageSquarePlus, Mic, Clock, Sparkles } from 'lucide-react';
+import { BookOpen, Hourglass, MessageSquarePlus, Mic, Sparkles } from 'lucide-react';
 
 export default function FamilyPanel() {
-  const { panelSubTab, setPanelSubTab, circleData, currentViewerId } = useApp();
+  const { panelSubTab, setPanelSubTab } = useApp();
   const [askModalOpen, setAskModalOpen] = useState(false);
   const [recordModalOpen, setRecordModalOpen] = useState(false);
   const [targetPeriod, setTargetPeriod] = useState(null);
   const [initialPrompt, setInitialPrompt] = useState('');
-
-  const me = circleData?.me || { name: 'Elif Yilmaz', role: 'member', relation_to_center: 'granddaughter' };
-  const circle = circleData?.circle || { name: 'The Yilmaz Family', chat_time: '10:00' };
 
   const handleOpenAskModal = (period = null, prompt = '') => {
     setTargetPeriod(period);
@@ -128,16 +125,17 @@ export default function FamilyPanel() {
       </nav>
 
       {/* Modals */}
-      <AskQuestionModal
-        isOpen={askModalOpen}
-        onClose={() => setAskModalOpen(false)}
-        defaultPeriod={targetPeriod}
-        initialPrompt={initialPrompt}
-      />
-      <RecordMemoryModal
-        isOpen={recordModalOpen}
-        onClose={() => setRecordModalOpen(false)}
-      />
+      {/* Mounted only while open, so each opening starts from fresh state */}
+      {askModalOpen && (
+        <AskQuestionModal
+          onClose={() => setAskModalOpen(false)}
+          defaultPeriod={targetPeriod}
+          initialPrompt={initialPrompt}
+        />
+      )}
+      {recordModalOpen && (
+        <RecordMemoryModal onClose={() => setRecordModalOpen(false)} />
+      )}
     </div>
   );
 }

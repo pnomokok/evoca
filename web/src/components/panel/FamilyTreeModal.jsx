@@ -1,26 +1,33 @@
 import React from 'react';
-import { X, Users, BookOpen, Clock, Heart, ArrowRight } from 'lucide-react';
+import { X, BookOpen } from 'lucide-react';
 
+const getInitials = (name) =>
+  (name || '')
+    .split(' ')
+    .filter(Boolean)
+    .map(p => p[0])
+    .join('')
+    .toUpperCase() || '?';
+
+// Members come from GET /api/circle; nothing about them is invented here.
 export default function FamilyTreeModal({
   isOpen,
   onClose,
   circleData,
-  currentViewerId,
-  onSwitchViewer,
   onNavigateLifeline,
   storyCount
 }) {
   if (!isOpen) return null;
 
-  const circle = circleData?.circle || { name: 'The Yılmaz Family' };
+  const circle = circleData?.circle;
   const members = circleData?.members || [];
+  const center = members.find(m => m.role === 'center');
+  const others = members.filter(m => m !== center);
+  const centerFirst = center?.name?.split(' ')[0];
 
-  const getInitials = (name) => {
-    return name
-      .split(' ')
-      .map(p => p[0])
-      .join('')
-      .toUpperCase();
+  const openLifeline = () => {
+    onClose();
+    if (onNavigateLifeline) onNavigateLifeline();
   };
 
   return (
@@ -28,121 +35,78 @@ export default function FamilyTreeModal({
       <div className="modal-sheet archival-dialog family-tree-modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header-row">
           <div className="dialog-title-group">
-            <span className="archival-eyebrow">Generational Heritage · {circle.name}</span>
+            <span className="archival-eyebrow">Family tree</span>
             <h2 id="family-tree-modal-title" className="archival-dialog-title">
-              The Yılmaz Family Chronicle
+              {circle?.name || 'Your family'}
             </h2>
             <p className="archival-dialog-sub">
-              Three living generations preserved across {storyCount} recorded memory chapters.
+              {storyCount > 0
+                ? `${storyCount} ${storyCount === 1 ? 'story' : 'stories'} kept so far.`
+                : 'No stories kept yet.'}
             </p>
           </div>
-          <button className="close-btn" onClick={onClose} aria-label="Close family tree dialog">
+          <button className="close-btn" onClick={onClose} aria-label="Close the family tree">
             <X size={20} />
           </button>
         </div>
 
         <div className="modal-tree-content">
           <div className="modal-generations-list">
-            {/* Generation 1 */}
-            <div className="modal-generation-card">
-              <div className="gen-badge">1st Generation · Matriarch</div>
-              <div className="gen-member-item">
-                <div className="gen-avatar elder">
-                  <span>FY</span>
-                </div>
-                <div className="gen-details">
-                  <div className="gen-name-row">
-                    <strong>Fatma Yılmaz</strong>
-                    <span className="gen-year-pill">Born 1948 · Akçaabat</span>
-                    <span className="gen-tag center">Storyteller</span>
-                  </div>
-                  <p className="gen-desc">
-                    Grandmother and living memory keeper. Preserves oral histories of village childhood, moving to the coast, and family traditions through daily morning chats with Evoca.
-                  </p>
-                  <div className="gen-links">
-                    <button
-                      className="gen-action-link"
-                      onClick={() => {
-                        onClose();
-                        onNavigateLifeline && onNavigateLifeline();
-                      }}
-                    >
-                      <BookOpen size={14} />
-                      <span>Explore Grandma's Life Chapters (1948 – Present) →</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Generation 2 */}
-            <div className="modal-generation-card">
-              <div className="gen-badge">2nd Generation · Daughter</div>
-              <div className="gen-member-item">
-                <div className="gen-avatar parent">
-                  <span>AY</span>
-                </div>
-                <div className="gen-details">
-                  <div className="gen-name-row">
-                    <strong>Ayşe Yılmaz</strong>
-                    <span className="gen-year-pill">Born 1975</span>
-                    <span className="gen-tag admin">Archive Admin</span>
-                  </div>
-                  <p className="gen-desc">
-                    Daughter. Helps manage family circle permissions, curates archival photographs, and organizes seasonal family gatherings.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Generation 3 */}
-            <div className="modal-generation-card">
-              <div className="gen-badge">3rd Generation · Grandchildren</div>
-              <div className="gen-grandchildren-row">
-                <div className="gen-grandchild-card">
-                  <div className="gen-avatar child">
-                    <span>EY</span>
+            {center && (
+              <div className="modal-generation-card">
+                <div className="gen-badge">Storyteller</div>
+                <div className="gen-member-item">
+                  <div className="gen-avatar elder">
+                    <span>{getInitials(center.name)}</span>
                   </div>
                   <div className="gen-details">
-                    <strong>Elif Yılmaz</strong>
-                    <span className="gen-sub">Granddaughter · b. 2003</span>
-                    <span className="gen-note">Active listener, loves stories about Grandma's school days.</span>
-                  </div>
-                </div>
-
-                <div className="gen-grandchild-card">
-                  <div className="gen-avatar child">
-                    <span>CY</span>
-                  </div>
-                  <div className="gen-details">
-                    <strong>Can Yılmaz</strong>
-                    <span className="gen-sub">Grandson · b. 2006</span>
-                    <span className="gen-note">Asks questions about coastal fishing and childhood adventures.</span>
+                    <div className="gen-name-row">
+                      <strong>{center.name}</strong>
+                      {center.birth_year && <span className="gen-year-pill">Born {center.birth_year}</span>}
+                    </div>
+                    <div className="gen-links">
+                      <button className="gen-action-link" onClick={openLifeline}>
+                        <BookOpen size={14} />
+                        <span>See {centerFirst ? `${centerFirst}'s` : 'the'} life chapters →</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {others.length > 0 && (
+              <div className="modal-generation-card">
+                <div className="gen-badge">Family</div>
+                <div className="gen-grandchildren-row">
+                  {others.map(m => (
+                    <div key={m.id} className="gen-grandchild-card">
+                      <div className="gen-avatar child">
+                        <span>{getInitials(m.name)}</span>
+                      </div>
+                      <div className="gen-details">
+                        <strong>{m.name}</strong>
+                        <span className="gen-sub">
+                          {[m.relation_to_center, m.role === 'admin' ? 'admin' : null, m.birth_year ? `b. ${m.birth_year}` : null]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         <div className="dialog-action-bar">
-          <button
-            type="button"
-            className="editorial-btn secondary"
-            onClick={onClose}
-          >
+          <button type="button" className="editorial-btn secondary" onClick={onClose}>
             Close
           </button>
-          <button
-            type="button"
-            className="editorial-btn primary"
-            onClick={() => {
-              onClose();
-              onNavigateLifeline && onNavigateLifeline();
-            }}
-          >
+          <button type="button" className="editorial-btn primary" onClick={openLifeline}>
             <BookOpen size={16} />
-            <span>View Grandma's Life Chapters</span>
+            <span>View the life chapters</span>
           </button>
         </div>
       </div>

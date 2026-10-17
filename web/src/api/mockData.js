@@ -18,7 +18,7 @@ export const initialCircle = {
   },
   members: [
     { id: "person_fatma", name: "Fatma Yilmaz", birth_year: 1948, role: "center", relation_to_center: null, avatar: "👵" },
-    { id: "person_ayse",  name: "Ayşe Yilmaz",  birth_year: 1975, role: "admin",  relation_to_center: "daughter", avatar: "👩" },
+    { id: "person_ayse",  name: "Ayse Yilmaz",  birth_year: 1975, role: "admin",  relation_to_center: "daughter", avatar: "👩" },
     { id: "person_elif",  name: "Elif Yilmaz",  birth_year: 2003, role: "member", relation_to_center: "granddaughter", avatar: "👧" },
     { id: "person_can",   name: "Can Yilmaz",   birth_year: 2006, role: "member", relation_to_center: "grandson", avatar: "👦" }
   ]
@@ -56,23 +56,6 @@ export const initialDeviceTurn = {
       asker: { id: "person_elif", name: "Elif Yilmaz", relation_to_center: "granddaughter" }
     }
   ]
-};
-
-export const initialFeaturedStory = {
-  id: "story_coast",
-  circle_id: "circle_yilmaz",
-  title: "The Summer We Moved to the Coast",
-  storyteller: "Grandma Fatma",
-  teller: { id: "person_fatma", name: "Fatma Yilmaz", relation_to_center: null },
-  period: "marriage_early_years",
-  period_label: "Early adulthood",
-  year: 1968,
-  place: "Black Sea Coast, Akçaabat",
-  photo_url: "/coast_memory.jpg",
-  excerpt: "We packed two wooden trunks with olive oil tins, dried figs, and my mother's hand-embroidered curtains. The air smelled of salt and wild pine as the truck rounded the coastal bend toward our new stone cottage.",
-  duration_ms: 64000,
-  audio_url: "/api/audio/session_coast?start=0&end=64000",
-  ai_summary: "Fatma recounts leaving her inland childhood village at age twenty to settle on the coastal cliffs of Akçaabat, describing the arrival by truck and setting up their stone cottage by the sea."
 };
 
 export const initialFeed = {
@@ -127,14 +110,14 @@ export const initialLifeline = {
       period: "childhood",
       title: "Childhood (0-12)",
       era: "1948 – 1960",
-      description: "Growing up in the mountain village of Akçaabat, climbing mulberry trees, and snowy school treks.",
+      description: "Growing up in the mountain village of Akcaabat, climbing mulberry trees, and snowy school treks.",
       invitationPrompt: "What was your childhood home like during the winter months?",
       stories: [
         {
           id: "story_mulberry",
           title: "The Mulberry Tree",
           year: 1956,
-          place: "Village of Akçaabat, Trabzon",
+          place: "Village of Akcaabat, Trabzon",
           photo_url: "/mulberry_memory.jpg",
           photo_caption: "The village garden, 1956",
           ai_summary: "Fatma recalls climbing the mulberry tree with her sister every summer as a child in their village garden.",
@@ -171,9 +154,9 @@ export const initialLifeline = {
           id: "story_bazaar",
           title: "The Friday Tea Bazaar",
           year: 1963,
-          place: "Akçaabat Port Market",
+          place: "Akcaabat Port Market",
           photo_url: "/bazaar_memory.jpg",
-          photo_caption: "Akçaabat port market, 1963",
+          photo_caption: "Akcaabat port market, 1963",
           ai_summary: "Visiting the lively Friday harbor market with her father to trade handpicked tea sacks and roasted hazelnuts.",
           excerpt: "Every Friday morning before sunrise, the harbor smelled of roasted hazelnuts and fresh black tea leaves brought down from the mountain terraces.",
           teller: { id: "person_fatma", name: "Fatma Yilmaz", relation_to_center: null },
@@ -208,9 +191,9 @@ export const initialLifeline = {
           id: "story_coast",
           title: "The Summer We Moved to the Coast",
           year: 1968,
-          place: "Akçaabat Coastal Cottage",
+          place: "Akcaabat Coastal Cottage",
           photo_url: "/coast_memory.jpg",
-          photo_caption: "Akçaabat coastal cottage, 1968",
+          photo_caption: "Akcaabat coastal cottage, 1968",
           ai_summary: "Fatma recounts moving to the Black Sea coast after marriage, settling into their stone cottage by the shore.",
           excerpt: "We packed two wooden trunks with olive oil tins, dried figs, and my mother's hand-embroidered curtains. The air smelled of salt and wild pine as the truck rounded the coastal bend.",
           teller: { id: "person_fatma", name: "Fatma Yilmaz", relation_to_center: null },
@@ -255,7 +238,7 @@ export const initialLifeline = {
       period: "retirement",
       title: "Golden Years & Wisdom",
       era: "2005 – Present",
-      description: "Peaceful morning coffees in Akçaabat, garden hydrangeas, and guiding grandchildren.",
+      description: "Peaceful morning coffees in Akcaabat, garden hydrangeas, and guiding grandchildren.",
       invitationPrompt: "What quiet morning ritual or garden flower brings you the most serene joy these days?",
       stories: []
     }
@@ -276,7 +259,7 @@ export const initialStoryMulberry = {
   subjects: [
     { person_id: "person_fatma", name: "Fatma Yilmaz", period: "childhood", period_source: "ai", corrected_by: null }
   ],
-  place: "Village of Akçaabat, Trabzon",
+  place: "Village of Akcaabat, Trabzon",
   stated_year: null,
   access: { type: "circle", person_ids: [] },
   can_change_access: false,
@@ -334,7 +317,7 @@ export const initialStoryMulberry = {
     {
       id: "story_ayse_mulberry",
       title: "Mom's Purple Stained Clothes",
-      teller: { id: "person_ayse", name: "Ayşe Yilmaz", relation_to_center: "daughter" },
+      teller: { id: "person_ayse", name: "Ayse Yilmaz", relation_to_center: "daughter" },
       relation_note: "Retelling with a daughter's perspective on how grandmother always complained about the laundry"
     }
   ],
@@ -346,13 +329,13 @@ export const initialStoryMulberry = {
       status: "suggested",
       story: {
         id: "story_village_house",
-        title: "Building the Stone Oven in Akçaabat",
+        title: "Building the Stone Oven in Akcaabat",
         teller: { id: "person_fatma", name: "Fatma Yilmaz", relation_to_center: null }
       }
     }
   ],
   reactions: {
-    counts: { heart: 2, laugh: 3, sad: 0, pray: 1 },
+    present: ["laugh"],
     mine: ["laugh"]
   },
   publish_at: "2026-10-13T16:00:00+00:00",
@@ -374,7 +357,7 @@ export const initialStoryMulberryPlaylist = {
     },
     {
       story_id: "story_village_house",
-      title: "Building the Stone Oven in Akçaabat",
+      title: "Building the Stone Oven in Akcaabat",
       teller: { id: "person_fatma", name: "Fatma Yilmaz", relation_to_center: null },
       period: "childhood",
       session_id: "session_demo3",
@@ -382,19 +365,12 @@ export const initialStoryMulberryPlaylist = {
       end_ms: 38000,
       url: "/api/audio/session_demo3?start=0&end=38000"
     }
-  ],
-  skipped_count: 1
+  ]
 };
 
+// Neutral placeholders for the mock filter (real topics live only in the backend).
 export const SENSITIVE_TOPIC_KEYWORDS = [
-  "1977 traffic",
-  "traffic accident",
-  "accident in 1977",
-  "kazası",
-  "trafik kazası",
-  "lawsuit",
-  "inheritance dispute",
-  "miras"
+  "sample sensitive topic"
 ];
 
 function createTimedWords(text, durationMs = 20000) {
@@ -440,18 +416,18 @@ export const STORIES_DATABASE = {
         relation_note: "She always reminds us to wear double-knitted mittens whenever the first flakes fall in Istanbul."
       }
     ],
-    reactions: { counts: { heart: 5, laugh: 1, sad: 0, pray: 2 }, mine: ["heart"] }
+    reactions: { present: ["heart"], mine: ["heart"] }
   },
   story_bazaar: {
     id: "story_bazaar",
     circle_id: "circle_yilmaz",
     title: "The Friday Tea Bazaar",
     year: 1963,
-    place: "Akçaabat Port Market, 1963",
+    place: "Akcaabat Port Market, 1963",
     period: "youth",
     period_label: "Youth & Discovery (13-20)",
     photo_url: "/bazaar_memory.jpg",
-    photo_caption: "Akçaabat port market, 1963",
+    photo_caption: "Akcaabat port market, 1963",
     ai_summary: "Visiting the lively Friday harbor market with her father to trade handpicked tea sacks and roasted hazelnuts.",
     teller: { id: "person_fatma", name: "Fatma Yilmaz", relation_to_center: null },
     duration_ms: 22000,
@@ -473,7 +449,7 @@ export const STORIES_DATABASE = {
         relation_note: "Grandpa's old brass balance scale from the harbor shop is still resting on our living room bookshelf."
       }
     ],
-    reactions: { counts: { heart: 3, laugh: 2, sad: 0, pray: 3 }, mine: ["pray"] }
+    reactions: { present: ["pray"], mine: ["pray"] }
   },
   story_olive: {
     id: "story_olive",
@@ -502,22 +478,22 @@ export const STORIES_DATABASE = {
       {
         id: "ret_olive_ayse",
         title: "Cold-Pressed Memories",
-        teller: { id: "person_ayse", name: "Ayşe Yilmaz", relation_to_center: "daughter" },
+        teller: { id: "person_ayse", name: "Ayse Yilmaz", relation_to_center: "daughter" },
         relation_note: "That golden green olive oil tasted so peppery you could feel the autumn sunshine in your throat."
       }
     ],
-    reactions: { counts: { heart: 6, laugh: 0, sad: 0, pray: 4 }, mine: ["heart"] }
+    reactions: { present: ["heart"], mine: ["heart"] }
   },
   story_coast: {
     id: "story_coast",
     circle_id: "circle_yilmaz",
     title: "The Summer We Moved to the Coast",
     year: 1968,
-    place: "Akçaabat Coastal Cottage, 1968",
+    place: "Akcaabat Coastal Cottage, 1968",
     period: "marriage_early_years",
     period_label: "Early Adulthood & Marriage",
     photo_url: "/coast_memory.jpg",
-    photo_caption: "Akçaabat coastal cottage, 1968",
+    photo_caption: "Akcaabat coastal cottage, 1968",
     ai_summary: "Fatma recounts moving to the Black Sea coast after marriage, settling into their stone cottage by the shore.",
     teller: { id: "person_fatma", name: "Fatma Yilmaz", relation_to_center: null },
     duration_ms: 28000,
@@ -539,7 +515,7 @@ export const STORIES_DATABASE = {
         relation_note: "You could hear the breakers pounding against the rocks right from the bedroom window."
       }
     ],
-    reactions: { counts: { heart: 8, laugh: 2, sad: 1, pray: 5 }, mine: ["heart", "pray"] }
+    reactions: { present: ["heart", "pray"], mine: ["heart", "pray"] }
   },
   story_veranda: {
     id: "story_veranda",
@@ -572,7 +548,7 @@ export const STORIES_DATABASE = {
         relation_note: "I still remember the scent of bergamot steam floating through the garden on warm Sunday evenings."
       }
     ],
-    reactions: { counts: { heart: 9, laugh: 4, sad: 0, pray: 6 }, mine: ["heart", "laugh"] }
+    reactions: { present: ["heart", "laugh"], mine: ["heart", "laugh"] }
   }
 };
 

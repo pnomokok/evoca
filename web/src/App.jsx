@@ -1,9 +1,9 @@
 import React from 'react';
-import { AppProvider, useApp } from './context/AppContext';
+import { AppProvider } from './context/AppContext';
+import { useApp } from './context/useApp';
 import DemoHeader from './components/DemoHeader';
 import DeviceScreen from './components/DeviceScreen';
 import FamilyPanel from './components/panel/FamilyPanel';
-import GatheringScreen from './components/GatheringScreen';
 import { Info, AlertCircle } from 'lucide-react';
 
 function MainContent() {
@@ -16,12 +16,11 @@ function MainContent() {
       <main className="view-viewport">
         {activeTab === 'panel' && <FamilyPanel />}
         {activeTab === 'device' && <DeviceScreen />}
-        {activeTab === 'gathering' && <GatheringScreen />}
       </main>
 
       {/* Global Toast */}
       {toast && (
-        <div className="toast-popup">
+        <div className="toast-popup" role="status">
           {toast.type === 'error' ? (
             <AlertCircle size={18} color="#ef4444" />
           ) : (

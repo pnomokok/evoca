@@ -1,6 +1,6 @@
 import React from 'react';
-import { useApp } from '../context/AppContext';
-import { BookOpen, Tv, Users, User, Database, Server } from 'lucide-react';
+import { useApp } from '../context/useApp';
+import { BookOpen, Tv, User, Database, Server } from 'lucide-react';
 
 export default function DemoHeader() {
   const {
@@ -50,13 +50,6 @@ export default function DemoHeader() {
             <Tv size={15} />
             <span>Living Room Device</span>
           </button>
-          <button
-            className={`topbar-nav-link ${activeTab === 'gathering' ? 'active' : ''}`}
-            onClick={() => setActiveTab('gathering')}
-          >
-            <Users size={15} />
-            <span>Gathering Mode</span>
-          </button>
         </nav>
 
         {/* Quiet Viewer and API Mode Controls */}
@@ -67,7 +60,8 @@ export default function DemoHeader() {
               className="archival-select"
               value={currentViewerId || ''}
               onChange={(e) => switchViewer(e.target.value)}
-              title="Change family viewer perspective (X-Person-Id)"
+              title="See the archive as this family member"
+              aria-label="Viewing as"
             >
               {members.map((m) => (
                 <option key={m.id} value={m.id}>
@@ -77,14 +71,17 @@ export default function DemoHeader() {
             </select>
           </div>
 
-          <button
-            className={`api-mode-chip ${useMock ? 'mock' : 'live'}`}
-            onClick={() => toggleMock(!useMock)}
-            title="Toggle between mock JSON samples and live FastAPI backend"
-          >
-            {useMock ? <Database size={12} /> : <Server size={12} />}
-            <span>{useMock ? 'Demo Samples' : 'Live Backend'}</span>
-          </button>
+          {/* Mock samples are a development aid; production always uses the live backend */}
+          {import.meta.env.DEV && (
+            <button
+              className={`api-mode-chip ${useMock ? 'mock' : 'live'}`}
+              onClick={() => toggleMock(!useMock)}
+              title="Development only: switch between sample data and the live backend"
+            >
+              {useMock ? <Database size={12} /> : <Server size={12} />}
+              <span>{useMock ? 'Sample data' : 'Live data'}</span>
+            </button>
+          )}
         </div>
       </div>
     </header>

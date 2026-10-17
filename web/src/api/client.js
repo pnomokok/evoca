@@ -5,7 +5,6 @@ import {
   initialFeed,
   initialLifeline,
   initialStoryMulberry,
-  initialFeaturedStory,
   initialStoryMulberryPlaylist,
   SENSITIVE_TOPIC_KEYWORDS,
   STORIES_DATABASE
@@ -13,6 +12,34 @@ import {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
+// Mock samples are a development aid only; a production build always talks to the backend.
+const MOCK_ALLOWED = import.meta.env.DEV;
+
+function readStorage(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeStorage(key, value) {
+  try {
+    if (value === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, value);
+  } catch {
+    // Storage may be blocked (private window); the app still works without it.
+  }
+}
+
+function apiError(status, message) {
+  const err = new Error(message);
+  err.status = status;
+  return err;
+}
+
+// Errors carry the HTTP status; components pick the wording for their context
+// (a missing story says so, other 403/404 stay neutral).
 async function handleResponse(res) {
   if (res.ok) {
     if (res.status === 204) return null;
@@ -22,47 +49,37 @@ async function handleResponse(res) {
   let detail = '';
   try {
     const errJson = await res.json();
-    detail = errJson?.detail || '';
+    detail = typeof errJson?.detail === 'string' ? errJson.detail : '';
   } catch {
     // Body is not JSON
   }
 
-  if (res.status === 404) {
-    throw new Error('Bu hikâye bulunamadı');
-  }
-  if (res.status === 403) {
-    throw new Error('Bu içeriğe erişemiyorsun');
+  if (res.status === 403 || res.status === 404) {
+    throw apiError(res.status, 'Not available');
   }
   if (res.status === 400) {
-    throw new Error(detail || 'Geçersiz istek');
+    throw apiError(400, detail || 'That did not work. Please check and try again.');
   }
-  throw new Error(detail || `İstek başarısız (${res.status})`);
+  throw apiError(res.status, detail || 'Something went wrong. Please try again.');
 }
 
 class EvocaApiClient {
   constructor() {
-    // Real mode is default; mock mode remains an option.
-    this.useMock = localStorage.getItem('evoca_use_mock') === 'true';
-    this.currentViewerId = localStorage.getItem('evoca_viewer_id') || '';
+    this.useMock = MOCK_ALLOWED && readStorage('evoca_use_mock') === 'true';
+    this.currentViewerId = readStorage('evoca_viewer_id') || '';
 
-    // In-memory mock store for demo fallback
+    // In-memory mock store for development
     this.circle = JSON.parse(JSON.stringify(initialCircle));
     this.invitation = JSON.parse(JSON.stringify(initialDeviceInvitation));
     this.feed = JSON.parse(JSON.stringify(initialFeed));
     this.lifeline = JSON.parse(JSON.stringify(initialLifeline));
     this.story = JSON.parse(JSON.stringify(initialStoryMulberry));
-    this.featuredStory = JSON.parse(JSON.stringify(initialFeaturedStory));
     this.playlist = JSON.parse(JSON.stringify(initialStoryMulberryPlaylist));
-    this.deviceTurns = [];
   }
 
   setViewer(personId) {
     this.currentViewerId = personId;
-    if (personId) {
-      localStorage.setItem('evoca_viewer_id', personId);
-    } else {
-      localStorage.removeItem('evoca_viewer_id');
-    }
+    writeStorage('evoca_viewer_id', personId || null);
     const member = this.circle?.members?.find(m => m.id === personId);
     if (member) {
       this.circle.me = {
@@ -75,8 +92,8 @@ class EvocaApiClient {
   }
 
   setUseMock(flag) {
-    this.useMock = flag;
-    localStorage.setItem('evoca_use_mock', flag ? 'true' : 'false');
+    this.useMock = MOCK_ALLOWED && flag;
+    writeStorage('evoca_use_mock', this.useMock ? 'true' : 'false');
   }
 
   getHeaders(customHeaders = {}, overridePersonId = null) {
@@ -88,35 +105,28 @@ class EvocaApiClient {
     return headers;
   }
 
-  // --- Audio Fetch (fetch + blob URL with X-Person-Id header) ---
-  async fetchAudioBlobUrl(audioPath, personId = null) {
-    if (!audioPath) return null;
+  // --- Audio and photos: fetch with X-Person-Id and hand back a blob URL ---
+  // (a plain <audio src> or <img src> cannot send the header).
+  async fetchBlobUrl(path, personId = null) {
+    if (!path) return null;
     if (this.useMock) {
-      // In mock mode, if it's already an absolute or mock URL, return null to let speech synthesis fallback or return path
-      return null;
+      // Mock audio has no file; mock photos are static files in public/.
+      return path.startsWith('/api/') ? null : path;
     }
-    const fullUrl = audioPath.startsWith('http') ? audioPath : `${API_BASE_URL}${audioPath}`;
-    try {
-      const res = await fetch(fullUrl, {
-        headers: this.getHeaders({}, personId)
-      });
-      if (!res.ok) {
-        if (res.status === 403) {
-          const err = new Error('Bu içeriğe erişemiyorsun');
-          err.status = 403;
-          throw err;
-        }
-        throw new Error('Ses dosyası alınamadı');
-      }
-      const blob = await res.blob();
-      return URL.createObjectURL(blob);
-    } catch (err) {
-      console.warn("fetchAudioBlobUrl error:", err);
-      throw err;
+    // The person header only ever goes to our own API.
+    if (!path.startsWith('/') && !path.startsWith(`${API_BASE_URL}/`)) {
+      throw apiError(400, 'Not available');
     }
+    const fullUrl = path.startsWith('/') ? `${API_BASE_URL}${path}` : path;
+    const res = await fetch(fullUrl, { headers: this.getHeaders({}, personId) });
+    if (!res.ok) {
+      throw apiError(res.status, 'Not available');
+    }
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
   }
 
-  // --- People (Password-less Person Picker) ---
+  // --- People (password-less person picker) ---
   async getPeople() {
     if (this.useMock) {
       return this.circle.members.map(m => ({
@@ -138,8 +148,13 @@ class EvocaApiClient {
     return handleResponse(res);
   }
 
-  // --- Device Screen (Always operates as center person) ---
+  // --- Device Screen (always operates as the center person, never as the panel viewer) ---
+  requireCenter(centerPersonId) {
+    if (!this.useMock && !centerPersonId) throw apiError(400, 'Not available');
+  }
+
   async getDeviceInvitation(centerPersonId = null) {
+    this.requireCenter(centerPersonId);
     if (this.useMock) {
       return { ...this.invitation };
     }
@@ -150,29 +165,9 @@ class EvocaApiClient {
   }
 
   async postDeviceSessionStart(centerPersonId = null) {
+    this.requireCenter(centerPersonId);
     if (this.useMock) {
-      return {
-        session_id: `session_mock_${Date.now()}`,
-        session_open: true,
-        heard_text: null,
-        reply_text: "Günaydın Fatma Hanım! Elif dut ağacı anınıza çok gülmüş. Size sormak istediği güzel bir soru var: Gençliğinizde köyde kışlar nasıl geçerdi?",
-        reply_audio_url: null,
-        cards: [
-          {
-            type: "reaction",
-            story_id: "story_mulberry",
-            story_title: "The Mulberry Tree",
-            from: { id: "person_elif", name: "Elif Yilmaz", relation_to_center: "granddaughter" },
-            emoji: "laugh"
-          },
-          {
-            type: "question",
-            question_id: "question_school",
-            text: "Köyde kışlar nasıl geçerdi, okula nasıl giderdiniz?",
-            asker: { id: "person_elif", name: "Elif Yilmaz", relation_to_center: "granddaughter" }
-          }
-        ]
-      };
+      return { ...JSON.parse(JSON.stringify(initialDeviceTurn)), session_id: `session_mock_${Date.now()}` };
     }
 
     const res = await fetch(`${API_BASE_URL}/api/device/session/start`, {
@@ -183,13 +178,14 @@ class EvocaApiClient {
   }
 
   async postDeviceTurn(audioBlob, sessionId, centerPersonId = null) {
+    this.requireCenter(centerPersonId);
     if (this.useMock) {
       await new Promise(r => setTimeout(r, 600));
       return {
         session_id: sessionId || `session_mock_${Date.now()}`,
         session_open: true,
-        heard_text: "Dut ağacına tırmanır, ellerimiz morarıncaya kadar yerdik...",
-        reply_text: "Ne kadar güzel hatırlıyorsunuz! O ağaç hala Akçaabat'taki bahçede duruyor mu?",
+        heard_text: "We used to climb the mulberry tree and eat until our hands turned purple...",
+        reply_text: "What a lovely memory! Is that tree still standing in the garden?",
         reply_audio_url: null,
         cards: []
       };
@@ -210,6 +206,7 @@ class EvocaApiClient {
   }
 
   async postDeviceSessionEnd(sessionId, centerPersonId = null) {
+    this.requireCenter(centerPersonId);
     if (this.useMock) {
       this.invitation.active = false;
       return {
@@ -224,6 +221,21 @@ class EvocaApiClient {
       body: JSON.stringify({ session_id: sessionId })
     });
     return handleResponse(res);
+  }
+
+  // Best effort while the page is going away: keepalive lets the request outlive the page.
+  endDeviceSessionOnUnload(sessionId, centerPersonId = null) {
+    if (this.useMock || !sessionId || !centerPersonId) return;
+    try {
+      fetch(`${API_BASE_URL}/api/device/session/end`, {
+        method: 'POST',
+        keepalive: true,
+        headers: this.getHeaders({ 'Content-Type': 'application/json' }, centerPersonId),
+        body: JSON.stringify({ session_id: sessionId })
+      }).catch(() => {});
+    } catch {
+      // Nothing more can be done during unload.
+    }
   }
 
   // --- Feed ---
@@ -242,13 +254,6 @@ class EvocaApiClient {
     }
     const res = await fetch(`${API_BASE_URL}/api/lifeline/${personId}`, { headers: this.getHeaders() });
     return handleResponse(res);
-  }
-
-  async getFeaturedStory() {
-    if (this.useMock) {
-      return { ...this.featuredStory };
-    }
-    return { ...this.featuredStory };
   }
 
   // --- Story Page ---
@@ -388,7 +393,7 @@ class EvocaApiClient {
       };
 
       this.invitation.active = true;
-      this.invitation.invitation.reason = `${this.circle?.me?.name?.split(' ')[0] || 'Aile'} bir soru sordu.`;
+      this.invitation.invitation.reason = `${this.circle?.me?.name?.split(' ')[0] || 'Your family'} has a question for you.`;
 
       return {
         status: "waiting",

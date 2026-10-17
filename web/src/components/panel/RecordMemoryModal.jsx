@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../context/useApp';
 import { apiClient } from '../../api/client';
-import { X, Mic, MicOff, Check, Radio, Lock, Users, AlertCircle } from 'lucide-react';
+import { X, Mic, MicOff, Radio, Lock, Users, AlertCircle } from 'lucide-react';
 
 const MAX_RECORDING_SECONDS = 180; // 3 minutes maximum
 
-export default function RecordMemoryModal({ isOpen, onClose }) {
+// Mounted only while open (see FamilyPanel), so every opening starts from fresh state.
+export default function RecordMemoryModal({ onClose }) {
   const { showToast, refreshData } = useApp();
   const [isRecording, setIsRecording] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);
@@ -16,36 +17,31 @@ export default function RecordMemoryModal({ isOpen, onClose }) {
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
-  const timerRef = useRef(null);
+  const timersRef = useRef({ tick: null, limit: null });
 
-  useEffect(() => {
-    if (isRecording) {
-      timerRef.current = setInterval(() => {
-        setRecordSeconds(s => {
-          if (s + 1 >= MAX_RECORDING_SECONDS) {
-            handleStopRecording();
-            return MAX_RECORDING_SECONDS;
-          }
-          return s + 1;
-        });
-      }, 1000);
-    } else {
-      clearInterval(timerRef.current);
+  const clearTimers = () => {
+    clearInterval(timersRef.current.tick);
+    clearTimeout(timersRef.current.limit);
+  };
+
+  const handleStopRecording = () => {
+    clearTimers();
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
     }
-    return () => clearInterval(timerRef.current);
-  }, [isRecording]);
+    setIsRecording(false);
+  };
 
+  // Stop the microphone if the dialog closes mid-recording.
   useEffect(() => {
-    if (!isOpen) {
-      setIsRecording(false);
-      setRecordSeconds(0);
-      setAudioBlob(null);
-      setErrorMessage(null);
-      setIsProcessing(false);
-    }
-  }, [isOpen]);
-
-  if (!isOpen) return null;
+    const timers = timersRef.current;
+    const recorderRef = mediaRecorderRef;
+    return () => {
+      clearInterval(timers.tick);
+      clearTimeout(timers.limit);
+      if (recorderRef.current?.state === 'recording') recorderRef.current.stop();
+    };
+  }, []);
 
   const handleStartRecording = async () => {
     setErrorMessage(null);
@@ -70,26 +66,16 @@ export default function RecordMemoryModal({ isOpen, onClose }) {
 
       mediaRecorder.start();
       setIsRecording(true);
-      showToast("Kayıt başladı...", "info");
+      timersRef.current.tick = setInterval(() => setRecordSeconds(s => Math.min(s + 1, MAX_RECORDING_SECONDS)), 1000);
+      timersRef.current.limit = setTimeout(handleStopRecording, MAX_RECORDING_SECONDS * 1000);
     } catch {
-      setErrorMessage("Mikrofon erişimi sağlanamadı. Lütfen mikrofon izinlerini kontrol edin.");
+      setErrorMessage("The microphone isn't available. Please check the permission.");
     }
-  };
-
-  const handleStopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
-    }
-    setIsRecording(false);
   };
 
   const handleSaveRecording = async () => {
     if (!audioBlob || recordSeconds < 1) {
-      setErrorMessage("Kayıt çok kısa veya boş.");
-      return;
-    }
-    if (recordSeconds > MAX_RECORDING_SECONDS) {
-      setErrorMessage("Kayıt en fazla 3 dakika olabilir.");
+      setErrorMessage("That recording is too short. Please try again.");
       return;
     }
 
@@ -98,13 +84,12 @@ export default function RecordMemoryModal({ isOpen, onClose }) {
 
     try {
       await apiClient.postRecording(audioBlob, access);
-      showToast("Anın işleniyor. Kısa süre sonra akışa ve hayat çizgisine düşecektir.", "info");
+      showToast("Thank you! Your memory is being processed and will appear soon.", "info");
       if (refreshData) refreshData();
       onClose();
     } catch (err) {
       console.error(err);
-      setErrorMessage(err.message || "Anı kaydedilemedi.");
-      showToast(err.message || "Anı kaydedilemedi", "error");
+      setErrorMessage("Your memory couldn't be saved. Please try again.");
     } finally {
       setIsProcessing(false);
     }
@@ -117,22 +102,22 @@ export default function RecordMemoryModal({ isOpen, onClose }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true">
+    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Record your own memory">
       <div className="modal-sheet archival-dialog" style={{ maxWidth: '480px' }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-title-row">
           <div>
-            <h2 className="archival-dialog-title">Kendi Anını Kaydet</h2>
+            <h2 className="archival-dialog-title">Record your own memory</h2>
             <p className="archival-dialog-sub">
-              Aile hafızasına kendi bakış açınla bir sesli anı ekle.
+              Add a memory in your own voice to the family archive.
             </p>
           </div>
-          <button className="close-btn" onClick={onClose} aria-label="Kapat"><X size={20} /></button>
+          <button className="close-btn" onClick={onClose} aria-label="Close"><X size={20} /></button>
         </div>
 
         {/* Access Selector: Circle vs Private (Requirement 23) */}
         <div style={{ marginBottom: '20px', padding: '14px', background: 'var(--bg-secondary)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
           <label className="form-label" style={{ marginBottom: '8px', display: 'block' }}>
-            Erişim Gizliliği
+            Who can listen
           </label>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
             <button
@@ -143,8 +128,8 @@ export default function RecordMemoryModal({ isOpen, onClose }) {
             >
               <Users size={16} />
               <div style={{ textAlign: 'left' }}>
-                <div style={{ fontWeight: 600, fontSize: '13px' }}>Aile Çemberi</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Tüm aile dinleyebilir</div>
+                <div style={{ fontWeight: 600, fontSize: '13px' }}>Family circle</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Everyone in the family</div>
               </div>
             </button>
 
@@ -156,8 +141,8 @@ export default function RecordMemoryModal({ isOpen, onClose }) {
             >
               <Lock size={16} />
               <div style={{ textAlign: 'left' }}>
-                <div style={{ fontWeight: 600, fontSize: '13px' }}>Sadece Ben</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Yalnızca sen dinleyebilirsin</div>
+                <div style={{ fontWeight: 600, fontSize: '13px' }}>Only me</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Only you can listen</div>
               </div>
             </button>
           </div>
@@ -176,7 +161,7 @@ export default function RecordMemoryModal({ isOpen, onClose }) {
             {formatTime(recordSeconds)}
           </div>
           <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-            En fazla 3 dakika (180s)
+            Up to 3 minutes
           </div>
 
           {!audioBlob ? (
@@ -188,7 +173,7 @@ export default function RecordMemoryModal({ isOpen, onClose }) {
               disabled={isProcessing}
             >
               {isRecording ? <MicOff size={28} /> : <Mic size={28} />}
-              <span className="ptt-label">{isRecording ? "Durdur" : "Kaydet"}</span>
+              <span className="ptt-label">{isRecording ? "Stop" : "Record"}</span>
             </button>
           ) : (
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -198,7 +183,7 @@ export default function RecordMemoryModal({ isOpen, onClose }) {
                 onClick={handleStartRecording}
                 disabled={isProcessing}
               >
-                Yeniden Kaydet
+                Record again
               </button>
               <button
                 type="button"
@@ -206,14 +191,14 @@ export default function RecordMemoryModal({ isOpen, onClose }) {
                 onClick={handleSaveRecording}
                 disabled={isProcessing}
               >
-                {isProcessing ? "İşleniyor..." : "Anıyı Gönder"}
+                {isProcessing ? "Saving..." : "Save memory"}
               </button>
             </div>
           )}
 
           {isRecording && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#ef4444', fontSize: '12px' }}>
-              <Radio size={14} className="pulseDot" /> Ses kaydediliyor...
+              <Radio size={14} className="pulseDot" /> Recording...
             </div>
           )}
         </div>
