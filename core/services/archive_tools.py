@@ -484,7 +484,8 @@ def add_refused_topic_data(
     must not overlap a private segment, and it must hold the center's own words
     (a refusal by anyone else in a gathering is not the center's). Only the archivist of a center's session
     may call it, never for a panel recording. The same topic text twice is
-    stored once. Returns {topic_id, added}.
+    stored once; a family topic with that text does not count (the admin can
+    delete it). Returns {topic_id, added}.
     """
     topic = " ".join((text or "").split())
     if not topic:
@@ -524,8 +525,13 @@ def add_refused_topic_data(
             f"Use the range of the segment where they refuse."
         )
 
+    # Only the center's own topics count as duplicates: a family topic with the
+    # same text can be deleted by the admin, and the refusal must outlive it.
     norm = topic.lower()
-    for existing in db.query(SensitiveTopic).filter(SensitiveTopic.circle_id == circle_id).all():
+    for existing in db.query(SensitiveTopic).filter(
+        SensitiveTopic.circle_id == circle_id,
+        SensitiveTopic.source == TopicSource.speaker,
+    ).all():
         if " ".join(existing.text.lower().split()) == norm:
             return {"topic_id": existing.id, "added": False}
 
