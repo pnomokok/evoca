@@ -1,0 +1,673 @@
+{
+ "voices": {
+  "center": "Kendra",
+  "agent": "Joanna"
+ },
+ "segments": [
+  {
+   "speaker": "center",
+   "is_private": false,
+   "transcript": "When I was a little girl in the village, we had a big mulberry tree in the garden. Every summer we would climb it and eat until our hands turned purple.",
+   "start_ms": 300,
+   "end_ms": 9127,
+   "words": [
+    {
+     "w": "When",
+     "start_ms": 306,
+     "end_ms": 460
+    },
+    {
+     "w": "I",
+     "start_ms": 461,
+     "end_ms": 551
+    },
+    {
+     "w": "was",
+     "start_ms": 552,
+     "end_ms": 760
+    },
+    {
+     "w": "a",
+     "start_ms": 761,
+     "end_ms": 791
+    },
+    {
+     "w": "little",
+     "start_ms": 792,
+     "end_ms": 1052
+    },
+    {
+     "w": "girl",
+     "start_ms": 1053,
+     "end_ms": 1444
+    },
+    {
+     "w": "in",
+     "start_ms": 1445,
+     "end_ms": 1533
+    },
+    {
+     "w": "the",
+     "start_ms": 1534,
+     "end_ms": 1594
+    },
+    {
+     "w": "village",
+     "start_ms": 1595,
+     "end_ms": 2353
+    },
+    {
+     "w": "we",
+     "start_ms": 2354,
+     "end_ms": 2538
+    },
+    {
+     "w": "had",
+     "start_ms": 2539,
+     "end_ms": 2750
+    },
+    {
+     "w": "a",
+     "start_ms": 2751,
+     "end_ms": 2800
+    },
+    {
+     "w": "big",
+     "start_ms": 2801,
+     "end_ms": 3038
+    },
+    {
+     "w": "mulberry",
+     "start_ms": 3039,
+     "end_ms": 3656
+    },
+    {
+     "w": "tree",
+     "start_ms": 3657,
+     "end_ms": 4158
+    },
+    {
+     "w": "in",
+     "start_ms": 4159,
+     "end_ms": 4281
+    },
+    {
+     "w": "the",
+     "start_ms": 4282,
+     "end_ms": 4357
+    },
+    {
+     "w": "garden",
+     "start_ms": 4358,
+     "end_ms": 5294
+    },
+    {
+     "w": "Every",
+     "start_ms": 5295,
+     "end_ms": 5620
+    },
+    {
+     "w": "summer",
+     "start_ms": 5621,
+     "end_ms": 6045
+    },
+    {
+     "w": "we",
+     "start_ms": 6046,
+     "end_ms": 6249
+    },
+    {
+     "w": "would",
+     "start_ms": 6250,
+     "end_ms": 6420
+    },
+    {
+     "w": "climb",
+     "start_ms": 6421,
+     "end_ms": 6795
+    },
+    {
+     "w": "it",
+     "start_ms": 6796,
+     "end_ms": 6929
+    },
+    {
+     "w": "and",
+     "start_ms": 6930,
+     "end_ms": 7129
+    },
+    {
+     "w": "eat",
+     "start_ms": 7130,
+     "end_ms": 7330
+    },
+    {
+     "w": "until",
+     "start_ms": 7331,
+     "end_ms": 7729
+    },
+    {
+     "w": "our",
+     "start_ms": 7730,
+     "end_ms": 7906
+    },
+    {
+     "w": "hands",
+     "start_ms": 7907,
+     "end_ms": 8313
+    },
+    {
+     "w": "turned",
+     "start_ms": 8314,
+     "end_ms": 8669
+    },
+    {
+     "w": "purple",
+     "start_ms": 8670,
+     "end_ms": 9127
+    }
+   ]
+  },
+  {
+   "speaker": "agent",
+   "is_private": false,
+   "transcript": "That sounds wonderful. Did you have siblings to climb with?",
+   "start_ms": 9627,
+   "end_ms": 12738,
+   "words": [
+    {
+     "w": "That",
+     "start_ms": 9633,
+     "end_ms": 9854
+    },
+    {
+     "w": "sounds",
+     "start_ms": 9855,
+     "end_ms": 10231
+    },
+    {
+     "w": "wonderful",
+     "start_ms": 10232,
+     "end_ms": 11224
+    },
+    {
+     "w": "Did",
+     "start_ms": 11225,
+     "end_ms": 11363
+    },
+    {
+     "w": "you",
+     "start_ms": 11364,
+     "end_ms": 11467
+    },
+    {
+     "w": "have",
+     "start_ms": 11468,
+     "end_ms": 11610
+    },
+    {
+     "w": "siblings",
+     "start_ms": 11611,
+     "end_ms": 12107
+    },
+    {
+     "w": "to",
+     "start_ms": 12108,
+     "end_ms": 12205
+    },
+    {
+     "w": "climb",
+     "start_ms": 12206,
+     "end_ms": 12516
+    },
+    {
+     "w": "with",
+     "start_ms": 12517,
+     "end_ms": 12738
+    }
+   ]
+  },
+  {
+   "speaker": "center",
+   "is_private": true,
+   "transcript": "Yes, my sister Hatice and I. We were inseparable. She moved to Germany in 1972, and I did not see her for three years. Those were hard times, but let us not talk about that today.",
+   "start_ms": 13238,
+   "end_ms": 27256,
+   "words": [
+    {
+     "w": "Yes",
+     "start_ms": 13244,
+     "end_ms": 13902
+    },
+    {
+     "w": "my",
+     "start_ms": 13903,
+     "end_ms": 14058
+    },
+    {
+     "w": "sister",
+     "start_ms": 14059,
+     "end_ms": 14535
+    },
+    {
+     "w": "Hatice",
+     "start_ms": 14536,
+     "end_ms": 15160
+    },
+    {
+     "w": "and",
+     "start_ms": 15161,
+     "end_ms": 15332
+    },
+    {
+     "w": "I",
+     "start_ms": 15333,
+     "end_ms": 16114
+    },
+    {
+     "w": "We",
+     "start_ms": 16115,
+     "end_ms": 16273
+    },
+    {
+     "w": "were",
+     "start_ms": 16274,
+     "end_ms": 16517
+    },
+    {
+     "w": "inseparable",
+     "start_ms": 16518,
+     "end_ms": 17613
+    },
+    {
+     "w": "She",
+     "start_ms": 17614,
+     "end_ms": 17861
+    },
+    {
+     "w": "moved",
+     "start_ms": 17862,
+     "end_ms": 18186
+    },
+    {
+     "w": "to",
+     "start_ms": 18187,
+     "end_ms": 18311
+    },
+    {
+     "w": "Germany",
+     "start_ms": 18312,
+     "end_ms": 18808
+    },
+    {
+     "w": "in",
+     "start_ms": 18809,
+     "end_ms": 18925
+    },
+    {
+     "w": "1972",
+     "start_ms": 18926,
+     "end_ms": 20662
+    },
+    {
+     "w": "and",
+     "start_ms": 20663,
+     "end_ms": 20812
+    },
+    {
+     "w": "I",
+     "start_ms": 20813,
+     "end_ms": 20904
+    },
+    {
+     "w": "did",
+     "start_ms": 20905,
+     "end_ms": 21120
+    },
+    {
+     "w": "not",
+     "start_ms": 21121,
+     "end_ms": 21380
+    },
+    {
+     "w": "see",
+     "start_ms": 21381,
+     "end_ms": 21597
+    },
+    {
+     "w": "her",
+     "start_ms": 21598,
+     "end_ms": 21741
+    },
+    {
+     "w": "for",
+     "start_ms": 21742,
+     "end_ms": 21928
+    },
+    {
+     "w": "three",
+     "start_ms": 21929,
+     "end_ms": 22199
+    },
+    {
+     "w": "years",
+     "start_ms": 22200,
+     "end_ms": 23214
+    },
+    {
+     "w": "Those",
+     "start_ms": 23215,
+     "end_ms": 23598
+    },
+    {
+     "w": "were",
+     "start_ms": 23599,
+     "end_ms": 23768
+    },
+    {
+     "w": "hard",
+     "start_ms": 23769,
+     "end_ms": 24101
+    },
+    {
+     "w": "times",
+     "start_ms": 24102,
+     "end_ms": 24959
+    },
+    {
+     "w": "but",
+     "start_ms": 24960,
+     "end_ms": 25165
+    },
+    {
+     "w": "let",
+     "start_ms": 25166,
+     "end_ms": 25346
+    },
+    {
+     "w": "us",
+     "start_ms": 25347,
+     "end_ms": 25524
+    },
+    {
+     "w": "not",
+     "start_ms": 25525,
+     "end_ms": 25785
+    },
+    {
+     "w": "talk",
+     "start_ms": 25786,
+     "end_ms": 26194
+    },
+    {
+     "w": "about",
+     "start_ms": 26195,
+     "end_ms": 26529
+    },
+    {
+     "w": "that",
+     "start_ms": 26530,
+     "end_ms": 26755
+    },
+    {
+     "w": "today",
+     "start_ms": 26756,
+     "end_ms": 27256
+    }
+   ]
+  },
+  {
+   "speaker": "agent",
+   "is_private": false,
+   "transcript": "Of course. What did you do when you were a young woman?",
+   "start_ms": 27757,
+   "end_ms": 30587,
+   "words": [
+    {
+     "w": "Of",
+     "start_ms": 27763,
+     "end_ms": 27906
+    },
+    {
+     "w": "course",
+     "start_ms": 27907,
+     "end_ms": 28781
+    },
+    {
+     "w": "What",
+     "start_ms": 28782,
+     "end_ms": 28944
+    },
+    {
+     "w": "did",
+     "start_ms": 28945,
+     "end_ms": 29072
+    },
+    {
+     "w": "you",
+     "start_ms": 29073,
+     "end_ms": 29161
+    },
+    {
+     "w": "do",
+     "start_ms": 29162,
+     "end_ms": 29355
+    },
+    {
+     "w": "when",
+     "start_ms": 29356,
+     "end_ms": 29553
+    },
+    {
+     "w": "you",
+     "start_ms": 29554,
+     "end_ms": 29648
+    },
+    {
+     "w": "were",
+     "start_ms": 29649,
+     "end_ms": 29849
+    },
+    {
+     "w": "a",
+     "start_ms": 29850,
+     "end_ms": 29894
+    },
+    {
+     "w": "young",
+     "start_ms": 29895,
+     "end_ms": 30166
+    },
+    {
+     "w": "woman",
+     "start_ms": 30167,
+     "end_ms": 30587
+    }
+   ]
+  },
+  {
+   "speaker": "center",
+   "is_private": false,
+   "transcript": "I worked at the tailor's shop in our neighbourhood. I learned to sew by hand, and I still remember the hum of the old Singer machine and the smell of fresh cotton on warm afternoons.",
+   "start_ms": 31088,
+   "end_ms": 41640,
+   "words": [
+    {
+     "w": "I",
+     "start_ms": 31094,
+     "end_ms": 31196
+    },
+    {
+     "w": "worked",
+     "start_ms": 31197,
+     "end_ms": 31585
+    },
+    {
+     "w": "at",
+     "start_ms": 31586,
+     "end_ms": 31706
+    },
+    {
+     "w": "the",
+     "start_ms": 31707,
+     "end_ms": 31792
+    },
+    {
+     "w": "tailor's",
+     "start_ms": 31793,
+     "end_ms": 32406
+    },
+    {
+     "w": "shop",
+     "start_ms": 32407,
+     "end_ms": 32759
+    },
+    {
+     "w": "in",
+     "start_ms": 32760,
+     "end_ms": 32884
+    },
+    {
+     "w": "our",
+     "start_ms": 32885,
+     "end_ms": 33013
+    },
+    {
+     "w": "neighbourhood",
+     "start_ms": 33014,
+     "end_ms": 34117
+    },
+    {
+     "w": "I",
+     "start_ms": 34118,
+     "end_ms": 34240
+    },
+    {
+     "w": "learned",
+     "start_ms": 34241,
+     "end_ms": 34548
+    },
+    {
+     "w": "to",
+     "start_ms": 34549,
+     "end_ms": 34644
+    },
+    {
+     "w": "sew",
+     "start_ms": 34645,
+     "end_ms": 34889
+    },
+    {
+     "w": "by",
+     "start_ms": 34890,
+     "end_ms": 35069
+    },
+    {
+     "w": "hand",
+     "start_ms": 35070,
+     "end_ms": 35747
+    },
+    {
+     "w": "and",
+     "start_ms": 35748,
+     "end_ms": 35978
+    },
+    {
+     "w": "I",
+     "start_ms": 35979,
+     "end_ms": 36104
+    },
+    {
+     "w": "still",
+     "start_ms": 36105,
+     "end_ms": 36425
+    },
+    {
+     "w": "remember",
+     "start_ms": 36426,
+     "end_ms": 36910
+    },
+    {
+     "w": "the",
+     "start_ms": 36911,
+     "end_ms": 37011
+    },
+    {
+     "w": "hum",
+     "start_ms": 37012,
+     "end_ms": 37235
+    },
+    {
+     "w": "of",
+     "start_ms": 37236,
+     "end_ms": 37309
+    },
+    {
+     "w": "the",
+     "start_ms": 37310,
+     "end_ms": 37486
+    },
+    {
+     "w": "old",
+     "start_ms": 37487,
+     "end_ms": 37836
+    },
+    {
+     "w": "Singer",
+     "start_ms": 37837,
+     "end_ms": 38167
+    },
+    {
+     "w": "machine",
+     "start_ms": 38168,
+     "end_ms": 38691
+    },
+    {
+     "w": "and",
+     "start_ms": 38692,
+     "end_ms": 38876
+    },
+    {
+     "w": "the",
+     "start_ms": 38877,
+     "end_ms": 38934
+    },
+    {
+     "w": "smell",
+     "start_ms": 38935,
+     "end_ms": 39341
+    },
+    {
+     "w": "of",
+     "start_ms": 39342,
+     "end_ms": 39444
+    },
+    {
+     "w": "fresh",
+     "start_ms": 39445,
+     "end_ms": 39788
+    },
+    {
+     "w": "cotton",
+     "start_ms": 39789,
+     "end_ms": 40212
+    },
+    {
+     "w": "on",
+     "start_ms": 40213,
+     "end_ms": 40397
+    },
+    {
+     "w": "warm",
+     "start_ms": 40398,
+     "end_ms": 40726
+    },
+    {
+     "w": "afternoons",
+     "start_ms": 40727,
+     "end_ms": 41640
+    }
+   ]
+  }
+ ]
+}
