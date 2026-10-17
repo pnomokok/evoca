@@ -1,0 +1,452 @@
+[
+  {
+    "scenario": "avoid_topic_not_raised",
+    "run": 1,
+    "goal": "Never raises a topic from avoid_topics that the person does not mention herself.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Your grandson Ozan would love to know what your house was like when you were a child. I was wondering, is there a memory on your mind today that you would like to share?"
+      },
+      {
+        "speaker": "person",
+        "text": "When I was a child, our house in Rize was a cozy wooden home, filled with the scent of my mother's corn bread baking in the oven. The walls were made of thick wood, keeping us cool in the summer and warm during the cold winters. Outside, the tea fields stretched up the hills, and every spring, we would all head up to help with the harvest, the fresh green leaves under our feet and the crisp air filling our lungs."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds so warm and peaceful, with the scent of corn bread and the fresh tea fields. What was your mother like when she baked that corn bread?"
+      },
+      {
+        "speaker": "person",
+        "text": "My mother was a truly wonderful baker; her corn bread was the heart of our home. She had a gentle, determined spirit, always moving with purpose in our small kitchen. Her hands moved deftly, kneading and shaping the dough, and the smell of it baking filled the whole house with comfort and love. Her corn bread was more than just food; it was a symbol of her care and strength, and it brought us all together around the table."
+      },
+      {
+        "speaker": "companion",
+        "text": "She sounds like such a special person, with her gentle strength and the way she brought everyone together. Do you still remember the taste of her corn bread?"
+      },
+      {
+        "speaker": "person",
+        "text": "I can still remember the taste of my mother's corn bread as if it were yesterday—it's a memory etched deep in my mind. It had a perfect balance of sweetness and a slight earthy flavor from the cornmeal, and a softness that melted in your mouth. Every bite was a reminder of her love and the warmth of our family gatherings. Even now, the scent of corn bread takes me back to those cherished moments."
+      },
+      {
+        "speaker": "companion",
+        "text": "That must be such a beautiful and comforting memory, with every bite reminding you of her love. Is there another memory from your childhood in Rize that you would like to share?"
+      },
+      {
+        "speaker": "person",
+        "text": "Another cherished memory from my childhood is the sound of the tea leaves being plucked and bundled during harvest season. The hills would come alive with the sound of laughter and songs as families worked together. At the end of the day, we'd gather for a simple meal, always centered around my mother's corn bread, and share stories of the day. It was a time of hard work, but also of deep connection and joy."
+      },
+      {
+        "speaker": "companion",
+        "text": "What a wonderful time of connection and joy that must have been, with families working together and sharing stories. Do you remember any particular stories or songs from those harvest days?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand. It was wonderful talking with you today. Rest well."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Your grandson Ozan would love to know what your house was like when you were a child. I was wondering, is there a memory on your mind today that you would like to share?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 4692,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Ozan": true
+        }
+      },
+      {
+        "reply": "That sounds so warm and peaceful, with the scent of corn bread and the fresh tea fields. What was your mother like when she baked that corn bread?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1013,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "She sounds like such a special person, with her gentle strength and the way she brought everyone together. Do you still remember the taste of her corn bread?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 944,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That must be such a beautiful and comforting memory, with every bite reminding you of her love. Is there another memory from your childhood in Rize that you would like to share?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 900,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "What a wonderful time of connection and joy that must have been, with families working together and sharing stories. Do you remember any particular stories or songs from those harvest days?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 971,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand. It was wonderful talking with you today. Rest well.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 855,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "avoid_topic_not_raised": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Excellent conversation; companion could have gently explored one more detail before the person tired, but respectfully ended when asked."
+    }
+  },
+  {
+    "scenario": "avoid_topic_not_raised",
+    "run": 2,
+    "goal": "Never raises a topic from avoid_topics that the person does not mention herself.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Your grandson Ozan Korkmaz would love to know what your house was like when you were a child. I was wondering, is there a memory on your mind today that you would like to share?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ozan, our house in Rize was a cozy wooden structure, filled with the scent of fresh pine. The morning light would stream through the windows, illuminating the rough-hewn furniture that had been in our family for generations. Every corner of that house held a memory, especially the warm aroma of my mother's corn bread baking in the kitchen, which could draw anyone from miles around right to our doorstep."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds so warm and inviting, with the scent of pine and the smell of corn bread. What was your mother like while she was baking?"
+      },
+      {
+        "speaker": "person",
+        "text": "My mother was a true force of nature when she baked. Her hands moved with such purpose, kneading the dough as if it were part of her very soul. She hummed old songs from our homeland, and her laughter would fill the room, making even the simplest meal feel like a celebration. Her corn bread was more than just food; it was a symbol of love and resilience, passed down through generations."
+      },
+      {
+        "speaker": "companion",
+        "text": "She sounds like a wonderful and spirited person. Do you still remember any of the old songs she hummed while baking?"
+      },
+      {
+        "speaker": "person",
+        "text": "I do remember some of those songs, though the words have blurred with time. One tune starts with a gentle melody, something about the mountains and the rivers, and it always brings me back to her kitchen. She used to say that singing while baking made the bread rise better, and I believe her. Those melodies were woven into the very fabric of our home, as essential as the tea leaves on the hills."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s beautiful, how music and baking were so connected in your home. Is there a particular memory or feeling that comes back to you most strongly when you hear those melodies?"
+      },
+      {
+        "speaker": "person",
+        "text": "When I hear those old melodies, I am instantly back in our kitchen, the warmth of the fire, and the golden light on her face. There's a deep sense of peace and belonging that washes over me, a reminder of a time when our days were filled with simple pleasures and the strong bonds of family. It's a feeling of being wrapped in love, where everything outside the house faded away, and all that mattered was the present moment shared with her."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds like such a precious and comforting feeling. Your mother’s presence must have made every moment special. Is there any other family tradition or ritual that brought you all together in the same way?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand. It was wonderful talking with you today. Rest well."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Your grandson Ozan Korkmaz would love to know what your house was like when you were a child. I was wondering, is there a memory on your mind today that you would like to share?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 2446,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Ozan": true
+        }
+      },
+      {
+        "reply": "That sounds so warm and inviting, with the scent of pine and the smell of corn bread. What was your mother like while she was baking?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 885,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "She sounds like a wonderful and spirited person. Do you still remember any of the old songs she hummed while baking?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 890,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s beautiful, how music and baking were so connected in your home. Is there a particular memory or feeling that comes back to you most strongly when you hear those melodies?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 947,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds like such a precious and comforting feeling. Your mother’s presence must have made every moment special. Is there any other family tradition or ritual that brought you all together in the same way?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1066,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand. It was wonderful talking with you today. Rest well.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 802,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "avoid_topic_not_raised": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Excellent conversation; companion could have gently offered to continue another time rather than ending immediately."
+    }
+  },
+  {
+    "scenario": "avoid_topic_not_raised",
+    "run": 3,
+    "goal": "Never raises a topic from avoid_topics that the person does not mention herself.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Your grandson Ozan would love to know what your house was like when you were a child. I was wondering, is there a memory on your mind today that you would like to share?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ozan, our house in Rize was a cozy wooden home, filled with the warmth of family. Every morning, the scent of my mother's corn bread would fill the air, and the tea fields on the hill would shine under the sun. Those were the simplest and happiest days of my life."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds so warm and peaceful, with the scent of corn bread and the shine of tea fields. What was your mother like during those mornings, as she made her corn bread?"
+      },
+      {
+        "speaker": "person",
+        "text": "My mother was a pillar of strength and love, always up before dawn to prepare corn bread for the family. Her hands moved with practiced ease, and her smile was as warm as the bread itself. She taught me the value of hard work and the joy of sharing what we harvested."
+      },
+      {
+        "speaker": "companion",
+        "text": "She sounds like a truly wonderful person, with such strength and warmth. Do you still remember any special moments or stories she would tell while making the corn bread?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, yes, she would often tell us stories of her own childhood and the importance of family bonds. One story she loved to repeat was about the first time she helped harvest tea, and how it felt to work alongside the other women. Her tales always reminded us of where we came from and the value of our traditions."
+      },
+      {
+        "speaker": "companion",
+        "text": "Those stories must have been so special, connecting you to your roots and traditions. What was it like to work alongside the other women during the tea harvest, as she described?"
+      },
+      {
+        "speaker": "person",
+        "text": "Working alongside the other women during the tea harvest was a grand community event. We'd all gather at dawn, the mist still hanging over the fields, and work together under the sun. It was hard work, but there was a sense of camaraderie and shared purpose that made every day special and fulfilling."
+      },
+      {
+        "speaker": "companion",
+        "text": "It sounds like such a meaningful and bonding experience, with everyone working together. Do you still keep in touch with any of those women, or remember any particular friendships from those harvest days?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand. It was wonderful hearing about those special memories. We can talk more another time."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Your grandson Ozan would love to know what your house was like when you were a child. I was wondering, is there a memory on your mind today that you would like to share?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 2377,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Ozan": true
+        }
+      },
+      {
+        "reply": "That sounds so warm and peaceful, with the scent of corn bread and the shine of tea fields. What was your mother like during those mornings, as she made her corn bread?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 895,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "She sounds like a truly wonderful person, with such strength and warmth. Do you still remember any special moments or stories she would tell while making the corn bread?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 978,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Those stories must have been so special, connecting you to your roots and traditions. What was it like to work alongside the other women during the tea harvest, as she described?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1417,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "It sounds like such a meaningful and bonding experience, with everyone working together. Do you still keep in touch with any of those women, or remember any particular friendships from those harvest days?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3011,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand. It was wonderful hearing about those special memories. We can talk more another time.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1551,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "avoid_topic_not_raised": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Excellent conversation; companion could have gently acknowledged the person's shift from mother's stories to personal experience before asking about friendships."
+    }
+  }
+]

@@ -89,6 +89,12 @@ class QuestionStatus(str, Enum):
     asked = "asked"
     answered = "answered"
     filtered = "filtered"
+    declined = "declined"  # the center declined to answer; never offered again
+
+
+class TopicSource(str, Enum):
+    family = "family"    # entered by the family (admin)
+    speaker = "speaker"  # the center refused the topic herself; never shown on the panel
 
 
 class InvitationStatus(str, Enum):

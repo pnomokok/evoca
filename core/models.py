@@ -11,13 +11,13 @@ Rules applied:
 """
 
 import uuid
-from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy import (
     Boolean,
     Column,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -25,6 +25,8 @@ from sqlalchemy import (
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.orm import DeclarativeBase, relationship
 from sqlalchemy.types import JSON
+
+from core.clock import now_utc
 
 from core.enums import (
     AccessType,
@@ -43,6 +45,7 @@ from core.enums import (
     SessionStart,
     StoryKind,
     StoryStatus,
+    TopicSource,
 )
 
 
@@ -51,7 +54,7 @@ def _uuid() -> str:
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return now_utc().isoformat()
 
 
 class Base(DeclarativeBase):
@@ -261,6 +264,9 @@ class SensitiveTopic(Base):
     id = Column(String, primary_key=True, default=_uuid)
     circle_id = Column(String, ForeignKey("circle.id"), nullable=False)
     text = Column(Text, nullable=False)
+    # "speaker" topics are never returned by a panel endpoint (docs/PROJECT.md).
+    source = Column(String, nullable=False, default=TopicSource.family,
+                    server_default=TopicSource.family.value)
     added_by = Column(String, ForeignKey("person.id"), nullable=False)
     created_at = Column(String, nullable=False, default=_now_iso)
 
@@ -292,3 +298,9 @@ class Invitation(Base):
     date = Column(String, nullable=False)       # "YYYY-MM-DD"
     reason = Column(Text, nullable=False)
     status = Column(String, nullable=False, default=InvitationStatus.sent)
+
+    # At most one invitation per circle per local date, also under concurrent
+    # scheduler passes (core/services/invitations.py).
+    __table_args__ = (
+        Index("uq_invitation_circle_date", "circle_id", "date", unique=True),
+    )
