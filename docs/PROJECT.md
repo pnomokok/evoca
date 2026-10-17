@@ -75,6 +75,7 @@ Her kavramın tek bir anlamı ve koddaki tek bir adı var. "Anlatmak" ile "merke
 | Erişim | `Story.access` | Hikâyeyi kimin görebileceği: `circle`, `selected`, `private`, `all_family`. |
 | Hassas konu | `SensitiveTopic` | Yöneticinin belirlediği (`source = family`) ya da büyüğün kendisinin reddettiği (`source = speaker`), büyüğe sorulmayacak konu. |
 | Tepki | `Reaction` | Aile üyesinin hikâyeye bıraktığı emoji. Büyüğe sözle iletilir. |
+| Fotoğraf | `StoryPhoto` | Aile üyesinin hikâyeye eklediği eski fotoğraf; hikâye başına bir tane. Ajanlar görmez. |
 | Buluşma modu | `Session.kind = gathering` | Aile bir aradayken telefonların mikrofon olduğu oturum. |
 
 ## Kullanıcı akışları
@@ -228,7 +229,6 @@ Bu kurallar kodda zorunlu kontrollerdir; demo veya zaman baskısı yüzünden at
 - Görsel, cilalı zaman çizelgesi ekranı
 - Buluşma öncesi kişiye özel soru kartları
 - Gelemeyenlere gerçek seslerden kısa özet
-- Hikâyelere fotoğraf ekleme
 - 10 saniyelik sesli tepki
 - Çocuk modu (sadece "çocuklara uygun" işaretli gerçek ses parçaları)
 
@@ -371,6 +371,11 @@ StorySubject:                                   # PK (story_id, person_id)
   story_id, person_id, period: LifePeriod,
   period_source: PeriodSource, corrected_by | None
 
+StoryPhoto:                                     # hikâye başına bir tane; yenisi eskisinin yerine geçer (dosya silinir)
+  id, story_id, path,                           # path = data/photos/<uuid>.jpg, kullanıcı adı asla
+  caption | None,                               # en fazla 120 karakter
+  uploaded_by, created_at
+
 StoryLink:
   id, from_story_id, to_story_id, reason: LinkReason,
   source: LinkSource, status: LinkStatus
@@ -400,6 +405,9 @@ Invitation:                                     # (circle_id, date) tekil: çemb
 **Hesaplanan görünümler** (saklanmaz)
 
 - `lifeline(person_id, viewer_id)` → dönem başına, `viewer_id`'nin görebildiği hikâyeler. Dönem: `period_source = family` varsa o, yoksa `ai`.
+  Her dönem `years: {from, to}` taşır: kişinin `birth_year`'ından sabit yaş aralıklarıyla hesaplanır (childhood 0-12, youth 13-22,
+  marriage_early_years 23-30, raising_children 31-45, midlife 46-60, retirement 61+). `to` açık uçta (retirement) ve bu yıldan
+  sonraysa `null`; `birth_year` bilinmiyorsa `years` `null`.
 - `gaps(person_id)` → `lifeline` içinde boş kalan dönemler (sadece merkez kişi için kullanılır).
 
 **Erişim kontrolü** (tek fonksiyon; her araç ve her REST ucu bunu kullanır)
@@ -476,6 +484,9 @@ Cevap iletimi (bildirim) `record_answer`'ın yan etkisidir; ajan doğrudan bildi
 | `PATCH /api/stories/{id}/subjects/{person_id}` | Aile paneli | Dönem düzeltme (`period_source = family`, `corrected_by` = izleyen); hikâyeyi gören herkes |
 | `PATCH /api/stories/{id}` | Anlatan, konu kişi, merkez, yönetici | Erişimi (`circle`/`private`) sadece anlatan değiştirir. Gizlemeyi anlatan, hikâyenin konusu olan kişi, merkez kişi veya yönetici yapar; gizleme kesindir, `hidden: false` herkes için reddedilir |
 | `DELETE /api/links/{id}` | Aile paneli | Yanlış bağlantıyı kaldırır (`status = removed`, satır silinmez); izleyen iki hikâyeyi de görebilmeli |
+| `POST /api/stories/{id}/photo` | Anlatan, konu kişi, yönetici | Multipart `image` (JPEG/PNG/WebP, en fazla 5 MB) + `caption?` (en fazla 120 karakter). Pillow ile en fazla 1600 px JPEG'e yeniden kodlanır, tüm üst veri (EXIF, GPS) silinir; `data/photos/<uuid>.jpg`. Hikâye başına bir fotoğraf: yenisi eskisinin yerine geçer, eski dosya silinir. Görülemeyen ya da gizlenmiş hikâye olmayanla aynı 404; gören ama yetkisi olmayan 403; yanlış tür, büyük ya da bozuk dosya 400 |
+| `DELETE /api/stories/{id}/photo` | Yükleyen, anlatan, yönetici | Fotoğrafı ve dosyasını siler |
+| `GET /api/photos/{photo_id}` | Hikâyeyi gören herkes | JPEG, `Cache-Control: private, no-store` (tarayıcı kopya saklamaz); görülemeyen ya da gizlenmiş hikâyenin fotoğrafı olmayanla aynı 404. Panel sesi gibi başlıkla `fetch` edip blob olarak gösterir. `photo_url` ve `photo_caption` hikâye sayfasında, akış hikâye ve cevap kartlarında ve hayat çizgisi öğelerinde döner (yoksa `null`) |
 | `GET`/`POST /api/admin/sensitive-topics`, `DELETE /api/admin/sensitive-topics/{id}` | Yönetici | Aile hassas konuları. Liste sadece `source = family` döner (`{id, text, added_by, created_at}`); `speaker` konuları listelenmez, sayılmaz, id'leri olmayan id ile aynı 404'ü alır. Ekleme `source = family`, `added_by` = izleyen; boş metin ya da eşleşecek anlamlı kelimesi olmayan metin 400 (`add_refused_topic` kuralı); aynı metin (büyük/küçük harf farksız) mevcut konuyu döner. Silme süzülmüş soruları yeniden değerlendirmez |
 | `PATCH /api/admin/circle` | Yönetici | `chat_time?` (`HH:MM`), `timezone?` (IANA adı); geçersiz değer 400. Davet zamanlayıcı bir sonraki turda kullanır; bugünün daveti zaten varsa bugün bir şey değişmez |
 | `POST /api/admin/members` | Yönetici | Henüz yok (Bilinen sınırlar). Tüm `/api/admin/*` uçları sadece çemberin `admin`'ine açık; merkez dahil herkes aynı 403'ü alır |
@@ -686,6 +697,8 @@ Kalan üç karar (ürün adı, LLM, konuşmadan metne servisi) 13 Ekim akşamın
 - Reddedilen konu sorulara sadece kelime eşleşmesiyle uygulanır: dolaylı bir bağlantı (Hatice'yi reddettikten sonra "Zehra nasıl biriydi?") yakalanmaz.
 - Yönetici bir aile konusunu silince o konunun daha önce süzdüğü sorular `filtered` kalır; yeniden değerlendirilmez, aile soruyu yeniden sormalıdır.
 - `POST /api/admin/members` yok: aile üyeleri sadece seed'den gelir; panelden üye eklenemez.
+- Fotoğrafı yükleyen kişi hikâyeyi artık göremiyorsa (anlatan hikâyeyi `private` yaptı) kendi fotoğrafını silemez: hikâyenin varlığını söylememek için aynı 404'ü alır. Fotoğrafı anlatan veya yönetici silebilir.
+- Fotoğraf yüklemesinde boyut sınırı `Content-Length` başlığına bakılarak gövde okunmadan uygulanır; başlıksız (chunked) bir gövde ancak okunduktan sonra 5 MB kontrolüne takılır. Gerçek kullanımda sınır ters vekil sunucuda da konmalıdır.
 
 ## Karar günlüğü
 
@@ -693,6 +706,7 @@ Yeni kararlar tablonun en üstüne eklenir. Bir karar geri alınırsa satır sil
 
 | Tarih | Karar | Gerekçe |
 | --- | --- | --- |
+| 17 Ekim | Hikâye fotoğrafları ("Zaman kalırsa"dan çekildi): `StoryPhoto` tablosu, hikâye başına bir fotoğraf (yenisi eskisini ve dosyasını siler). Yükleme anlatan, konu kişi veya yönetici; silme yükleyen, anlatan veya yönetici. Her yükleme Pillow ile yeni bir JPEG'e (en fazla 1600 px) kodlanır, EXIF/GPS dahil tüm üst veri silinir, dosya adı UUID'dir. Gizlenmiş hikâye kimseye fotoğraf göstermez (anlatana bile). Ajanlar fotoğraf görmez; seed'de fotoğraf yok, demo fotoğrafları API'den yüklenir. Hayat çizgisi dönemlerine `years: {from, to}` eklendi, sabit yaş aralıklarıyla (childhood 0-12, youth 13-22, marriage_early_years 23-30, raising_children 31-45, midlife 46-60, retirement 61+) | Panel tasarımı hikâye başına bir fotoğraf üstüne kurulu. Eski fotoğrafların EXIF'i konum ve cihaz bilgisi taşıyabilir; yeniden kodlamak her alanı tek tek silmekten güvenli. Yıllar paneldeki zaman çizelgesi için; sabit aralık, kişiye göre tahminden basit ve tutarlı |
 | 17 Ekim | Sesle baştan dinle satırını günceller: (1) `get_linked_playlist` modele sadece `story_id`, `title`, `teller` (ad), `period` döner, hikâye başına bir öğe; `session_id`/`start_ms`/`end_ms` modele gitmez. Cihaz kartının `url`'leri o turda sunucuda `playlist_ranges` (aynı `build_playlist`, aynı izleyici, aynı sıra ve sınır) ile yeniden kurulur. (2) Sohbet ajanı bir aile üyesinin isteğini ya da ilgisini sadece araçlarda o kişiden bir tepki ya da bekleyen soru varsa anar | (1) İki aralık arasındaki boşluk modele gizli bir parçanın kesildiğini söyler (gizlilik incelemesi). (2) Eval playlist_v1 2. koşu: soru yokken "kızınız Ayşe ... dinlemek ister" uyduruldu |
 | 17 Ekim | Sesle baştan dinle: `get_linked_playlist(story_id)` MCP aracı `core/services/stories.build_playlist`'i oturumun izleyicisi (merkez kişi) adına çağırır; `can_see` ve gizli parça kesme aynen uygulanır, en fazla 5 öğe döner (istenen hikâyenin parçaları önce tutulur, kalan yerleri bağlılar doldurur), görülemeyen hikâye olmayanla aynı hatayı alır. Cihaz turu cevabına o turda araç başarıyla çalıştıysa `{type: "playlist", items: [{story_id, title, teller, url}]}` kartı eklenir; `url` mevcut `/api/audio/{session_id}?start=&end=` ucudur. Cihaz önce cevap sesini, sonra öğeleri sırayla çalar (istemcinin işi). Ajan sadece istenince çalar ve hikâyeyi yeniden anlatmaz | Büyüğün "dinlet" isteği A5'in çekirdek parçası; aynı servis panelle aynı gizlilik kurallarını garanti eder, ses de zaten kontrollü uçtan çalar |
 | 17 Ekim | Yönetici uçları: `GET`/`POST /api/admin/sensitive-topics`, `DELETE /api/admin/sensitive-topics/{id}`, `PATCH /api/admin/circle` (`core/services/admin.py`). Hepsi sadece çemberin `admin`'ine açık; merkez ve üye aynı 403'ü alır. Sadece `source = family` konular listelenir, eklenir, silinir; `speaker` konusunun id'si olmayan id ile aynı 404'ü alır ve tekrar kontrolü sadece aile konularına bakar. Ekleme metni `add_refused_topic` kuralıyla doğrulanır. Silme süzülmüş soruları yeniden değerlendirmez. `chat_time`/`timezone` değişikliği zamanlayıcının bir sonraki turunda geçerli olur, o günün mevcut davetine dokunmaz. `POST /api/admin/members` bu adımda yok. `add_refused_topic` tekrar kontrolü artık sadece `speaker` konularına bakar: aynı metinli aile konusu olsa da büyüğün reddi ayrı satır olarak saklanır | Demo için yönetici ekranı gerekli. Büyüğün reddettiği konu yöneticiye de gösterilmez (17 Ekim kararı); tekrar kontrolü `speaker` konusunu da sayıp mevcut id'yi dönseydi, yönetici isim deneyerek büyüğün reddini çıkarabilirdi. Eşleşecek kelimesi olmayan konu hiçbir soruyu süzmez, kaydetmek tutamayacağı bir söz vermek olur. Yeniden değerlendirme, `asked` ya da cevaplanmış sorular için ayrı kurallar gerektirirdi. Silme ucu gelince, aile satırına yaslanan bir red o satırla birlikte silinirdi (gizlilik incelemesi) |

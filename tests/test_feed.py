@@ -121,6 +121,8 @@ def test_answer_appears_for_asker_after_publishing(w, monkeypatch, tmp_path):
             "start_ms": 0,
             "end_ms": 10_000,
             "audio_url": f"/api/audio/{w.sess.id}?start=0&end=10000",
+            "photo_url": None,
+            "photo_caption": None,
         },
     }
 

@@ -8,6 +8,10 @@
   "periods": [
     {
       "period": "childhood",
+      "years": {
+        "from": 1948,
+        "to": 1960
+      },
       "stories": [
         {
           "id": "story_mulberry",
@@ -21,28 +25,50 @@
           "period_source": "ai",
           "estimated": true,
           "status": "published",
-          "duration_ms": 45000
+          "duration_ms": 45000,
+          "photo_url": "/api/photos/photo_mulberry",
+          "photo_caption": "The garden in Akcaabat, summer 1956"
         }
       ]
     },
     {
       "period": "youth",
+      "years": {
+        "from": 1961,
+        "to": 1970
+      },
       "stories": []
     },
     {
       "period": "marriage_early_years",
+      "years": {
+        "from": 1971,
+        "to": 1978
+      },
       "stories": []
     },
     {
       "period": "raising_children",
+      "years": {
+        "from": 1979,
+        "to": 1993
+      },
       "stories": []
     },
     {
       "period": "midlife",
+      "years": {
+        "from": 1994,
+        "to": 2008
+      },
       "stories": []
     },
     {
       "period": "retirement",
+      "years": {
+        "from": 2009,
+        "to": null
+      },
       "stories": []
     }
   ],

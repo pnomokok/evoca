@@ -36,8 +36,20 @@ from core.models import (
     Circle, Membership, Person, Reaction, Segment, Story, StoryLink, StorySubject,
 )
 from core.services.feed import _teller
+from core.services.photo_view import photo_fields
 
 _PERIODS = [p.value for p in LifePeriod]
+
+# Fixed age ranges per life period, for the lifeline's years (None = open end).
+# docs/PROJECT.md "Hesaplanan görünümler".
+PERIOD_AGES: dict[str, tuple[int, int | None]] = {
+    LifePeriod.childhood.value: (0, 12),
+    LifePeriod.youth.value: (13, 22),
+    LifePeriod.marriage_early_years.value: (23, 30),
+    LifePeriod.raising_children.value: (31, 45),
+    LifePeriod.midlife.value: (46, 60),
+    LifePeriod.retirement.value: (61, None),
+}
 _EMOJIS = [e.value for e in Emoji]
 _SETTABLE_ACCESS = {AccessType.circle.value, AccessType.private.value}
 
@@ -261,12 +273,28 @@ def _may_hide(db: DbSession, viewer_id: str, story: Story) -> bool:
 # GET /api/lifeline/{person_id}
 # ---------------------------------------------------------------------------
 
+def period_years(birth_year: int | None, period: str) -> dict[str, int | None] | None:
+    """{from, to} calendar years of a period from birth_year and PERIOD_AGES.
+
+    to is None for the open end (retirement) and when it lies beyond the
+    current year; the whole value is None when birth_year is unknown.
+    """
+    if birth_year is None:
+        return None
+    age_from, age_to = PERIOD_AGES[period]
+    to = birth_year + age_to if age_to is not None else None
+    if to is not None and to > now_utc().year:
+        to = None
+    return {"from": birth_year + age_from, "to": to}
+
+
 def build_lifeline(db: DbSession, viewer_id: str, person_id: str) -> dict[str, Any]:
     """Stories about person_id that the viewer can_see(), grouped by period.
 
     Periods come in LifePeriod order, all of them, empty ones as empty lists;
     inside a period the oldest story comes first. The period is the subject's
-    own (a family correction replaces the AI estimate on the same row).
+    own (a family correction replaces the AI estimate on the same row). Each
+    period carries years ({from, to}, see period_years).
     """
     viewer_circles = [
         c for (c,) in db.query(Membership.circle_id).filter(Membership.person_id == viewer_id).all()
@@ -295,10 +323,15 @@ def build_lifeline(db: DbSession, viewer_id: str, person_id: str) -> dict[str, A
             "estimated": subject.period_source != PeriodSource.family,
             "status": story.status,
             "duration_ms": _duration_ms(_audio_ranges(db, story)),
+            **photo_fields(db, story),
         }))
 
     periods = [
-        {"period": p, "stories": [item for _, item in sorted(grouped[p], key=lambda t: t[0])]}
+        {
+            "period": p,
+            "years": period_years(person.birth_year, p),
+            "stories": [item for _, item in sorted(grouped[p], key=lambda t: t[0])],
+        }
         for p in _PERIODS
     ]
     return {
@@ -347,6 +380,7 @@ def build_story(db: DbSession, viewer_id: str, story_id: str) -> dict[str, Any]:
         "subjects": [_subject_item(db, s) for s in _subjects(db, story.id)],
         "place": story.place,
         "stated_year": story.stated_year,
+        **photo_fields(db, story),
         "access": _access(viewer_id, story),
         "can_hide": story.status != StoryStatus.hidden and _may_hide(db, viewer_id, story),
         "can_change_access": viewer_id == story.teller_id,

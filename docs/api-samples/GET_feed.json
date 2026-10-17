@@ -11,11 +11,17 @@
       "answer": {
         "story_id": "story_school",
         "story_title": "Walking to School in the Snow",
-        "teller": { "id": "person_fatma", "name": "Fatma Yilmaz", "relation_to_center": null },
+        "teller": {
+          "id": "person_fatma",
+          "name": "Fatma Yilmaz",
+          "relation_to_center": null
+        },
         "session_id": "session_demo2",
         "start_ms": 61000,
         "end_ms": 118500,
-        "audio_url": "/api/audio/session_demo2?start=61000&end=118500"
+        "audio_url": "/api/audio/session_demo2?start=61000&end=118500",
+        "photo_url": null,
+        "photo_caption": null
       }
     },
     {
@@ -25,9 +31,21 @@
         "id": "story_mulberry",
         "title": "The Mulberry Tree",
         "ai_summary": "Fatma recalls climbing the mulberry tree with her sister every summer as a child in their village garden.",
-        "teller": { "id": "person_fatma", "name": "Fatma Yilmaz", "relation_to_center": null },
-        "subjects": [ { "person_id": "person_fatma", "period": "childhood", "period_source": "ai" } ],
-        "duration_ms": 45000
+        "teller": {
+          "id": "person_fatma",
+          "name": "Fatma Yilmaz",
+          "relation_to_center": null
+        },
+        "subjects": [
+          {
+            "person_id": "person_fatma",
+            "period": "childhood",
+            "period_source": "ai"
+          }
+        ],
+        "duration_ms": 45000,
+        "photo_url": "/api/photos/photo_mulberry",
+        "photo_caption": "The garden in Akcaabat, summer 1956"
       }
     }
   ]
