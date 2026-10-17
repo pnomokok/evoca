@@ -17,6 +17,7 @@ from sqlalchemy import (
     Boolean,
     Column,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -297,3 +298,9 @@ class Invitation(Base):
     date = Column(String, nullable=False)       # "YYYY-MM-DD"
     reason = Column(Text, nullable=False)
     status = Column(String, nullable=False, default=InvitationStatus.sent)
+
+    # At most one invitation per circle per local date, also under concurrent
+    # scheduler passes (core/services/invitations.py).
+    __table_args__ = (
+        Index("uq_invitation_circle_date", "circle_id", "date", unique=True),
+    )

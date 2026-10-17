@@ -392,8 +392,8 @@ Reaction:                                       # PK (story_id, person_id, emoji
   story_id, person_id, emoji: Emoji,
   delivered_to_center: bool, created_at
 
-Invitation:
-  id, circle_id, person_id, date: "YYYY-MM-DD",
+Invitation:                                     # (circle_id, date) tekil: çember başına günde bir davet
+  id, circle_id, person_id, date: "YYYY-MM-DD",  # date çemberin saat dilimindeki yerel gün
   reason: str, status: InvitationStatus
 ```
 
@@ -483,7 +483,8 @@ Cevap iletimi (bildirim) `record_answer`'ın yan etkisidir; ajan doğrudan bildi
 
 **Arka plan işleri**
 
-- **Davet zamanlayıcı** (dakikada bir): sohbet saati geldiyse ve bugün oturum ya da davet yoksa `Invitation(status = sent)`.
+- **Davet zamanlayıcı** (dakikada bir, açılışta da; `core/services/invitations.py`, demo için `python -m server.run_invitations`): her `active` çemberde, çemberin saat dilimine göre sohbet saati geçtiyse ve o yerel gün için davet yoksa merkez kişiye tam bir `Invitation` açar. Merkez kişinin o yerel gün daha önce başlamış bir oturumu varsa ya da şu an canlı bir oturum varsa davet `skipped` olur (gün işlenmiş sayılır, ışık yanmaz); yoksa `sent`. Ailenin panel kayıtları sayılmaz. Günde birden fazla davet `(circle_id, date)` tekil indeksiyle eşzamanlı çalışmada da engellenir. Hatalar günlüğe yazılır, döngü durmaz.
+  Sebep kodda üretilir (sohbet ajanı kendi sözleriyle söyler), şu öncelikle: (1) merkez kişinin hikâyelerine iletilmemiş tepki: "<ad> reacted to your story", birden fazla kişiyse "Your family reacted to your stories"; (2) bekleyen aile sorusu: "<soranın adı> has a question for you"; (3) bekleyen takip/boşluk sorusu: "I have a question about one of your stories"; (4) yoksa "Would you like to chat today?". Sadece `get_pending_questions`'ın sunacağı sorular sayılır (`waiting`, hassas konuya takılmayan); `filtered`, `declined`, `asked` asla. Sebepte soru metni, hikâye başlığı ya da konu kelimesi olmaz, en fazla bir ön ad.
 - **Yayınlayıcı** (dakikada bir): `publish_at` geçen `pending` hikâyeleri `published` yapar ve bildirim üretir.
 - **Boşluk denetimi** (yayından sonra): `gaps()` boş dönem bulursa `add_question(source = gap)`.
 
@@ -678,6 +679,7 @@ Kalan üç karar (ürün adı, LLM, konuşmadan metne servisi) 13 Ekim akşamın
 - Gizlilik kontrolü bir LLM yargısıdır; dolaylı bir isteğe ("bu aile kitabına girmesin") yanlış "hayır" diyebilir ve otomatik işaret düşer (reddedilen konuların gizlenmemesi için bilerek yapılan takas).
 - Prompt'taki "konuyu reddetmek sır değildir" kuralı, ret ve gizlilik isteğini karıştıran turlarda modelin `keep_private`'ı atlamasına yol açabilir; tek yedek kontrolden geçen otomatik işarettir.
 - API testleri gizlilik kontrolünü hep "evet" olarak taklit eder; "hayır" yolu sadece ajan testlerinde denenir.
+- Davetin "sonra" ve "bugün değil" cevapları ayrı izlenmez: oturum başlayınca davet `accepted` olur ve öyle kalır; o gün yeni davet zaten açılmaz (günde bir). `postponed` ve `declined` durumları şimdilik kullanılmıyor. Davetler panelde hiçbir uçta görünmez, bu yüzden reddedilen davet aileye raporlanmaz.
 - Reddedilen konu sorulara sadece kelime eşleşmesiyle uygulanır: dolaylı bir bağlantı (Hatice'yi reddettikten sonra "Zehra nasıl biriydi?") yakalanmaz.
 
 ## Karar günlüğü
@@ -686,6 +688,7 @@ Yeni kararlar tablonun en üstüne eklenir. Bir karar geri alınırsa satır sil
 
 | Tarih | Karar | Gerekçe |
 | --- | --- | --- |
+| 17 Ekim | Davet zamanlayıcı: çember başına yerel günde tek davet (`(circle_id, date)` tekil indeksi; `init_db` eski veritabanına ekler, çakışan satır varsa eklemez ve silmez). Atlama kuralı: merkez kişinin o yerel gün daha önce başlamış ya da şu an canlı bir oturumu varsa davet `skipped` açılır (gün işlenir, ışık yanmaz). Sebep metinleri kodda, öncelik sırasıyla: "<ad> reacted to your story" / "Your family reacted to your stories", "<ad> has a question for you", "I have a question about one of your stories", "Would you like to chat today?". `get_session_context` bugünün `sent` ya da `accepted` davetini okur | Açılış turu, `session/start` daveti `accepted` yaptıktan sonra bağlamı okuyordu; sadece `sent` aranınca sebep ajana hiç ulaşmıyordu. Atlama kuralı "sohbet saatinden önce" yerine "o gün daha önce" diye yazıldı: sunucu sohbet saatinden sonra açılırsa, büyük çoktan konuşmuşken ışık yanmasın. Sebepte içerik olmaması, cihaz ekranında ya da sesli sebepte sorunun veya hassas bir konunun açığa çıkmaması için |
 | 17 Ekim | Büyüğün reddettiği konular için gizlilik incelemesi kararları: (1) `POST /api/questions` sadece `speaker` konusuna takılırsa soru `filtered` saklanır ama normal kabul cevabı (`waiting`) döner; aile konusuna takılırsa genel süzme mesajı kalır. (2) `add_refused_topic` sadece merkez kişinin kendi sözlerini sayar ("ya da oturum konuşmacısı" kaldırıldı). (3) `get_session_context` `avoid_topics`'i sadece izleyen merkez kişiyse doldurur, başkasına `[]` | (1) Aile konularını bilen biri, genel mesajla isimleri deneyerek büyüğün neyi reddettiğini çıkarabiliyordu; `declined` soru ilkesiyle aynı: merkez kişi dışındakilere cevaplanmamış görünür. (2) Buluşmada bir torunun reddi büyüğün konusu olmamalı. (3) Büyüğün retleri, merkez kişi dışında bir kimlikle açılan MCP bağlantısına gitmemeli |
 | 17 Ekim | Büyüğün kendiliğinden reddettiği konu hatırlanır: `SensitiveTopic`'e `source: family \| speaker` eklendi (varsayılan `family`; `init_db` sütunu mevcut veritabanına veri silmeden ekler). Arşivci açık bir konu reddinde `add_refused_topic(text, start_ms, end_ms)` çağırır; sıcaklık 0 kontrol konuşmacının o aralıktaki kendi sözlerinden "evet" demezse hiçbir şey eklenmez; aralık kuralları `mark_question_declined` ile aynıdır ve geçmeyen aralık kontrole gitmez. `add_question` ve `POST /api/questions` iki kaynağı da süzer, mesaj genel kalır. `get_session_context` tüm konuları kaynaksız `avoid_topics` olarak verir; sohbet ajanı bunları açmaz, büyük açarsa dinler ama soru sormaz. `speaker` konuları hiçbir panel ucunda, yönetici dahil, dönmez | Reddedilen konu oturumlar arası hatırlanmıyordu; arşivci onun hakkında takip sorusu üretebiliyordu ve sohbet ajanı aile konularını hiç bilmediği için kendisi açabiliyordu. Büyüğün reddini aileye göstermek, reddin kendisini paylaşmak olur (`declined` soru ilkesi) |
 | 17 Ekim | Panel kaydından (`panel_recording`) soru çıkmaz: arşivci bu oturumlarda takip/boşluk sorusu eklemez, cevap veya ret kaydetmez, `reopen_question` çalıştırmaz ve modele sorulan sorular hiç gösterilmez; sadece `get_session_transcript`, `save_story`, `link_stories` sunulur. Anlatan kod tarafından kaydeden kişiye sabitlenir; istenen erişim kayıttan hemen sonra ve arşivci bittikten sonra tekrar uygulanır | Sorular, cevaplar ve retler merkez kişinin kendi oturumları içindir; bir torunun kaydı büyüğün sorusunu cevaplayamaz ya da reddedemez. `reopen_question` canlı bir cihaz oturumunda sorulmuş soruyu yanlışlıkla beklemeye döndürürdü. `private` bir kayıt, bekleme süresinde merkez kişi ve yöneticiye görünmemeli |

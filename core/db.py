@@ -20,14 +20,18 @@ Usage:
         ...
 """
 
+import logging
 import os
 from pathlib import Path
 
 from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 
 from core.models import Base
+
+log = logging.getLogger(__name__)
 
 # Resolve DB path -----------------------------------------------------------
 _default_path = Path(__file__).parent.parent / "data" / "evoca.db"
@@ -103,10 +107,43 @@ def add_missing_columns(bind: Engine) -> list[str]:
     return added
 
 
+# Indexes added after the first release; create_all() makes them only with a new table.
+# (index name, CREATE statement)
+_ADDED_INDEXES: list[tuple[str, str]] = [
+    ("uq_invitation_circle_date",
+     "CREATE UNIQUE INDEX IF NOT EXISTS uq_invitation_circle_date ON invitation (circle_id, date)"),
+]
+
+
+def add_missing_indexes(bind: Engine) -> list[str]:
+    """Create every index of _ADDED_INDEXES that an older database lacks.
+
+    Idempotent and never deletes rows: if existing rows break a unique index
+    (e.g. two invitations on one day), the index is not created and a warning
+    is logged. Returns the names of the indexes created.
+    """
+    created: list[str] = []
+    insp = inspect(bind)
+    if "invitation" not in insp.get_table_names():
+        return created
+    existing = {ix["name"] for ix in insp.get_indexes("invitation")}
+    for name, ddl in _ADDED_INDEXES:
+        if name in existing:
+            continue
+        try:
+            with bind.begin() as conn:
+                conn.execute(text(ddl))
+            created.append(name)
+        except IntegrityError:
+            log.warning("Index %s not created: existing rows break it", name)
+    return created
+
+
 def init_db() -> None:
     """Create all tables declared in core.models if they do not yet exist, and
-    add columns that an older database file lacks."""
+    add columns and indexes that an older database file lacks."""
     if not _in_memory:
         _abs_path.parent.mkdir(parents=True, exist_ok=True)
     Base.metadata.create_all(bind=engine)
     add_missing_columns(engine)
+    add_missing_indexes(engine)
