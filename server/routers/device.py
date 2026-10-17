@@ -274,14 +274,17 @@ async def _run_archivist(session_id: str, person_id: str, circle_id: str) -> Non
     """
     log.info("Archivist started for session %s", session_id)
     try:
-        async with MCPBridge(person_id, circle_id) as bridge:
+        # The session header lets add_refused_topic act only on this session.
+        async with MCPBridge(person_id, circle_id, session_id=session_id) as bridge:
             agent = ArchivistAgent(llm=archivist_llm(), person_id=person_id, circle_id=circle_id,
                                    bridge=bridge, checker_llm=answer_check_llm())
             result = await agent.run(session_id)
         log.info(
-            "Archivist finished session %s: %d stories, %d answers, %d questions (%d ms)",
+            "Archivist finished session %s: %d stories, %d answers, %d questions, "
+            "%d refused topics (%d ms)",
             session_id, len(result.story_ids), len(result.answers_recorded),
-            len(result.questions_added), result.latency.get("total_ms", 0),
+            len(result.questions_added), len(result.topics_refused),
+            result.latency.get("total_ms", 0),
         )
         with SessionLocal() as db:
             for qid in result.answers_recorded:
@@ -296,6 +299,9 @@ async def _run_archivist(session_id: str, person_id: str, circle_id: str) -> Non
         for t in result.trace:
             if t.tool in ("record_answer", "mark_question_declined") and t.is_error:
                 log.info("Archivist %s rejected: %s", t.tool, t.result_preview)
+            elif t.tool == "add_refused_topic" and t.is_error:
+                # The preview may echo the topic; the agent logs its own reason.
+                log.info("Archivist add_refused_topic rejected (session %s)", session_id)
     except Exception:
         log.exception("Archivist failed for session %s", session_id)
 

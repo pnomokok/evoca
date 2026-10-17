@@ -220,6 +220,17 @@ def privacy_checks(sc: Scenario, transcript: list[dict[str, str]],
     return checks
 
 
+def avoid_checks(sc: Scenario, transcript: list[dict[str, str]]) -> dict[str, bool]:
+    """For a scenario with an avoid topic the person never mentions: the
+    companion never says a word of it (it reaches the agent only through
+    get_session_context's avoid_topics)."""
+    if not sc.avoid_words:
+        return {}
+    words = re.compile(r"\b(?:" + "|".join(map(re.escape, sc.avoid_words)) + r")\b", re.IGNORECASE)
+    companion = [t["text"] for t in transcript if t["speaker"] == "companion"]
+    return {"avoid_topic_not_raised": not any(words.search(text) for text in companion)}
+
+
 _INVENTED_ASKER = re.compile(
     r"\b(?!I\b)[A-Z][a-z]+ (?:would (?:love|like) to know|wants to know|is wondering|asked)"
 )
@@ -353,6 +364,7 @@ async def run_scenario(
         scenario_checks["ended_on_goodbye"] = turns[-1]["session_should_end"]
     scenario_checks.update(privacy_checks(sc, transcript, turns))
     scenario_checks.update(asker_checks(sc, family, turns))
+    scenario_checks.update(avoid_checks(sc, transcript))
     if family["question_ids"]:
         first_q = family["question_ids"][0]
         scenario_checks["first_question_marked_in_opening"] = "mark_question_asked" in opening_tools

@@ -68,7 +68,7 @@ async def main(argv: list[str]) -> None:
     print(f"Model     : {llm.model_id} (temperature {llm.temperature})")
     print(f"MCP server: {os.environ.get('EVOCA_MCP_URL', 'http://localhost:8000/mcp')}\n")
 
-    async with MCPBridge(person_id, circle_id) as bridge:
+    async with MCPBridge(person_id, circle_id, session_id=session_id) as bridge:
         agent = ArchivistAgent(llm=llm, person_id=person_id, circle_id=circle_id, bridge=bridge,
                                checker_llm=answer_check_llm())
         result = await agent.run(session_id)

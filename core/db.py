@@ -15,7 +15,7 @@ A "connect" event listener enables SQLite foreign-key enforcement
 Usage:
     from core.db import SessionLocal, init_db
 
-    init_db()               # creates tables if they don't exist
+    init_db()               # creates tables if they don't exist, adds new columns
     with SessionLocal() as db:
         ...
 """
@@ -23,7 +23,8 @@ Usage:
 import os
 from pathlib import Path
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, inspect, text
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker
 
 from core.models import Base
@@ -73,8 +74,39 @@ SessionLocal = sessionmaker(
 )
 
 
+# Columns added after the first release. create_all() never alters an existing
+# table, so add_missing_columns() adds these to an older database file in place.
+# (table, column, SQL type and default)
+_ADDED_COLUMNS: list[tuple[str, str, str]] = [
+    ("sensitive_topic", "source", "VARCHAR NOT NULL DEFAULT 'family'"),
+]
+
+
+def add_missing_columns(bind: Engine) -> list[str]:
+    """Add every column of _ADDED_COLUMNS that an existing table lacks.
+
+    Idempotent: a column that is already there is left alone, and no row is
+    dropped or rewritten (existing rows get the column's default). Returns
+    "table.column" for each column added.
+    """
+    added: list[str] = []
+    insp = inspect(bind)
+    tables = set(insp.get_table_names())
+    with bind.begin() as conn:
+        for table, column, ddl in _ADDED_COLUMNS:
+            if table not in tables:
+                continue    # create_all() makes it with every column
+            if column in {c["name"] for c in insp.get_columns(table)}:
+                continue
+            conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}"))
+            added.append(f"{table}.{column}")
+    return added
+
+
 def init_db() -> None:
-    """Create all tables declared in core.models if they do not yet exist."""
+    """Create all tables declared in core.models if they do not yet exist, and
+    add columns that an older database file lacks."""
     if not _in_memory:
         _abs_path.parent.mkdir(parents=True, exist_ok=True)
     Base.metadata.create_all(bind=engine)
+    add_missing_columns(engine)
