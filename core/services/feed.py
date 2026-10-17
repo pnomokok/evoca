@@ -13,8 +13,9 @@ Two kinds of items, newest first:
                      unanswered one (docs/PROJECT.md "Hassas konular").
                      audio_url is null when the answer's session has no audio
                      file (e.g. a text-only session), instead of a URL that 404s.
+                     photo_url / photo_caption are the answer story's photo.
   story_published    A published story in the viewer's circle that the viewer
-                     can_see().
+                     can_see(), with its photo_url / photo_caption (or nulls).
 
 Everything is filtered by can_see() before it leaves this function.
 """
@@ -31,6 +32,7 @@ from core.access import can_see
 from core.enums import QuestionStatus, StoryStatus
 from core.models import Membership, Person, Question, Story, StorySubject
 from core.models import Session as OrmSession
+from core.services.photo_view import photo_fields
 
 FEED_LIMIT = 50
 
@@ -72,6 +74,7 @@ def _answer_card(db: DbSession, q: Question, story: Story) -> dict[str, Any]:
             "start_ms": ans["start_ms"],
             "end_ms": ans["end_ms"],
             "audio_url": _audio_url(db, ans),
+            **photo_fields(db, story),
         },
     }
 
@@ -93,6 +96,7 @@ def _story_card(db: DbSession, story: Story) -> dict[str, Any]:
             "duration_ms": sum(
                 max(0, src.get("end_ms", 0) - src.get("start_ms", 0)) for src in story.sources or []
             ),
+            **photo_fields(db, story),
         },
     }
 

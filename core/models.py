@@ -220,6 +220,21 @@ class StorySubject(Base):
 
 
 # ---------------------------------------------------------------------------
+# StoryPhoto  — one per story for now (a new upload replaces the old one)
+# ---------------------------------------------------------------------------
+
+class StoryPhoto(Base):
+    __tablename__ = "story_photo"
+
+    id = Column(String, primary_key=True, default=_uuid)
+    story_id = Column(String, ForeignKey("story.id"), nullable=False, index=True)
+    path = Column(String, nullable=False)          # data/photos/<uuid>.jpg, never a client name
+    caption = Column(String, nullable=True)        # at most 120 characters
+    uploaded_by = Column(String, ForeignKey("person.id"), nullable=False)
+    created_at = Column(String, nullable=False, default=_now_iso)
+
+
+# ---------------------------------------------------------------------------
 # StoryLink
 # ---------------------------------------------------------------------------
 

@@ -23,6 +23,8 @@
   ],
   "place": "Village of Akcaabat",
   "stated_year": null,
+  "photo_url": "/api/photos/photo_mulberry",
+  "photo_caption": "The garden in Akcaabat, summer 1956",
   "access": {
     "type": "circle",
     "person_ids": []
