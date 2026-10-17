@@ -1,0 +1,289 @@
+"""
+Tests for the demo controls (server/routers/demo.py, core/services/demo.py, core/clock.py).
+
+Each test runs on the real seed in a temp-file database with the working
+directory in tmp_path (so the seed's audio and the deleted files stay there).
+
+Coverage:
+  without EVOCA_DEMO_MODE=1 every endpoint is a 404 and the clock has no offset
+  advance        moves now_utc(), also in another process reading the same
+                 database (like the MCP server); publishes the pending seed
+                 story after 24 h and creates the next day's invitation;
+                 hours outside 1-72 are a 400
+  clock          {now, offset_hours}
+  reset          restores the seed, clears the offset, ends live sessions,
+                 deletes the files of non-seed sessions and photos, keeps the
+                 seed audio; refuses every database but data/demo.db
+"""
+
+from __future__ import annotations
+
+import os
+import subprocess
+import sys
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+import pytest
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy import create_engine, event
+from sqlalchemy.orm import sessionmaker
+
+import core.db as cdb
+import core.seed as seed
+from core import clock
+from core.enums import InvitationStatus, SessionKind, SessionStart, StoryStatus
+from core.models import Base, DemoClock, Invitation, Person, Session as OrmSession, Story, StoryPhoto
+from core.services import demo as demo_svc
+from server.session_store import SessionStore
+
+REPO = Path(__file__).resolve().parent.parent
+BASE_NOW = "2026-10-20T05:00:00+00:00"      # 08:00 in Istanbul, before the 10:00 chat time
+
+
+def _fk(dbapi_conn, _):
+    cur = dbapi_conn.cursor()
+    cur.execute("PRAGMA foreign_keys=ON")
+    cur.close()
+
+
+@pytest.fixture
+def demo(tmp_path, monkeypatch):
+    """The seed in tmp_path/demo.db, demo mode on, the app wired to it."""
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("EVOCA_DEMO_MODE", "1")
+    monkeypatch.setenv("DEMO_NOW", BASE_NOW)
+    monkeypatch.setattr(clock, "OFFSET_CACHE_S", 0.0)   # always read the database; no wait
+    clock.clear_offset_cache()
+
+    db_path = tmp_path / "demo.db"
+    eng = create_engine(f"sqlite:///{db_path}", connect_args={"check_same_thread": False})
+    event.listen(eng, "connect", _fk)
+    Session = sessionmaker(bind=eng, autocommit=False, autoflush=False, expire_on_commit=False)
+    monkeypatch.setattr(cdb, "engine", eng)
+    monkeypatch.setattr(cdb, "SessionLocal", Session)
+    monkeypatch.setattr(cdb, "_abs_path", db_path)
+    monkeypatch.setattr(cdb, "_in_memory", False)
+    monkeypatch.setattr(demo_svc, "DEMO_DB", db_path)      # stands in for data/demo.db
+    monkeypatch.setattr(seed, "engine", eng)
+    monkeypatch.setattr(seed, "SessionLocal", Session)
+    import server.routers.demo as demo_r
+    import server.routers.device as dev_r
+    import server.routers.panel as pan_r
+    for mod in (demo_r, pan_r):
+        monkeypatch.setattr(mod, "SessionLocal", Session)
+
+    seed.reset_and_seed(force=True)
+
+    from server.app import app
+    store = SessionStore()
+    app.dependency_overrides[dev_r._get_store] = lambda: store
+    yield app, Session, store, db_path
+    app.dependency_overrides.clear()
+    clock.clear_offset_cache()
+    eng.dispose()
+
+
+def _client(app):
+    return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
+
+
+def _base() -> datetime:
+    return datetime.fromisoformat(BASE_NOW)
+
+
+# ---------------------------------------------------------------------------
+# Demo mode off
+# ---------------------------------------------------------------------------
+
+@pytest.mark.anyio
+async def test_endpoints_are_404_without_demo_mode(demo, monkeypatch):
+    app, Session, *_ = demo
+    monkeypatch.delenv("EVOCA_DEMO_MODE")
+    async with _client(app) as c:
+        assert (await c.get("/api/demo/clock")).status_code == 404
+        assert (await c.post("/api/demo/advance", json={"hours": 24})).status_code == 404
+        assert (await c.post("/api/demo/reset")).status_code == 404
+    with Session() as db:
+        assert db.get(DemoClock, 1) is None
+        assert db.query(Person).count() == 4
+
+
+def test_a_failed_offset_read_is_not_cached(demo, monkeypatch):
+    # With a 2 s cache, a failed first read must not stick as offset 0.
+    _, Session, *_ = demo
+    monkeypatch.setattr(clock, "OFFSET_CACHE_S", 60.0)
+    with Session() as db:
+        db.add(DemoClock(id=1, offset_seconds=24 * 3600))
+        db.commit()
+    clock.set_cached_offset(0)
+    clock.clear_offset_cache()
+
+    def broken():
+        raise RuntimeError("database is locked")
+    monkeypatch.setattr(cdb, "SessionLocal", broken)
+    assert clock.now_utc() == _base()                    # last value, not cached
+    monkeypatch.setattr(cdb, "SessionLocal", Session)
+    assert clock.now_utc() == _base() + timedelta(hours=24)
+
+
+def test_no_offset_without_demo_mode(demo, monkeypatch):
+    _, Session, *_ = demo
+    with Session() as db:
+        db.add(DemoClock(id=1, offset_seconds=48 * 3600))
+        db.commit()
+    assert clock.now_utc() == _base() + timedelta(hours=48)
+    monkeypatch.delenv("EVOCA_DEMO_MODE")
+    assert clock.now_utc() == _base()
+
+
+# ---------------------------------------------------------------------------
+# Advance and clock
+# ---------------------------------------------------------------------------
+
+@pytest.mark.anyio
+async def test_advance_publishes_and_invites_and_moves_the_clock(demo):
+    app, Session, _, db_path = demo
+    with Session() as db:
+        pending = db.query(Story).filter(Story.status == StoryStatus.pending).one()  # publish_at = +23 h
+
+    async with _client(app) as c:
+        body = (await c.post("/api/demo/advance", json={"hours": 24})).json()
+        clock_body = (await c.get("/api/demo/clock")).json()
+    expected = _base() + timedelta(hours=24)
+    assert datetime.fromisoformat(body["now"]) == expected
+    assert body == clock_body == {"now": expected.isoformat(), "offset_hours": 24.0}
+
+    with Session() as db:
+        assert db.get(Story, pending.id).status == StoryStatus.published
+        # 2026-10-21 08:00 in Istanbul is before the chat time: no invitation yet.
+        assert db.query(Invitation).filter(Invitation.date == "2026-10-21").count() == 0
+
+    async with _client(app) as c:
+        body = (await c.post("/api/demo/advance", json={"hours": 3})).json()   # 11:00 in Istanbul
+    assert body["offset_hours"] == 27.0
+    with Session() as db:
+        inv = db.query(Invitation).filter(Invitation.date == "2026-10-21").one()
+        assert inv.status == InvitationStatus.sent
+
+    # Another process on the same database (like the MCP server) sees the new time.
+    env = {**os.environ, "EVOCA_DB_PATH": str(db_path), "EVOCA_DEMO_MODE": "1", "DEMO_NOW": BASE_NOW,
+           "PYTHONPATH": str(REPO)}
+    out = subprocess.run(
+        [sys.executable, "-c", "from core.clock import now_utc; print(now_utc().isoformat())"],
+        env=env, cwd=REPO, capture_output=True, text=True, timeout=60,
+    )
+    assert out.returncode == 0, out.stderr
+    assert datetime.fromisoformat(out.stdout.strip()) == _base() + timedelta(hours=27)
+
+
+@pytest.mark.anyio
+async def test_advance_offset_is_read_from_the_database(demo):
+    # A process that did not make the advance itself (fresh cache) gets the offset.
+    app, Session, *_ = demo
+    async with _client(app) as c:
+        await c.post("/api/demo/advance", json={"hours": 5})
+    clock.set_cached_offset(0)
+    clock.clear_offset_cache()
+    assert clock.now_utc() == _base() + timedelta(hours=5)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("hours", [0, 0.5, 73, -1])
+async def test_advance_rejects_hours_out_of_range(demo, hours):
+    app, Session, *_ = demo
+    async with _client(app) as c:
+        r = await c.post("/api/demo/advance", json={"hours": hours})
+    assert r.status_code == 400
+    assert clock.now_utc() == _base()
+
+
+# ---------------------------------------------------------------------------
+# Reset
+# ---------------------------------------------------------------------------
+
+class _Live:
+    def __init__(self, session_id):
+        self.session_id = session_id
+        self.closed = False
+        self.db = self
+
+    def close(self):
+        self.closed = True
+
+
+@pytest.mark.anyio
+async def test_reset_restores_the_seed_and_deletes_recorded_files(demo, tmp_path):
+    app, Session, store, _ = demo
+    seed_audio = Path("data") / "audio" / f"{seed.SEED_SESSION_ID}.wav"
+    assert seed_audio.exists()
+
+    # A recorded session with audio, a TTS reply and a photo on a seed story.
+    with Session() as db:
+        fatma = db.query(Person).filter(Person.name == "Fatma Yilmaz").one()
+        circle_id = db.get(OrmSession, seed.SEED_SESSION_ID).circle_id
+        sess = OrmSession(circle_id=circle_id, kind=SessionKind.solo, started_by=SessionStart.spontaneous,
+                          participant_ids=[fatma.id], audio_path="data/audio/recorded.wav",
+                          started_at=BASE_NOW, ended_at=BASE_NOW)
+        db.add(sess); db.flush()
+        story = db.query(Story).first()
+        Path("data/photos").mkdir(parents=True, exist_ok=True)
+        db.add(StoryPhoto(story_id=story.id, path="data/photos/p1.jpg", uploaded_by=fatma.id))
+        # Paths outside data/audio, data/tts and data/photos are never deleted.
+        db.add(OrmSession(circle_id=circle_id, kind=SessionKind.solo, started_by=SessionStart.spontaneous,
+                          participant_ids=[fatma.id], audio_path="data/audio/../keep.db",
+                          started_at=BASE_NOW, ended_at=BASE_NOW))
+        db.add(StoryPhoto(story_id=story.id, path=str(tmp_path / "keep.txt"), uploaded_by=fatma.id))
+        db.commit()
+        files = [Path("data/audio/recorded.wav"), Path(f"data/tts/{sess.id}_1.mp3"), Path("data/photos/p1.jpg")]
+    Path("data/tts").mkdir(parents=True, exist_ok=True)
+    for f in files:
+        f.write_bytes(b"x")
+    outside = tmp_path / "keep.txt"
+    outside.write_bytes(b"x")
+    outside_db = Path("data/keep.db")
+    outside_db.write_bytes(b"x")
+    live = _Live(sess.id)
+    store.put(live)
+
+    async with _client(app) as c:
+        await c.post("/api/demo/advance", json={"hours": 30})
+        r = await c.post("/api/demo/reset")
+        clock_body = (await c.get("/api/demo/clock")).json()
+    assert r.status_code == 200, r.text
+    names = sorted(p["name"] for p in r.json())
+    assert names == ["Ayşe Yilmaz", "Can Yilmaz", "Elif Yilmaz", "Fatma Yilmaz"]
+    assert clock_body["offset_hours"] == 0
+    assert datetime.fromisoformat(clock_body["now"]) == _base()
+
+    assert len(store) == 0 and live.closed
+    assert not any(f.exists() for f in files)
+    assert seed_audio.exists() and outside.exists() and outside_db.exists()
+    with Session() as db:
+        assert [s.id for s in db.query(OrmSession).all()] == [seed.SEED_SESSION_ID]
+        assert db.query(StoryPhoto).count() == 0
+        assert db.query(Story).filter(Story.status == StoryStatus.pending).count() == 1
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("other", ["evoca.db", "browser.db", "demo_copy.db"])
+async def test_reset_refuses_any_database_but_demo_db(demo, monkeypatch, other):
+    app, Session, store, _ = demo
+    monkeypatch.setattr(cdb, "_abs_path", REPO / "data" / other)
+    live = _Live("s1")
+    store.put(live)
+    with Session() as db:
+        people_before = db.query(Person).count()
+        db.add(DemoClock(id=1, offset_seconds=3600))
+        db.commit()
+
+    async with _client(app) as c:
+        r = await c.post("/api/demo/reset")
+    assert r.status_code == 400
+    assert other in r.json()["detail"] and "data/demo.db" in r.json()["detail"]
+    assert len(store) == 1 and not live.closed
+    with Session() as db:
+        assert db.query(Person).count() == people_before
+        assert db.get(DemoClock, 1).offset_seconds == 3600
+    with pytest.raises(demo_svc.ResetRefused):
+        demo_svc.reset()

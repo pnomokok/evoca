@@ -146,6 +146,7 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 
 from server.routers import admin as admin_router
+from server.routers import demo as demo_router
 from server.routers import device as device_router
 from server.routers import audio as audio_router
 from server.routers import panel as panel_router
@@ -158,6 +159,7 @@ app.include_router(panel_router.router)
 app.include_router(recordings_router.router)
 app.include_router(admin_router.router)
 app.include_router(photos_router.router)
+app.include_router(demo_router.router)
 app.middleware("http")(photos_router.limit_photo_upload)
 
 # Override the placeholder dependency functions in the device router with
