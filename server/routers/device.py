@@ -158,15 +158,22 @@ def _playlist_card(viewer_id: str, session_id: str, story_id: str) -> dict | Non
 def _build_cards(trace, live: LiveSession) -> list[dict]:
     """Reaction cards from get_session_context; a question card only for a
     question the agent actually marked as asked in this turn; a playlist card
-    only when get_linked_playlist ran in this turn (its last successful call)."""
+    only when get_linked_playlist ran in this turn (its last successful call).
+    A reaction appears once even if the model calls get_session_context again
+    after the prefetch."""
     seen_questions = live.seen_questions
     cards: list[dict] = []
+    seen_reactions: set[tuple] = set()
     playlist_story: str | None = None
     for t in trace:
         if t.is_error or t.result is None:
             continue
         if t.tool == "get_session_context":
             for r in t.result.get("undelivered_reactions", []):
+                key = (r.get("story_id"), r.get("person_id"), r.get("emoji"))
+                if key in seen_reactions:
+                    continue
+                seen_reactions.add(key)
                 cards.append({
                     "type": "reaction",
                     "story_id": r.get("story_id"),
@@ -203,7 +210,7 @@ def _build_cards(trace, live: LiveSession) -> list[dict]:
 def _trace_json(trace) -> list[dict[str, Any]]:
     return [
         {"tool": t.tool, "input": t.input, "result_preview": t.result_preview,
-         "ms": t.ms, "is_error": t.is_error}
+         "ms": t.ms, "is_error": t.is_error, "prefetched": t.prefetched}
         for t in trace
     ]
 
@@ -390,7 +397,7 @@ async def session_start(
     async with live.lock:
         try:
             async with _connected(live) as connect_ms:
-                result = await agent.turn("(Session started.)", store_user=False)
+                result = await agent.turn("(Session started.)", store_user=False, prefetch_context=True)
             _remember_questions(live, result.trace)
             live.last_question = _question_in(result.reply_text)
             audio_url, tts_ms = await _speak(live, tts, result.reply_text, record=True)

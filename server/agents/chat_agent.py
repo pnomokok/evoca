@@ -101,6 +101,14 @@ CHAT_TOOLS = frozenset({
 # MCP tools called by this agent's own code, never offered to the model.
 CODE_TOOLS = frozenset({"mark_private", "mark_reactions_delivered"})
 
+# The opening's first two calls (steps 1 and 2 of the prompt), made by the code
+# before the first LLM call when turn(prefetch_context=True). Same arguments as
+# the model's own calls; they stay in CHAT_TOOLS for later turns.
+PREFETCH_TOOLS: tuple[tuple[str, dict[str, Any]], ...] = (
+    ("get_session_context", {}),
+    ("get_pending_questions", {}),
+)
+
 END_CONVERSATION = "end_conversation"
 KEEP_PRIVATE = "keep_private"
 # Tools handled inside ChatAgent itself, offered next to the MCP tools.
@@ -480,6 +488,7 @@ class ToolTrace:
     result_preview: str      # first 300 chars of the serialised result (for API responses)
     ms: int
     is_error: bool
+    prefetched: bool = False  # called by the code before the opening's first LLM call
 
 
 @dataclass
@@ -829,6 +838,44 @@ class ChatAgent:
             ms=int((time.monotonic() - t0) * 1000), is_error=is_error,
         ))
 
+    async def _prefetch_opening(self, trace: list[ToolTrace]) -> int:
+        """Call the opening's first two tools in code, before the first LLM call.
+
+        The results go into the history as the model's own toolUse and the
+        toolResult it would have received, so the model sees exactly what it
+        saw before, one LLM round sooner. Same bridge, same identity headers,
+        same filtering. If either call fails nothing is added and the model
+        calls the tools itself, as before. Returns the tools' time in ms.
+        """
+        calls: list[tuple[str, dict[str, Any], Any, int]] = []
+        t_start = time.monotonic()
+        try:
+            for name, args in PREFETCH_TOOLS:
+                t0 = time.monotonic()
+                result = await self._bridge.call_tool(name, dict(args))
+                calls.append((name, dict(args), result, int((time.monotonic() - t0) * 1000)))
+        except Exception as exc:
+            log.warning("Opening prefetch failed; the model calls the tools (session %s): %s",
+                        self._orm_session_id, exc)
+            return int((time.monotonic() - t_start) * 1000)
+
+        tool_uses, tool_results = [], []
+        for name, args, result, ms in calls:
+            tool_use_id = f"prefetch_{name}"
+            tool_uses.append({"toolUse": {"toolUseId": tool_use_id, "name": name, "input": args}})
+            tool_results.append({"toolResult": {"toolUseId": tool_use_id, "content": [{"json": result}]}})
+            if name == "get_session_context":
+                self._remember_reactions(result)
+            self._remember_names(name, result)
+            trace.append(ToolTrace(
+                tool=name, input=args, result=result,
+                result_preview=json.dumps(result)[:300] if result is not None else "",
+                ms=ms, is_error=False, prefetched=True,
+            ))
+        self._history.append({"role": "assistant", "content": tool_uses})
+        self._history.append({"role": "user", "content": tool_results})
+        return sum(ms for *_, ms in calls)
+
     def end(self) -> None:
         """Mark the session finished."""
         if self._orm_session_id:
@@ -846,8 +893,13 @@ class ChatAgent:
         user_start_ms: int | None = None,
         user_end_ms: int | None = None,
         user_words: list[dict] | None = None,
+        prefetch_context: bool = False,
     ) -> TurnResult:
         """Process one user utterance and return reply + diagnostics.
+
+        prefetch_context (the opening turn only): the code calls
+        get_session_context and get_pending_questions before the first LLM
+        call (_prefetch_opening), which saves the model one tool round.
 
         Optional real-span arguments (set by the FastAPI backend after STT):
           user_start_ms / user_end_ms   – the user's audio position in the
@@ -881,6 +933,8 @@ class ChatAgent:
         llm_ms_total = 0
         tools_ms_total = 0
         trace: list[ToolTrace] = []
+        if prefetch_context:
+            tools_ms_total += await self._prefetch_opening(trace)
 
         reply_text = ""
         reply_block: dict[str, Any] | None = None   # history block holding the reply

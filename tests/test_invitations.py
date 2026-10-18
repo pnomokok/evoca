@@ -322,7 +322,7 @@ async def test_opening_context_has_the_accepted_invitations_reason(test_app):
     inv = db.query(Invitation).one()
     inv.date = now_utc().astimezone(ZoneInfo(circle.timezone)).strftime("%Y-%m-%d")
     db.commit()
-    _set_llm_script(test_app, [[_tool_use_context()], "Hello, Fatma! Elif has a question."])
+    _set_llm_script(test_app, ["Hello, Fatma! Elif has a question."])   # the context is prefetched
     async with _client(app) as c:
         r = await c.post("/api/device/session/start", headers={"x-person-id": fatma.id})
     assert r.status_code == 200
@@ -332,14 +332,10 @@ async def test_opening_context_has_the_accepted_invitations_reason(test_app):
     contexts = [
         block["toolResult"]["content"][0]["json"]
         for msg in llm.calls[-1]["messages"] if msg["role"] == "user"
-        for block in msg["content"] if "toolResult" in block
+        for block in msg["content"]
+        if "toolResult" in block and block["toolResult"]["toolUseId"] == "prefetch_get_session_context"
     ]
     assert [c["invitation_reason"] for c in contexts] == ["Elif has a question."]
-
-
-def _tool_use_context():
-    from tests.test_chat_agent import _tool_use
-    return _tool_use("get_session_context", {})
 
 
 # ---------------------------------------------------------------------------
