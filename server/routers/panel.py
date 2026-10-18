@@ -22,7 +22,7 @@ A story the viewer cannot see gets the same 404 as a missing one.
 Circle: an optional X-Circle-Id header picks one of the viewer's circles; it
 must be one of their memberships (else the same 403 as no membership).
 Without it, the viewer's first membership is used. There is no authentication
-in the preview (docs/PROJECT.md "Bilinen sınırlar").
+in the preview (docs/ARCHITECTURE.md "Known limits").
 """
 
 from __future__ import annotations
@@ -75,7 +75,7 @@ async def get_people(circle_id: Annotated[str, Query()] = ""):
     """One circle's people (id, name, role, relation_to_center, birth_year)
     for the password-less person picker.
 
-    No header and no access check, by design (PROJECT.md "Bilinen sınırlar"):
+    No header and no access check, by design (ARCHITECTURE.md "Known limits"):
     the circle id acts as an unlisted link. Never returns story data or anyone
     outside that circle.
     """
@@ -211,7 +211,7 @@ async def post_question(
     Matches POST_questions_accepted.json and POST_questions_filtered.json.
     A filtered question returns HTTP 200 (not an error); the message never
     reveals which sensitive topic matched. Like every filtered question, it is
-    kept with status "filtered" (docs/PROJECT.md "Hassas konular"). If only a
+    kept with status "filtered" (docs/ARCHITECTURE.md "Design principles and rules"). If only a
     topic the center refused herself (source "speaker") matches, the response
     is the normal accepted one with status "waiting": a filtered message would
     tell the asker that the center refused something (like a declined question,

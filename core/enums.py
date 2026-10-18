@@ -1,5 +1,5 @@
 """
-Enumerations — exact values from docs/PROJECT.md "Veri modeli > Enumlar".
+Enumerations — exact values from docs/ARCHITECTURE.md "Data model".
 Do not rename or add values without updating the doc first.
 """
 

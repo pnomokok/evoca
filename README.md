@@ -136,7 +136,7 @@ Families tell secrets. Evoca treats every privacy promise as something the code 
 
 | What | Result |
 |---|---|
-| Unit and API tests | 598 passed, 1 skipped (`pytest`) |
+| Unit and API tests | 612 passed, 1 skipped (`pytest`) |
 | End-to-end demo on real AWS (`scripts/e2e_demo.py`) | 9/9 steps passed in 82 s: seed, admin settings, invitation, device session with a secret and a playlist, archivist, 24-hour publish, reaction, a family recording, next-day opening |
 | Agent evals | 13 chat scenarios and 2 archivist scenarios, table below |
 
@@ -149,24 +149,26 @@ judge: Claude Haiku 4.5 on Bedrock):
 
 | Scenario | Runs | Rule checks | No invented facts | Model | Result |
 |---|---|---|---|---|---|
-| grandmother_basic | 1 | 29/29 | 1/1 | Nova 2 Lite | [polish_v1](evals/results/polish_v1.md) |
+| grandmother_basic | 3 | 87/87 | 3/3 | Nova 2 Lite | [prefetch_v1](evals/results/prefetch_v1.md) |
 | asks_to_listen (playlist) | 1 | 24/24 | 1/1 | Nova 2 Lite | [polish_v1](evals/results/polish_v1.md) |
 | declines_topic | 3 | 87/87 | 3/3 | Nova 2 Lite | [declines_v9](evals/results/declines_v9.md) |
-| avoid_topic_not_raised | 3 | 90/90 | 3/3 | Nova 2 Lite | [refused_v1](evals/results/refused_v1.md) |
+| avoid_topic_not_raised | 3 | 90/90 | 3/3 | Nova 2 Lite | [prefetch_v1](evals/results/prefetch_v1.md) |
 | private_then_move_on | 1 | 30/30 | 1/1 | Nova 2 Lite | [refused_v1_private](evals/results/refused_v1_private.md) |
-| grandfather_no_questions | 3 | 78/78 | 3/3 | Nova 2 Lite | [recheck_v1](evals/results/recheck_v1.md) |
+| grandfather_no_questions | 3 | 78/78 | 3/3 | Nova 2 Lite | [prefetch_v1](evals/results/prefetch_v1.md) |
 | short_answers | 1 | 28/28 | 1/1 | Nova 2 Lite | [full_v7](evals/results/full_v7.md) |
 | grieving | 3 | 87/87 | 1/3 | Nova 2 Lite | [recheck_v1](evals/results/recheck_v1.md) |
 | asks_the_companion | 1 | 29/29 | 1/1 | Nova 2 Lite | [full_v7](evals/results/full_v7.md) |
 | topic_changer | 3 | 87/87 | 1/3 | Nova 2 Lite | [recheck_v1](evals/results/recheck_v1.md) |
 | many_relatives | 3 | 90/90 | 3/3 | Nova 2 Lite | [recheck_v1](evals/results/recheck_v1.md) |
 | hard_of_hearing | 1 | 29/29 | 1/1 | Nova 2 Lite | [full_v7](evals/results/full_v7.md) |
-| agent_question_no_asker | 1 | 29/29 | 1/1 | Nova 2 Lite | [full_v7](evals/results/full_v7.md) |
+| agent_question_no_asker | 3 | 90/90 | 1/3 | Nova 2 Lite | [prefetch_v1](evals/results/prefetch_v1.md) |
 | Archivist: one memory → one story | 3 | 3/3 correct | – | Nova 2 Lite | [split_v3](evals/results/split_v3.md) |
 | Archivist: two memories → two stories | 3 | 3/3 correct | – | Nova 2 Lite | [split_v3](evals/results/split_v3.md) |
 
 Invented facts still appear in 2 of 3 runs of `grieving` and `topic_changer` (for example, mixing up her husband
-and her father); these are the two weakest scenarios.
+and her father); these are the two weakest scenarios. In `agent_question_no_asker` the invented fact is the same
+judge finding with and without the opening prefetch (calling Zehra a childhood friend, which only the simulated elder
+said): 2 of 3 runs with it, 1 of 3 without ([noprefetch_baseline_v1](evals/results/noprefetch_baseline_v1.md)).
 
 **Latency per voice turn** (measured on every turn and shown next to the device screen):
 

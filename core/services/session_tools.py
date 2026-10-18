@@ -5,7 +5,7 @@ All functions are pure (no MCP imports) and receive an open SQLAlchemy session
 plus explicit viewer_id / circle_id so they can be called from tests without
 an MCP context.
 
-Tool table from docs/PROJECT.md:
+Tool table from docs/ARCHITECTURE.md "MCP tools":
   get_session_context      — session start, one call (incl. avoid_topics)
   get_pending_questions    — ordered waiting questions
   mark_question_asked      — flip status to "asked"

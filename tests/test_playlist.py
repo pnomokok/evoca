@@ -1,5 +1,5 @@
 """
-Playing stories by voice (PROJECT.md A5): the get_linked_playlist tool
+Playing stories by voice (ARCHITECTURE.md A5): the get_linked_playlist tool
 (core/services/chat_tools.py) and the device turn's playlist card
 (server/routers/device.py).
 

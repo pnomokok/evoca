@@ -1,5 +1,5 @@
 """
-Business logic for the family panel's story endpoints (docs/PROJECT.md "REST uçları").
+Business logic for the family panel's story endpoints (docs/ARCHITECTURE.md "REST API").
 
   build_lifeline      GET    /api/lifeline/{person_id}
   build_story         GET    /api/stories/{id}
@@ -9,7 +9,7 @@ Business logic for the family panel's story endpoints (docs/PROJECT.md "REST uç
   update_story        PATCH  /api/stories/{id}
   remove_link         DELETE /api/links/{id}
 
-Privacy rules applied here (docs/PROJECT.md "Erişim kuralları"):
+Privacy rules applied here (docs/ARCHITECTURE.md "Design principles and rules"):
 - Every story passes can_see() before any of its data is used. A story the
   viewer cannot see raises the same NotFound as a missing one, and a linked or
   retold story the viewer cannot see is dropped silently (no count, no id).
@@ -17,7 +17,7 @@ Privacy rules applied here (docs/PROJECT.md "Erişim kuralları"):
   transcript words inside them are dropped, and durations are summed from the
   cut ranges. Only the teller is told that a story's session has a private part.
 - Reactions are returned as which emojis are present and which are the
-  viewer's own, never as counts ("Sayaç gösterilmez").
+  viewer's own, never as counts.
 
 Functions take an open SQLAlchemy session and an explicit viewer_id, like the
 other services, and commit their own writes.
@@ -41,7 +41,7 @@ from core.services.photo_view import photo_fields
 _PERIODS = [p.value for p in LifePeriod]
 
 # Fixed age ranges per life period, for the lifeline's years (None = open end).
-# docs/PROJECT.md "Hesaplanan görünümler".
+# docs/ARCHITECTURE.md "Data model".
 PERIOD_AGES: dict[str, tuple[int, int | None]] = {
     LifePeriod.childhood.value: (0, 12),
     LifePeriod.youth.value: (13, 22),
@@ -506,7 +506,7 @@ def update_story(
 ) -> dict[str, Any]:
     """Change access (teller only) and/or hide (teller, subject, center, admin).
 
-    Hiding is final: hidden=False is refused for everyone (PROJECT.md "Bilinen sınırlar").
+    Hiding is final: hidden=False is refused for everyone (ARCHITECTURE.md "Known limits").
 
     Every permission is checked before anything changes, so a request that is
     partly refused changes nothing.

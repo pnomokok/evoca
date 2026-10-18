@@ -1,7 +1,7 @@
 """
 Invitation scheduler: the device light at the circle's chat time.
 
-docs/PROJECT.md A2 "Davet", "Davet kuralları" and "Arka plan işleri". For each
+docs/ARCHITECTURE.md A2, "Design principles and rules" and "Background jobs and the demo clock". For each
 active circle, once chat_time has passed in the circle's timezone and there is
 no Invitation for that local date, exactly one is created for the center:
 

@@ -1,6 +1,5 @@
 """
-The core loop, end to end, through the real HTTP endpoints (PROJECT.md, the
-16 Ekim decision point):
+The core loop, end to end, through the real HTTP endpoints:
 
   Elif asks a question in the panel  -> POST /api/questions
   Fatma's agent asks it              -> POST /api/device/session/start

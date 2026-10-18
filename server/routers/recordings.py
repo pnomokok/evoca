@@ -1,5 +1,5 @@
 """
-Panel recordings (A4 "Aile üyesinin kendi anısı").
+Panel recordings (docs/ARCHITECTURE.md A4, "A family member's own memory").
 
 POST /api/recordings
     Multipart: audio (webm/wav, like a device turn) + optional access

@@ -1,5 +1,5 @@
 """
-Business logic for the admin panel endpoints (docs/PROJECT.md "REST uçları").
+Business logic for the admin panel endpoints (docs/ARCHITECTURE.md "REST API").
 
   require_admin           every admin endpoint
   list_family_topics      GET    /api/admin/sensitive-topics

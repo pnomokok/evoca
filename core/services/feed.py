@@ -10,7 +10,7 @@ Two kinds of items, newest first:
                      created_at is the story's publish_at: when the answer
                      becomes visible. Questions in any other status never
                      appear, so a declined question looks exactly like an
-                     unanswered one (docs/PROJECT.md "Hassas konular").
+                     unanswered one (docs/ARCHITECTURE.md "Design principles and rules").
                      audio is the answer as pieces: the answer story's own
                      pieces in that session, like the story page, so the
                      agent's turns, private parts and anything outside the

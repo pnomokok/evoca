@@ -1,7 +1,7 @@
 """
 Publisher: pending stories whose publish_at has passed become published.
 
-docs/PROJECT.md "Arka plan işleri": the publisher runs every minute. A new
+docs/ARCHITECTURE.md "Background jobs and the demo clock": the publisher runs every minute. A new
 story waits 24 hours as "pending" so the center or an admin can hide it first;
 after that it opens according to its access.
 

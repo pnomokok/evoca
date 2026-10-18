@@ -1,6 +1,6 @@
 """
-Access control — implements the can_see() function from docs/PROJECT.md
-"Veri modeli > Erişim kontrolü" exactly.
+Access control — implements the can_see() function from docs/ARCHITECTURE.md
+"Access control" exactly.
 
 Pseudo-code from the doc (reproduced verbatim for traceability):
 
@@ -17,7 +17,7 @@ Pseudo-code from the doc (reproduced verbatim for traceability):
 
 Notes:
 - role(viewer_id) is always evaluated in the context of story.circle_id because
-  memberships are per (person, circle) pair (see decision log).
+  memberships are per (person, circle) pair.
 - can_see() takes a db session as its first argument because it must query
   Membership rows.
 - Private segments (is_private=True) are never surfaced by any tool; that
