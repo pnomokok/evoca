@@ -334,3 +334,39 @@ class DemoClock(Base):
 
     id = Column(Integer, primary_key=True)
     offset_seconds = Column(Integer, nullable=False, default=0)
+
+
+# ---------------------------------------------------------------------------
+# InviteLink, AuthSession  (sign-in; only token hashes are stored)
+# ---------------------------------------------------------------------------
+
+class InviteLink(Base):
+    """A person's personal link to one circle (docs/ARCHITECTURE.md "Access control", Identity)."""
+    __tablename__ = "invite_link"
+
+    id = Column(String, primary_key=True, default=_uuid)
+    circle_id = Column(String, ForeignKey("circle.id"), nullable=False)
+    person_id = Column(String, ForeignKey("person.id"), nullable=False)
+    token_hash = Column(String, nullable=False, unique=True)   # SHA-256 hex, never the token
+    created_by = Column(String, ForeignKey("person.id"), nullable=False)
+    created_at = Column(String, nullable=False, default=_now_iso)
+    revoked_at = Column(String, nullable=True)
+
+    # At most one active link per (circle, person).
+    __table_args__ = (
+        Index("uq_invite_link_active", "circle_id", "person_id", unique=True,
+              sqlite_where=revoked_at.is_(None)),
+    )
+
+
+class AuthSession(Base):
+    """One signed-in browser or device, made from an invite link."""
+    __tablename__ = "auth_session"
+
+    id = Column(String, primary_key=True, default=_uuid)
+    person_id = Column(String, ForeignKey("person.id"), nullable=False)
+    circle_id = Column(String, ForeignKey("circle.id"), nullable=False)
+    token_hash = Column(String, nullable=False, unique=True)   # SHA-256 hex, never the token
+    invite_id = Column(String, ForeignKey("invite_link.id"), nullable=False)
+    created_at = Column(String, nullable=False, default=_now_iso)
+    revoked_at = Column(String, nullable=True)

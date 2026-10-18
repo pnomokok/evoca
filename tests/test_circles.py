@@ -204,7 +204,7 @@ async def test_create_circle_rows(cw):
     r = await _req(cw["app"], "POST", "/api/circles", body=_new_circle_body())
     assert r.status_code == 200, r.text
     ids = r.json()
-    assert set(ids) == {"circle_id", "center_id", "creator_id"}
+    assert set(ids) == {"circle_id", "center_id", "creator_id", "session_token", "invite_url_path"}
     db = cw["db"]
     db.expire_all()
     circle = db.get(Circle, ids["circle_id"])

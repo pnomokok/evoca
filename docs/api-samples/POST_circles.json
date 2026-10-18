@@ -1,5 +1,7 @@
 {
   "circle_id": "circle_demir",
   "center_id": "person_hasan",
-  "creator_id": "person_selin"
+  "creator_id": "person_selin",
+  "session_token": "<session token, shown only here>",
+  "invite_url_path": "/join/<Selin's invite token>"
 }

@@ -7,8 +7,8 @@ GET    /api/photos/{photo_id}
 
 Logic and rules live in core.services.photos: who may upload or delete, the
 re-encoding that strips every bit of metadata, and the same 404 for a story or
-photo the viewer cannot see. Like audio, the panel fetches a photo with the
-X-Person-Id header and shows it as a blob; responses are Cache-Control: private, no-store.
+photo the viewer cannot see. Like audio, the panel fetches a photo with its
+identity header and shows it as a blob; responses are Cache-Control: private, no-store.
 
 limit_photo_upload (an HTTP middleware, added in server/app.py) refuses an upload
 whose Content-Length is over the limit before the body is read, so a huge body
@@ -22,10 +22,11 @@ import re
 from typing import Annotated
 
 import anyio
-from fastapi import APIRouter, File, Form, Header, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import JSONResponse, Response
 
 from core.services import photos as photo_svc
+from server.auth import Viewer, panel_viewer
 from server.routers.panel import _story_call
 
 router = APIRouter()
@@ -48,33 +49,30 @@ async def post_story_photo(
     story_id: str,
     image: Annotated[UploadFile, File()],
     caption: Annotated[str | None, Form()] = None,
-    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
-    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
+    viewer: Viewer = Depends(panel_viewer),
 ):
     """Add or replace the photo: the teller, a subject person or an admin. Matches POST_story_photo.json."""
     raw = await image.read(photo_svc.MAX_BYTES + 1)   # one byte more is enough to refuse it
     return await anyio.to_thread.run_sync(
-        lambda: _story_call(x_circle_id, photo_svc.set_photo, x_person_id, story_id, raw, caption)
+        lambda: _story_call(viewer.circle_id, photo_svc.set_photo, viewer.person_id, story_id, raw, caption)
     )
 
 
 @router.delete("/api/stories/{story_id}/photo")
 async def delete_story_photo(
     story_id: str,
-    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
-    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
+    viewer: Viewer = Depends(panel_viewer),
 ):
     """Remove the photo: its uploader, the teller or an admin."""
-    return _story_call(x_circle_id, photo_svc.delete_photo, x_person_id, story_id)
+    return _story_call(viewer.circle_id, photo_svc.delete_photo, viewer.person_id, story_id)
 
 
 @router.get("/api/photos/{photo_id}")
 async def get_photo(
     photo_id: str,
-    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
-    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
+    viewer: Viewer = Depends(panel_viewer),
 ):
     """The JPEG, only if the viewer can see its story (otherwise 404, like a missing photo)."""
-    path = _story_call(x_circle_id, photo_svc.photo_file, x_person_id, photo_id)
+    path = _story_call(viewer.circle_id, photo_svc.photo_file, viewer.person_id, photo_id)
     return Response(content=path.read_bytes(), media_type="image/jpeg",
                     headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})

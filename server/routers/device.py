@@ -6,7 +6,8 @@ POST /api/device/turn
 POST /api/device/session/end
 GET  /api/device/invitation
 
-Identity: the X-Person-Id header. Only a circle's center person can start a
+Identity: server.auth (a bearer session, or X-Person-Id in demo mode).
+Only a circle's center person can start a
 device session, and only the person who started a session can send turns to
 it or end it. An optional X-Circle-Id header picks the circle when the person
 is the center of several; it must be a circle they are the center of (else
@@ -34,7 +35,7 @@ from typing import Annotated, Any
 from zoneinfo import ZoneInfo
 
 import anyio
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Header, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 
 from core.clock import now_utc
@@ -46,6 +47,7 @@ from core.services.chat_tools import playlist_ranges
 from core.services.sessions import end_session, start_session
 from server.agents.archivist_agent import ArchivistAgent, answer_check_llm, archivist_llm
 from server.agents.chat_agent import ChatAgent, chat_llm, privacy_check_llm, split_sentences
+from server.auth import Viewer, viewer_dependency
 from server.mcp_bridge import MCPBridge
 from server.session_store import LiveSession, SessionStore
 from server.speech import STT, TTS, build_initial_prompt, decode_audio
@@ -81,6 +83,9 @@ def _get_tts() -> TTS:
 # Identity helpers
 # ---------------------------------------------------------------------------
 
+NOT_CENTER = "No circle found where this person is the center."
+NOT_OWNER = "Only the person who started this session can use it."
+
 def _resolve_center(x_person_id: str, db, x_circle_id: str = "") -> tuple[str, str]:
     """Return (person_id, circle_id) for the device caller, who must be a center
     (of the X-Circle-Id circle when given)."""
@@ -91,14 +96,20 @@ def _resolve_center(x_person_id: str, db, x_circle_id: str = "") -> tuple[str, s
         q = q.filter(Circle.id == x_circle_id)
     circle = q.order_by(Circle.id).first()
     if circle is None:
-        raise HTTPException(status_code=403, detail="No circle found where this person is the center.")
+        raise HTTPException(status_code=403, detail=NOT_CENTER)
     return x_person_id, circle.id
 
 
 def _require_owner(live: LiveSession, x_person_id: str, x_circle_id: str = "") -> None:
     """Only the person who started the session may use it (in its own circle)."""
     if not x_person_id or x_person_id != live.owner_id or (x_circle_id and x_circle_id != live.circle_id):
-        raise HTTPException(status_code=403, detail="Only the person who started this session can use it.")
+        raise HTTPException(status_code=403, detail=NOT_OWNER)
+
+
+# The viewer for the device endpoints; a bearer session of another circle gets
+# the same 403 as above.
+center_viewer = viewer_dependency(lambda: HTTPException(status_code=403, detail=NOT_CENTER))
+owner_viewer = viewer_dependency(lambda: HTTPException(status_code=403, detail=NOT_OWNER))
 
 
 def _whisper_prompt(circle_id: str, last_question: str | None) -> str:
@@ -357,14 +368,13 @@ async def _run_archivist(session_id: str, person_id: str, circle_id: str) -> Non
 
 @router.post("/api/device/session/start")
 async def session_start(
-    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
-    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
+    viewer: Viewer = Depends(center_viewer),
     store: SessionStore = Depends(_get_store),
     tts: TTS = Depends(_get_tts),
 ):
     total_t0 = time.monotonic()
     with SessionLocal() as db:
-        person_id, circle_id = _resolve_center(x_person_id, db, x_circle_id)
+        person_id, circle_id = _resolve_center(viewer.person_id, db, viewer.circle_id)
 
         circle = db.get(Circle, circle_id)
         today_str = now_utc().astimezone(ZoneInfo(circle.timezone)).strftime("%Y-%m-%d")
@@ -438,8 +448,7 @@ async def device_turn(
     background_tasks: BackgroundTasks,
     session_id: Annotated[str, Form()],
     audio: Annotated[UploadFile, File()],
-    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
-    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
+    viewer: Viewer = Depends(owner_viewer),
     store: SessionStore = Depends(_get_store),
     stt: STT = Depends(_get_stt),
     tts: TTS = Depends(_get_tts),
@@ -449,7 +458,7 @@ async def device_turn(
     live = store.get(session_id)
     if live is None:
         raise HTTPException(status_code=404, detail="Session not found or already ended.")
-    _require_owner(live, x_person_id, x_circle_id)
+    _require_owner(live, viewer.person_id, viewer.circle_id)
 
     async with live.lock:
         if store.get(session_id) is None:   # ended while this request waited
@@ -550,14 +559,13 @@ class SessionEndRequest(BaseModel):
 async def session_end(
     body: SessionEndRequest,
     background_tasks: BackgroundTasks,
-    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
-    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
+    viewer: Viewer = Depends(owner_viewer),
     store: SessionStore = Depends(_get_store),
 ):
     live = store.get(body.session_id)
     if live is None:
         raise HTTPException(status_code=404, detail="Session not found or already ended.")
-    _require_owner(live, x_person_id, x_circle_id)
+    _require_owner(live, viewer.person_id, viewer.circle_id)
 
     async with live.lock:
         if store.get(body.session_id) is None:
@@ -573,14 +581,13 @@ async def session_end(
 
 @router.get("/api/device/invitation")
 async def get_invitation(
-    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
-    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
+    viewer: Viewer = Depends(center_viewer),
 ):
     """Is the light on? "now" is the demo-aware current time (now_utc(), so
     DEMO_NOW moves it), for the device clock."""
     now = now_utc()
     with SessionLocal() as db:
-        _, circle_id = _resolve_center(x_person_id, db, x_circle_id)
+        _, circle_id = _resolve_center(viewer.person_id, db, viewer.circle_id)
         circle = db.get(Circle, circle_id)
         today_str = now.astimezone(ZoneInfo(circle.timezone)).strftime("%Y-%m-%d")
         inv = (

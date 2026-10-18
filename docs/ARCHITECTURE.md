@@ -102,6 +102,7 @@ sequenceDiagram
 | Speech | [`server/speech.py`](../server/speech.py) | `WhisperSTT` (word timestamps, name hints), `PollyTTS` |
 | Voice turn | [`server/routers/device.py`](../server/routers/device.py) | Session start, turn, end; latency and tool trace per turn |
 | Access control | [`core/access.py`](../core/access.py) | `can_see()` |
+| Identity | [`server/auth.py`](../server/auth.py), [`core/services/auth.py`](../core/services/auth.py) | Bearer session or demo headers, invite links, token hashing |
 | Business logic | [`core/services/`](../core/services/) | Shared by MCP tools and REST endpoints |
 | Data model | [`core/models.py`](../core/models.py), [`core/enums.py`](../core/enums.py) | Exactly the names in [Data model](#data-model) |
 | Web client | [`web/src/`](../web/src/) | `components/DeviceScreen.jsx` (device), `components/panel/` (family) |
@@ -211,6 +212,8 @@ different things: anyone can tell a story, but a circle has one center person.
 | Sensitive topic | `SensitiveTopic` | A topic never raised with the elder: set by an admin (`source = family`) or refused by the elder (`source = speaker`). |
 | Reaction | `Reaction` | An emoji a family member leaves on a story. Told to the elder in words. |
 | Photo | `StoryPhoto` | An old photo a family member adds to a story; one per story. The agents never see it. |
+| Invite link | `InviteLink` | A person's personal link to one circle (`/join/<token>`); opening it signs them in. |
+| Sign-in session | `AuthSession` | One signed-in browser or device, made from an invite link; sent as a bearer token. |
 | Gathering mode | `Session.kind = gathering` | Roadmap: phones as microphones when the family is together. |
 
 ## User flows
@@ -423,7 +426,22 @@ Reaction:                                         # PK (story_id, person_id, emo
 Invitation:                                       # unique (circle_id, date): one per circle per day
   id, circle_id, person_id, date: "YYYY-MM-DD",   # local day in the circle's time zone
   reason: str, status: InvitationStatus
+
+InviteLink:                                       # at most one active (revoked_at = None) per (circle_id, person_id)
+  id, circle_id, person_id,
+  token_hash,                                     # SHA-256 hex of the token; the token itself is never stored
+  created_by, created_at,                         # created_by = the admin (or the creator of a new circle)
+  revoked_at | None                               # a new link for the same person revokes the old one
+
+AuthSession:                                      # one signed-in browser or device
+  id, person_id, circle_id,                       # the session fixes the circle
+  token_hash,                                     # SHA-256 hex of the bearer token, never the token
+  invite_id,                                      # the InviteLink it was made from
+  created_at, revoked_at | None                   # revoked on logout, or when its invite link is revoked
 ```
+
+Tokens (invite and session) are `secrets.token_urlsafe(32)`. Only their SHA-256 hashes are stored and looked up;
+a token is returned once, when it is made, and never logged (the access log redacts `/api/invites/<token>`).
 
 `Person.language` is stored but not used yet (every person is `en`); see the roadmap in the README.
 
@@ -470,10 +488,26 @@ tell a private part from audio they may not hear.
 refuse a range that overlaps a private segment, and `merge_stories` widens an answer only across gaps that hold
 nothing but the companion's turns; a private segment or any speech left out of the story stops it.
 
-**Identity.** The MCP tools never take identity from the model's arguments. The backend opens each MCP connection
-with `X-Evoca-Person-Id` and `X-Evoca-Circle-Id` (and `X-Evoca-Session-Id` for session tools) headers; the model only
-gives content arguments. In the hackathon build, the web client sends `X-Person-Id` and optionally `X-Circle-Id`
-(see [Known limits](#known-limits)).
+**Identity.** Every panel, admin, audio, photo and device endpoint resolves the viewer in one place
+(`server/auth.py`):
+
+1. `Authorization: Bearer <session_token>`: the token's hash must match an `AuthSession` that is not revoked. The
+   session gives the person **and** the circle; an `X-Circle-Id` that differs from the session's circle gets the
+   same 403 as a non-member. The person must still be a member of that circle, as before.
+2. Without a bearer token, `X-Person-Id` and `X-Circle-Id` are accepted **only with `EVOCA_DEMO_MODE=1`**, and then
+   behave exactly as in the hackathon build (the person picker of the web client).
+3. Anything else is 401 with one body for every case (no header, a wrong, unknown or revoked token, `X-Person-Id`
+   outside demo mode), so a caller cannot tell which tokens ever existed.
+
+A session token comes from accepting an invite link (`POST /api/invites/{token}/accept`) or from creating a circle.
+An admin makes a personal link for any member, the center person included; making a new one revokes the old. Revoking
+a link (`DELETE /api/admin/invites/{person_id}`, a new link for the same person, or removing the member) also revokes
+every session made from it. A link stays usable, for more devices, until it is revoked.
+
+The MCP tools never take identity from the model's arguments. The backend opens each MCP connection with
+`X-Evoca-Person-Id` and `X-Evoca-Circle-Id` (and `X-Evoca-Session-Id` for session tools) headers; the model only
+gives content arguments. The MCP server trusts these headers, so it is internal: it must listen only where the
+backend can reach it (127.0.0.1 or a private network), never be exposed to the internet.
 
 ## MCP tools
 
@@ -540,7 +574,11 @@ Delivering an answer is a side effect of `record_answer`; the agent never sends 
 The web client calls these; all of them filter with `can_see`. Request and response samples:
 [`docs/api-samples/`](api-samples/).
 
-**Choosing a circle (`X-Circle-Id`).** Every panel, admin, audio and device endpoint accepts an optional
+**Who is calling.** Every panel, admin, audio, photo and device endpoint needs `Authorization: Bearer
+<session_token>`, or in demo mode `X-Person-Id` (Identity in [Access control](#access-control)); otherwise 401.
+
+**Choosing a circle (`X-Circle-Id`).** With a bearer token the session fixes the circle; an `X-Circle-Id` that differs
+is the same 403 as a non-member. In demo mode without a bearer token, every such endpoint accepts an optional
 `X-Circle-Id`. The viewer must be a member (on the device: the center person; for `/turn` and `/session/end`, the
 session's circle), otherwise the same 403 as a non-member. Without it, the viewer's first membership is used.
 
@@ -568,9 +606,14 @@ session's circle), otherwise the same 403 as a non-member. Without it, the viewe
 | `POST`, `PATCH`, `DELETE /api/admin/members[/{person_id}]` | Admin | Add a member or admin; change relation or role; remove a membership. The center person's membership never changes; the last admin cannot be removed or demoted. |
 | `GET /api/audio/{session_id}?start=&end=` | Anyone with access | Streams an audio range; the rules are in [Access control](#access-control). |
 | `GET /api/tts/{file}` | Device | A generated reply audio file, only for the participants of its session. |
-| `GET /api/people?circle_id=` | Person picker | The people of one circle (`id, name, role, relation_to_center, birth_year`); no story data. |
-| `GET /api/circles/demo` | Person picker | The demo circle's `{id, name}`. |
-| `POST /api/circles` | New family | Creates a circle, its center person and the creator as admin. |
+| `GET /api/people?circle_id=` | Person picker | Demo mode only (otherwise 404). The people of one circle (`id, name, role, relation_to_center, birth_year`); no story data. |
+| `GET /api/circles/demo` | Person picker | Demo mode only (otherwise 404). The demo circle's `{id, name}`. |
+| `POST /api/circles` | New family | No auth. Creates a circle, its center person and the creator as admin; also the creator's invite link and a sign-in session (`session_token`, `invite_url_path`). |
+| `POST /api/admin/invites` | Admin | `{person_id}` of any member, the center included: makes their personal link and revokes the old one (and its sessions). Returns `{invite_url_path: "/join/<token>", token, person_id}`; the token is shown only here. |
+| `DELETE /api/admin/invites/{person_id}` | Admin | Revokes the person's active link and every session made from it; 404 if there is none. |
+| `GET /api/invites/{token}` | Join page | No auth. `{circle_name, person_name, role}` for an active link; the same 404 for a revoked, wrong or unknown token. |
+| `POST /api/invites/{token}/accept` | Join page | No auth. Makes a sign-in session: `{session_token, person_id, circle_id}`. The link stays usable until revoked; same 404 as above. |
+| `POST /api/auth/logout` | Panel, device | Revokes the current session (bearer only; 401 otherwise). |
 | `GET /api/circle` | Panel | The circle, "me" and members. |
 | `GET /api/questions/mine` | Panel | The viewer's own questions, only `waiting` or `answered`: declined questions and questions on a topic the elder refused look `waiting`. `answered` only once the viewer can see the answer's story. An unanswered question that matches a current family topic is not listed, whatever its status. |
 | `GET /api/demo/clock`, `POST /api/demo/advance`, `POST /api/demo/reset` | Demo controls | Only with `EVOCA_DEMO_MODE=1` (otherwise 404). `advance {hours}` (1-72) moves the demo clock and runs the publisher and invitation scheduler at once. `reset` rebuilds the database from the seed, and only if it is `data/demo.db`. |
@@ -608,9 +651,13 @@ Current numbers are in the README.
 
 What we know is not solved, and what limits the damage.
 
-- **No sign-in in the preview, by decision.** The `X-Person-Id` and `X-Circle-Id` headers are trusted and the
-  person picker lets anyone open the panel as anyone, the center person included. A circle id works like an
-  unlisted link. Real use needs personal invite links or sign-in.
+- **Demo mode trusts headers, by decision.** With `EVOCA_DEMO_MODE=1`, `X-Person-Id` and `X-Circle-Id` are
+  trusted and the person picker lets anyone open the panel as anyone, the center person included; a circle id works
+  like an unlisted link. The web client still uses this path. Outside demo mode only personal invite links work.
+- **An invite link is the whole credential.** Whoever has the link (or a session token) is that person until an
+  admin revokes it; there is no password, expiry or second factor. An admin can make a link for anyone in the
+  circle, the center person included, and so act as them. `POST /api/circles` is open to anyone.
+- **The MCP server trusts its identity headers.** It is internal and must never be reachable from outside.
 - **Demo controls are open in demo mode.** Anyone on the page can move the clock or reset the demo database, and
   `advance` shortens the 24-hour window. Real use runs without `EVOCA_DEMO_MODE`.
 - **The privacy checker is an LLM judgement.** It may say "no" to an indirect request ("keep it out of the family
@@ -642,6 +689,10 @@ What we know is not solved, and what limits the damage.
 - The last-admin check is not locked against two simultaneous requests.
 - A photo's size limit relies on `Content-Length`; a chunked upload is checked only after reading. In production
   the reverse proxy should also enforce it.
+- A person in two circles signed in to one of them can still open a story, photo or link of the other circle by id
+  when `can_see` allows it (they are a member there too); circle-scoped endpoints and audio stay in the session's
+  circle.
+- Revoking a link or logging out does not end a device session that is already live.
 - Declined and postponed invitations are not tracked separately; a started session marks the invitation `accepted`.
 
 </details>

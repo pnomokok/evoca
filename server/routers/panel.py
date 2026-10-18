@@ -1,9 +1,9 @@
 """
 Panel REST endpoints.
 
-GET    /api/people?circle_id=     (person picker, no header: one circle's people)
-GET    /api/circles/demo          (no header: the seeded demo circle)
-POST   /api/circles               (no header: a new circle with its center and admin)
+GET    /api/people?circle_id=     (demo mode only, no auth: one circle's people)
+GET    /api/circles/demo          (demo mode only, no auth: the seeded demo circle)
+POST   /api/circles               (no auth: a new circle with its center and admin, signed in)
 GET    /api/circle
 GET    /api/feed
 POST   /api/questions
@@ -19,10 +19,11 @@ DELETE /api/links/{id}
 Story logic lives in core.services.stories; every story passes can_see() there.
 A story the viewer cannot see gets the same 404 as a missing one.
 
-Circle: an optional X-Circle-Id header picks one of the viewer's circles; it
-must be one of their memberships (else the same 403 as no membership).
-Without it, the viewer's first membership is used. There is no authentication
-in the preview (docs/ARCHITECTURE.md "Known limits").
+Viewer: server.auth.panel_viewer (a bearer session, or X-Person-Id in demo
+mode; otherwise 401). A bearer session fixes the circle. In demo mode an
+optional X-Circle-Id header picks one of the viewer's circles; it must be one
+of their memberships (else the same 403 as no membership). Without it, the
+viewer's first membership is used.
 """
 
 from __future__ import annotations
@@ -30,18 +31,21 @@ from __future__ import annotations
 import logging
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Body, Header, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from core.clock import now_utc
 from core.db import SessionLocal
 from core.enums import LifePeriod, QuestionSource, QuestionStatus, TopicSource
 from core.models import Circle, Membership, Person, Question, SensitiveTopic
+from core.services import auth as auth_svc
 from core.services import circles as circle_svc
 from core.services import stories as story_svc
 from core.services.feed import build_feed
 from core.services.questions import find_duplicate, my_questions
 from core.services.session_tools import _matches_sensitive_topic
+from server.auth import NOT_A_MEMBER, Viewer, panel_viewer
+from server.routers.demo import _require_demo_mode
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -62,7 +66,7 @@ def _resolve_panel_viewer(x_person_id: str, db, x_circle_id: str = "") -> tuple[
         raise HTTPException(status_code=403, detail="X-Person-Id header required.")
     m = circle_svc.viewer_membership(db, x_person_id, x_circle_id or None)
     if m is None:
-        raise HTTPException(status_code=403, detail="Not a member of any circle.")
+        raise HTTPException(status_code=403, detail=NOT_A_MEMBER)
     return x_person_id, m.circle_id
 
 
@@ -70,10 +74,10 @@ def _resolve_panel_viewer(x_person_id: str, db, x_circle_id: str = "") -> tuple[
 # GET /api/people, GET /api/circles/demo, POST /api/circles  (no header)
 # ---------------------------------------------------------------------------
 
-@router.get("/api/people")
+@router.get("/api/people", dependencies=[Depends(_require_demo_mode)])
 async def get_people(circle_id: Annotated[str, Query()] = ""):
     """One circle's people (id, name, role, relation_to_center, birth_year)
-    for the password-less person picker.
+    for the password-less person picker. Demo mode only (otherwise 404).
 
     No header and no access check, by design (ARCHITECTURE.md "Known limits"):
     the circle id acts as an unlisted link. Never returns story data or anyone
@@ -88,9 +92,9 @@ async def get_people(circle_id: Annotated[str, Query()] = ""):
             raise HTTPException(status_code=404, detail=str(exc))
 
 
-@router.get("/api/circles/demo")
+@router.get("/api/circles/demo", dependencies=[Depends(_require_demo_mode)])
 async def get_demo_circle():
-    """{id, name} of the seeded demo circle; 404 if there is none."""
+    """{id, name} of the seeded demo circle; 404 if there is none or outside demo mode."""
     with SessionLocal() as db:
         try:
             return circle_svc.demo_circle(db)
@@ -102,14 +106,16 @@ async def get_demo_circle():
 async def post_circle(body: Annotated[Any, Body()] = None):
     """Create a circle, its center (role center) and its creator (role admin).
 
-    Returns {circle_id, center_id, creator_id}; any invalid field is a 400
-    that names it.
+    Returns {circle_id, center_id, creator_id, session_token, invite_url_path}:
+    the creator is signed in, and their own invite link lets them join from
+    another device. Any invalid field is a 400 that names it.
     """
     with SessionLocal() as db:
         try:
-            return circle_svc.create_circle(db, body)
+            created = circle_svc.create_circle(db, body)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc))
+        return {**created, **auth_svc.creator_sign_in(db, created["circle_id"], created["creator_id"])}
 
 
 # ---------------------------------------------------------------------------
@@ -118,12 +124,11 @@ async def post_circle(body: Annotated[Any, Body()] = None):
 
 @router.get("/api/circle")
 async def get_circle(
-    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
-    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
+    viewer: Viewer = Depends(panel_viewer),
 ):
     """Return circle info and full member list, matching GET_circle.json."""
     with SessionLocal() as db:
-        person_id, circle_id = _resolve_panel_viewer(x_person_id, db, x_circle_id)
+        person_id, circle_id = _resolve_panel_viewer(viewer.person_id, db, viewer.circle_id)
 
         circle = db.get(Circle, circle_id)
         if circle is None:
@@ -178,15 +183,14 @@ async def get_circle(
 
 @router.get("/api/feed")
 async def get_feed(
-    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
-    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
+    viewer: Viewer = Depends(panel_viewer),
 ):
     """Answers to the viewer's own questions and published stories, newest first.
 
     Matches GET_feed.json; filtered by can_see() in core.services.feed.
     """
     with SessionLocal() as db:
-        person_id, circle_id = _resolve_panel_viewer(x_person_id, db, x_circle_id)
+        person_id, circle_id = _resolve_panel_viewer(viewer.person_id, db, viewer.circle_id)
         return build_feed(db, person_id, circle_id)
 
 
@@ -203,8 +207,7 @@ class QuestionRequest(BaseModel):
 @router.post("/api/questions")
 async def post_question(
     body: QuestionRequest,
-    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
-    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
+    viewer: Viewer = Depends(panel_viewer),
 ):
     """Add a family question. Returns 200 with status=waiting or status=filtered.
 
@@ -226,7 +229,7 @@ async def post_question(
         raise HTTPException(status_code=400, detail="Invalid period.")
 
     with SessionLocal() as db:
-        person_id, circle_id = _resolve_panel_viewer(x_person_id, db, x_circle_id)
+        person_id, circle_id = _resolve_panel_viewer(viewer.person_id, db, viewer.circle_id)
 
         # Verify target is in the same circle.
         target_m = (
@@ -287,13 +290,12 @@ async def post_question(
 
 @router.get("/api/questions/mine")
 async def get_my_questions(
-    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
-    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
+    viewer: Viewer = Depends(panel_viewer),
 ):
     """The viewer's own questions in the circle, newest first; status is only
     "waiting" or "answered" (core.services.questions.my_questions)."""
     with SessionLocal() as db:
-        person_id, circle_id = _resolve_panel_viewer(x_person_id, db, x_circle_id)
+        person_id, circle_id = _resolve_panel_viewer(viewer.person_id, db, viewer.circle_id)
         return my_questions(db, person_id, circle_id)
 
 
@@ -339,12 +341,11 @@ def _story_call(x_circle_id: str, fn, x_person_id: str, *args):
 @router.get("/api/lifeline/{person_id}")
 async def get_lifeline(
     person_id: str,
-    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
-    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
+    viewer: Viewer = Depends(panel_viewer),
 ):
     """Stories about person_id the viewer can see, by period. Matches GET_lifeline_person_fatma.json."""
     with SessionLocal() as db:
-        viewer_id, circle_id = _resolve_panel_viewer(x_person_id, db, x_circle_id)
+        viewer_id, circle_id = _resolve_panel_viewer(viewer.person_id, db, viewer.circle_id)
         try:
             return story_svc.build_lifeline(db, viewer_id, person_id, circle_id)
         except story_svc.NotFound as exc:
@@ -354,21 +355,19 @@ async def get_lifeline(
 @router.get("/api/stories/{story_id}")
 async def get_story(
     story_id: str,
-    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
-    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
+    viewer: Viewer = Depends(panel_viewer),
 ):
     """The story page. Matches GET_story_mulberry.json."""
-    return _story_call(x_circle_id, story_svc.build_story, x_person_id, story_id)
+    return _story_call(viewer.circle_id, story_svc.build_story, viewer.person_id, story_id)
 
 
 @router.get("/api/stories/{story_id}/playlist")
 async def get_story_playlist(
     story_id: str,
-    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
-    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
+    viewer: Viewer = Depends(panel_viewer),
 ):
     """Listen from the start: the story and its visible direct links. Matches GET_story_mulberry_playlist.json."""
-    return _story_call(x_circle_id, story_svc.build_playlist, x_person_id, story_id)
+    return _story_call(viewer.circle_id, story_svc.build_playlist, viewer.person_id, story_id)
 
 
 class ReactionRequest(BaseModel):
@@ -380,11 +379,10 @@ class ReactionRequest(BaseModel):
 async def post_story_reaction(
     story_id: str,
     body: ReactionRequest,
-    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
-    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
+    viewer: Viewer = Depends(panel_viewer),
 ):
     """Add or remove the viewer's emoji. Matches POST_story_reactions.json (no counts)."""
-    return _story_call(x_circle_id, story_svc.set_reaction, x_person_id, story_id, body.emoji, body.action)
+    return _story_call(viewer.circle_id, story_svc.set_reaction, viewer.person_id, story_id, body.emoji, body.action)
 
 
 class PeriodRequest(BaseModel):
@@ -396,11 +394,10 @@ async def patch_story_subject(
     story_id: str,
     person_id: str,
     body: PeriodRequest,
-    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
-    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
+    viewer: Viewer = Depends(panel_viewer),
 ):
     """Family period correction (period_source = family). Returns the updated subject."""
-    return _story_call(x_circle_id, story_svc.correct_period, x_person_id, story_id, person_id, body.period)
+    return _story_call(viewer.circle_id, story_svc.correct_period, viewer.person_id, story_id, person_id, body.period)
 
 
 class StoryPatchRequest(BaseModel):
@@ -412,18 +409,16 @@ class StoryPatchRequest(BaseModel):
 async def patch_story(
     story_id: str,
     body: StoryPatchRequest,
-    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
-    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
+    viewer: Viewer = Depends(panel_viewer),
 ):
     """Change access (teller) or hide (teller, subject, center, admin). Hiding is final."""
-    return _story_call(x_circle_id, story_svc.update_story, x_person_id, story_id, body.access, body.hidden)
+    return _story_call(viewer.circle_id, story_svc.update_story, viewer.person_id, story_id, body.access, body.hidden)
 
 
 @router.delete("/api/links/{link_id}")
 async def delete_link(
     link_id: str,
-    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
-    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
+    viewer: Viewer = Depends(panel_viewer),
 ):
     """Mark a wrong link removed; the viewer must see both stories."""
-    return _story_call(x_circle_id, story_svc.remove_link, x_person_id, link_id)
+    return _story_call(viewer.circle_id, story_svc.remove_link, viewer.person_id, link_id)
