@@ -38,7 +38,7 @@ async function fetchInitialData() {
 }
 
 export function AppProvider({ children }) {
-  const [activeTab, setActiveTab] = useState('panel'); // 'device' | 'panel'
+  const [activeTab, setActiveTab] = useState('landing'); // 'landing' | 'device' | 'panel'
   const [panelSubTab, setPanelSubTab] = useState('feed'); // 'feed' | 'lifeline' | 'story'
   const [selectedStoryId, setSelectedStoryId] = useState(null);
   const [currentViewerId, setCurrentViewerId] = useState(apiClient.currentViewerId);

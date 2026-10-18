@@ -22,8 +22,8 @@ from __future__ import annotations
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import asdict
-from typing import Any, Literal, TypedDict
-
+from typing import Any, Literal
+from typing_extensions import TypedDict
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
 from mcp.server.mcpserver.exceptions import ToolError

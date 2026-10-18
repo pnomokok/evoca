@@ -1,6 +1,6 @@
 import React from 'react';
 import { useApp } from '../context/useApp';
-import { BookOpen, Tv, User, Database, Server } from 'lucide-react';
+import { Sparkles, BookOpen, Tv, User, Database, Server } from 'lucide-react';
 
 export default function DemoHeader() {
   const {
@@ -26,7 +26,12 @@ export default function DemoHeader() {
     <header className="archival-topbar">
       <div className="topbar-inner">
         {/* Brand & Identity */}
-        <div className="topbar-brand">
+        <div 
+          className="topbar-brand"
+          onClick={() => setActiveTab('landing')}
+          style={{ cursor: 'pointer' }}
+          title="Go to Evoca Overview"
+        >
           <span className="brand-monogram">E</span>
           <div className="brand-text-group">
             <span className="brand-name">Evoca</span>
@@ -37,17 +42,24 @@ export default function DemoHeader() {
         {/* Quiet Screen Switcher */}
         <nav className="topbar-nav" aria-label="Experience switcher">
           <button
+            className={`topbar-nav-link ${activeTab === 'landing' ? 'active' : ''}`}
+            onClick={() => setActiveTab('landing')}
+          >
+            <Sparkles size={14} />
+            <span>Overview</span>
+          </button>
+          <button
             className={`topbar-nav-link ${activeTab === 'panel' ? 'active' : ''}`}
             onClick={() => setActiveTab('panel')}
           >
-            <BookOpen size={15} />
+            <BookOpen size={14} />
             <span>Family Archive</span>
           </button>
           <button
             className={`topbar-nav-link ${activeTab === 'device' ? 'active' : ''}`}
             onClick={() => setActiveTab('device')}
           >
-            <Tv size={15} />
+            <Tv size={14} />
             <span>Living Room Device</span>
           </button>
         </nav>

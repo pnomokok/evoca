@@ -10,8 +10,7 @@ import {
   STORIES_DATABASE
 } from './mockData';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 // Mock samples are a development aid only; a production build always talks to the backend.
 const MOCK_ALLOWED = import.meta.env.DEV;
 
