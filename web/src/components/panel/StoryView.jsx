@@ -90,7 +90,8 @@ export default function StoryView() {
     viewerReady,
     showToast,
     refreshData,
-    circleData
+    circleData,
+    dataVersion
   } = useApp();
 
   // Everything loaded for one story; `loading` is derived from data.storyId.
@@ -176,7 +177,7 @@ export default function StoryView() {
       revokeQueue(engine.playlistQueue);
       engine.playlistQueue = null;
     };
-  }, [selectedStoryId, currentViewerId, viewerReady, getPlayer]);
+  }, [selectedStoryId, currentViewerId, viewerReady, getPlayer, dataVersion]);
 
   // Load piece `index` of `queue`, seek to `offsetMs` inside it, optionally play.
   const loadPiece = (queue, index, offsetMs, autoplay) => {

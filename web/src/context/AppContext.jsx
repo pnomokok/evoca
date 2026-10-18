@@ -39,12 +39,15 @@ async function fetchInitialData() {
 
 export function AppProvider({ children }) {
   const [activeTab, setActiveTab] = useState('landing'); // 'landing' | 'device' | 'panel'
-  const [panelSubTab, setPanelSubTab] = useState('feed'); // 'feed' | 'lifeline' | 'story'
+  const [panelSubTab, setPanelSubTab] = useState('feed'); // 'feed' | 'lifeline' | 'story' | 'questions' | 'settings'
   const [selectedStoryId, setSelectedStoryId] = useState(null);
   const [currentViewerId, setCurrentViewerId] = useState(apiClient.currentViewerId);
   // False until the stored viewer id has been checked (see fetchInitialData).
   const [viewerReady, setViewerReady] = useState(false);
-  const [useMock, setUseMock] = useState(apiClient.useMock);
+  // Bumped after every demo clock action: views add it to their fetch dependencies and load again.
+  const [dataVersion, setDataVersion] = useState(0);
+  // Bumped after a demo reset: the device drops a session the reset has already ended.
+  const [resetVersion, setResetVersion] = useState(0);
 
   const [peopleList, setPeopleList] = useState([]);
   const [centerPersonId, setCenterPersonId] = useState(null);
@@ -93,7 +96,7 @@ export function AppProvider({ children }) {
       err => { if (!cancelled) handleLoadError(err); }
     );
     return () => { cancelled = true; };
-  }, [applyInitialData, handleLoadError, useMock]);
+  }, [applyInitialData, handleLoadError]);
 
   // When the viewer changes, reload circle data
   const switchViewer = async (personId) => {
@@ -111,14 +114,27 @@ export function AppProvider({ children }) {
     }
   };
 
-  const toggleMock = (flag) => {
-    apiClient.setUseMock(flag);
-    // Sample and live story ids never mix: an open sample story would reach the backend.
+  // Demo controls: move the clock, then reload people, circle and invitation, and let every view refetch.
+  const demoAdvance = async (hours) => {
+    const clock = await apiClient.postDemoAdvance(hours);
+    await loadInitialData();
+    setDataVersion(v => v + 1);
+    return clock;
+  };
+
+  // A reset rebuilds the database with new ids: nothing is requested with the old ones while the
+  // viewer is picked again (the stored id is gone, so fetchInitialData chooses the default viewer).
+  const demoReset = async () => {
+    setViewerReady(false);
     setSelectedStoryId(null);
     setPanelSubTab(tab => (tab === 'story' ? 'feed' : tab));
-    setViewerReady(false);
-    setUseMock(apiClient.useMock);
-    showToast(apiClient.useMock ? "Showing sample data" : "Showing live data", "info");
+    setResetVersion(v => v + 1);
+    try {
+      await apiClient.postDemoReset();
+    } finally {
+      await loadInitialData();
+      setDataVersion(v => v + 1);
+    }
   };
 
   return (
@@ -134,8 +150,10 @@ export function AppProvider({ children }) {
       peopleList,
       centerPersonId,
       switchViewer,
-      useMock,
-      toggleMock,
+      dataVersion,
+      resetVersion,
+      demoAdvance,
+      demoReset,
       circleData,
       invitationData,
       setInvitationData,

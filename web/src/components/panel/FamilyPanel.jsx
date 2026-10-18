@@ -6,7 +6,8 @@ import StoryView from './StoryView';
 import AskQuestionModal from './AskQuestionModal';
 import RecordMemoryModal from './RecordMemoryModal';
 import FamilySettings from './FamilySettings';
-import { BookOpen, Hourglass, MessageSquarePlus, Mic, Settings, Sparkles, Tv } from 'lucide-react';
+import MyQuestions from './MyQuestions';
+import { BookOpen, Hourglass, ListChecks, MessageSquarePlus, Mic, Settings, Sparkles, Tv } from 'lucide-react';
 
 export default function FamilyPanel() {
   const { panelSubTab, setPanelSubTab, circleData, setActiveTab, currentViewerId } = useApp();
@@ -14,6 +15,8 @@ export default function FamilyPanel() {
   const [recordModalOpen, setRecordModalOpen] = useState(false);
   const [targetPeriod, setTargetPeriod] = useState(null);
   const [initialPrompt, setInitialPrompt] = useState('');
+  // Bumped when the ask dialog closes, so My questions shows a question just asked.
+  const [askCount, setAskCount] = useState(0);
 
   const handleOpenAskModal = (period = null, prompt = '') => {
     setTargetPeriod(period);
@@ -33,8 +36,9 @@ export default function FamilyPanel() {
   const centerFirst = circleData?.me?.name?.split(' ')[0] || '';
   const askHandler = isCenter ? null : handleOpenAskModal;
   const recordHandler = isCenter ? null : handleOpenRecordModal;
-  // Family settings is for the circle's admin only; anyone else lands on the journal.
-  const subTab = panelSubTab === 'settings' && !isAdmin ? 'feed' : panelSubTab;
+  // Family settings is for the circle's admin only, My questions for those who can ask;
+  // anyone else lands on the journal.
+  const subTab = (panelSubTab === 'settings' && !isAdmin) || (panelSubTab === 'questions' && isCenter) ? 'feed' : panelSubTab;
 
   return (
     <div className="family-panel-canvas">
@@ -64,6 +68,16 @@ export default function FamilyPanel() {
             <Sparkles size={16} />
             <span>Story Detail</span>
           </button>
+
+          {!isCenter && (
+            <button
+              className={`subnav-pill ${subTab === 'questions' ? 'active' : ''}`}
+              onClick={() => setPanelSubTab('questions')}
+            >
+              <ListChecks size={16} />
+              <span>My questions</span>
+            </button>
+          )}
 
           {isAdmin && (
             <button
@@ -121,6 +135,9 @@ export default function FamilyPanel() {
         {subTab === 'story' && (
           <StoryView />
         )}
+        {subTab === 'questions' && !isCenter && (
+          <MyQuestions onOpenAskModal={askHandler} reloadKey={askCount} />
+        )}
         {subTab === 'settings' && isAdmin && (
           <FamilySettings />
         )}
@@ -154,6 +171,16 @@ export default function FamilyPanel() {
 
         {!isCenter && (
           <button
+            className={`mobile-tab-btn ${subTab === 'questions' ? 'active' : ''}`}
+            onClick={() => setPanelSubTab('questions')}
+          >
+            <ListChecks size={18} />
+            <span>Questions</span>
+          </button>
+        )}
+
+        {!isCenter && (
+          <button
             className="mobile-tab-btn action-ask"
             onClick={() => handleOpenAskModal(null, '')}
           >
@@ -167,7 +194,7 @@ export default function FamilyPanel() {
       {/* Mounted only while open, so each opening starts from fresh state */}
       {askModalOpen && !isCenter && (
         <AskQuestionModal
-          onClose={() => setAskModalOpen(false)}
+          onClose={() => { setAskModalOpen(false); setAskCount(n => n + 1); }}
           defaultPeriod={targetPeriod}
           initialPrompt={initialPrompt}
         />

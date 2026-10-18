@@ -45,7 +45,7 @@ function DeviceCard({ card }) {
 }
 
 export default function DeviceScreen() {
-  const { invitationData, setInvitationData, centerPersonId, viewerReady, showToast, circleData, peopleList } = useApp();
+  const { invitationData, setInvitationData, centerPersonId, viewerReady, showToast, circleData, peopleList, dataVersion, resetVersion } = useApp();
   // 'idle': light only, nothing started · 'starting' · 'active': a session is open · 'ended'
   const [phase, setPhase] = useState('idle');
   const [isRecording, setIsRecording] = useState(false);
@@ -85,7 +85,24 @@ export default function DeviceScreen() {
       cancelled = true;
       clearInterval(timer);
     };
-  }, [viewerReady, centerPersonId, setInvitationData]);
+  }, [viewerReady, centerPersonId, setInvitationData, dataVersion]);
+
+  // A demo reset has already ended any live session and changed every id: forget it here
+  // without calling /session/end, and start again from the light.
+  const seenResetRef = useRef(resetVersion);
+  useEffect(() => {
+    if (seenResetRef.current === resetVersion) return;
+    seenResetRef.current = resetVersion;
+    sessionRef.current.id = null;
+    playbackRef.current.token += 1;
+    getPlayer().pause();
+    if (mediaRecorderRef.current?.state === 'recording') mediaRecorderRef.current.stop();
+    setIsRecording(false);
+    setIsPlayingAudio(false);
+    setTurns([]);
+    setDeviceError(null);
+    setPhase('idle');
+  }, [resetVersion, getPlayer]);
 
   // End the session when the page goes away or the elder leaves this screen (best effort).
   useEffect(() => {

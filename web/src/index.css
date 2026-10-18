@@ -202,8 +202,15 @@ h1, h2, h3, h4, .serif-font {
   cursor: pointer;
 }
 
-.api-mode-chip {
-  border: 1px solid var(--border-paper);
+/* Demo clock chip and its menu (demo mode only) */
+.demo-controls {
+  position: relative;
+}
+
+.demo-clock-chip {
+  border: 1px solid rgba(169, 95, 70, 0.25);
+  background: var(--accent-terracotta-soft);
+  color: var(--accent-terracotta);
   padding: 5px 12px;
   border-radius: var(--radius-full);
   font-size: 12px;
@@ -212,19 +219,56 @@ h1, h2, h3, h4, .serif-font {
   display: flex;
   align-items: center;
   gap: 5px;
+  white-space: nowrap;
   transition: var(--transition-gentle);
 }
 
-.api-mode-chip.mock {
-  background: var(--accent-sage-soft);
-  color: var(--accent-sage);
-  border-color: rgba(104, 119, 91, 0.25);
+.demo-clock-chip:disabled {
+  cursor: progress;
+  opacity: 0.7;
 }
 
-.api-mode-chip.live {
-  background: var(--accent-terracotta-soft);
+.demo-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 50;
+  min-width: 170px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-white);
+  border: 1px solid var(--border-paper);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-dialog);
+}
+
+.demo-menu button {
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-xs);
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-charcoal);
+  cursor: pointer;
+}
+
+.demo-menu button:hover:not(:disabled) {
+  background: var(--bg-paper-light);
+}
+
+.demo-menu button:disabled {
+  color: var(--text-charcoal-faint);
+  cursor: default;
+}
+
+.demo-menu button.danger {
   color: var(--accent-terracotta);
-  border-color: rgba(169, 95, 70, 0.25);
+  border-top: 1px solid var(--border-paper);
+  border-radius: 0 0 var(--radius-xs) var(--radius-xs);
+  margin-top: 4px;
 }
 
 /* ==========================================================================
