@@ -99,7 +99,7 @@ export default function FamilyTreeCard({
               className={`minimal-avatar-circle ${centerMember.id === currentViewerId ? 'active-viewer' : ''}`}
               style={{ backgroundColor: getMemberColor(centerMember, 0) }}
               onClick={() => onSwitchViewer && onSwitchViewer(centerMember.id)}
-              title={`View as ${centerMember.name}`}
+              title={onSwitchViewer ? `View as ${centerMember.name}` : centerMember.name}
             >
               <span className="avatar-initials">{getInitials(centerMember.name)}</span>
               {centerMember.id === currentViewerId && <span className="active-dot-indicator" />}
@@ -124,7 +124,7 @@ export default function FamilyTreeCard({
               className={`minimal-avatar-circle ${daughterMember.id === currentViewerId ? 'active-viewer' : ''}`}
               style={{ backgroundColor: getMemberColor(daughterMember, 1) }}
               onClick={() => onSwitchViewer && onSwitchViewer(daughterMember.id)}
-              title={`View as ${daughterMember.name}`}
+              title={onSwitchViewer ? `View as ${daughterMember.name}` : daughterMember.name}
             >
               <span className="avatar-initials">{getInitials(daughterMember.name)}</span>
               {daughterMember.id === currentViewerId && <span className="active-dot-indicator" />}
@@ -155,7 +155,7 @@ export default function FamilyTreeCard({
                 className={`minimal-avatar-circle ${grandChild1.id === currentViewerId ? 'active-viewer' : ''}`}
                 style={{ backgroundColor: getMemberColor(grandChild1, 2) }}
                 onClick={() => onSwitchViewer && onSwitchViewer(grandChild1.id)}
-                title={`View as ${grandChild1.name}`}
+                title={onSwitchViewer ? `View as ${grandChild1.name}` : grandChild1.name}
               >
                 <span className="avatar-initials">{getInitials(grandChild1.name)}</span>
                 {grandChild1.id === currentViewerId && <span className="active-dot-indicator" />}
@@ -176,7 +176,7 @@ export default function FamilyTreeCard({
                 className={`minimal-avatar-circle ${grandChild2.id === currentViewerId ? 'active-viewer' : ''}`}
                 style={{ backgroundColor: getMemberColor(grandChild2, 3) }}
                 onClick={() => onSwitchViewer && onSwitchViewer(grandChild2.id)}
-                title={`View as ${grandChild2.name}`}
+                title={onSwitchViewer ? `View as ${grandChild2.name}` : grandChild2.name}
               >
                 <span className="avatar-initials">{getInitials(grandChild2.name)}</span>
                 {grandChild2.id === currentViewerId && <span className="active-dot-indicator" />}
@@ -205,10 +205,12 @@ export default function FamilyTreeCard({
         )}
       </div>
 
-      {/* 4. Footer Cue */}
-      <div className="minimal-tree-footer-cue">
-        <span>Tap a person to see the archive through their eyes</span>
-      </div>
+      {/* 4. Footer Cue (demo only: a signed-in session cannot switch person) */}
+      {onSwitchViewer && (
+        <div className="minimal-tree-footer-cue">
+          <span>Tap a person to see the archive through their eyes</span>
+        </div>
+      )}
     </aside>
   );
 }

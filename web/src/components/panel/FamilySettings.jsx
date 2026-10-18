@@ -3,6 +3,7 @@ import { useApp } from '../../context/useApp';
 import { apiClient } from '../../api/client';
 import { Trash2, Plus, Clock } from 'lucide-react';
 import { formatWhen } from '../../utils/format';
+import MembersSection from './MembersSection';
 
 // Family settings for the circle's admin (/api/admin/*): sensitive topics and the chat time.
 // FamilyPanel shows it only when me.role is "admin"; everyone else would get a 403.
@@ -89,6 +90,8 @@ export default function FamilySettings() {
         <h1 className="section-title-serif">Family settings</h1>
         <p className="section-desc">Only you, as the family's admin, can see this page.</p>
       </header>
+
+      <MembersSection />
 
       <section className="side-archival-card" aria-labelledby="topics-heading" style={{ marginBottom: '24px' }}>
         <h2 id="topics-heading" className="side-card-heading">Topics Evoca never brings up</h2>

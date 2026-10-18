@@ -202,6 +202,143 @@ h1, h2, h3, h4, .serif-font {
   cursor: pointer;
 }
 
+/* Signed-in "Leave" and "Create your family" in the top bar */
+.topbar-text-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg-white);
+  border: 1px solid var(--border-paper);
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-charcoal);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition-gentle);
+}
+
+.topbar-text-btn:hover {
+  background: var(--bg-paper-light);
+}
+
+/* "Create your family" on the landing page */
+.own-family-band {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-paper-light);
+  border-bottom: 1px solid var(--border-paper);
+  font-size: 14px;
+  color: var(--text-charcoal);
+}
+
+/* Personal links, members, field errors */
+.copy-link-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.copy-link-field {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+}
+
+.field-error {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--accent-terracotta);
+}
+
+.members-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 16px;
+}
+
+.member-row {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-paper);
+}
+
+.member-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.member-text {
+  min-width: 0;
+}
+
+.member-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.member-edit,
+.member-add-fields {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.member-add-fields .archival-input-select {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+
+.member-link {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: var(--bg-paper-light);
+  border-radius: var(--radius-sm);
+}
+
+/* The landing page with the "Create your family" band above it */
+.landing-stack {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Title and close button side by side (the dialogs of this feature) */
+.dialog-title-flex {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* /join/<token> */
+.join-page .view-viewport {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 16px;
+}
+
+.join-card {
+  max-width: 460px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
 /* Demo clock chip and its menu (demo mode only) */
 .demo-controls {
   position: relative;

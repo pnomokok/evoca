@@ -10,7 +10,7 @@ const CLOCK_REFRESH_MS = 60_000;
 // The demo clock and its menu (GET /api/demo/clock, POST /api/demo/advance, POST /api/demo/reset).
 // Rendered only in demo mode: a 404 from the clock hides it.
 export default function DemoControls() {
-  const { circleData, demoAdvance, demoReset, showToast } = useApp();
+  const { circleData, demoAdvance, demoReset, showToast, isSignedIn } = useApp();
   const [clock, setClock] = useState(null);
   const [demoMode, setDemoMode] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -98,9 +98,12 @@ export default function DemoControls() {
             Next morning
           </button>
           <button type="button" role="menuitem" onClick={() => advance(24, '1 day')}>+1 day</button>
-          <button type="button" role="menuitem" className="danger" onClick={() => { setMenuOpen(false); setConfirmReset(true); }}>
-            Reset demo
-          </button>
+          {/* A reset rebuilds the database and deletes every family made with "Create your family". */}
+          {!isSignedIn && (
+            <button type="button" role="menuitem" className="danger" onClick={() => { setMenuOpen(false); setConfirmReset(true); }}>
+              Reset demo
+            </button>
+          )}
         </div>
       )}
 
