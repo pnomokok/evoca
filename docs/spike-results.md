@@ -61,3 +61,46 @@ Setup notes (Windows):
 Polly `standard` voice (Joanna) in `eu-north-1` works but sounds robotic.
 TTS stays behind one small function so we can swap in browser voices (for example Edge "Natural" voices)
 or Polly neural later without touching the rest of the code.
+
+## Speech-to-text model benchmark (Oct 18, 2026, `experiments/stt_benchmark.py`)
+
+Question: can a smaller faster-whisper model shorten the device turn without losing names?
+Settings as in `server/speech.py`: CPU (16 threads, AMD Ryzen laptop), int8, `beam_size=1`, `vad_filter`, word
+timestamps, the seed family's `initial_prompt` (plus the companion's question for the Polly clips). Audio: the 5 files
+in `experiments/audio/`, `core/seed_assets/seed_session.wav` (42 s) and 3 Polly answers (Kendra, about 9 s each,
+cached in `experiments/audio_polly/`) using Fatma, Ayşe, Elif, Can and Yilmaz. Warm model, 3 runs per clip.
+
+| Model | Median s per 10 s audio | Hint names missed (7 name checks, Polly clips) | Common words on the real recordings |
+|---|---|---|---|
+| small.en (current) | 5.01 | 5 of 7: Ayşe ×3 (Ayesha, Aisa, Aiza), Elif (Aylif), Can (Ken) | Baseline |
+| distil-small.en | 10.00 | 5 of 7: Ayşe ×3, Elif, Yilmaz | Unusable: repetition loops ("She sat with me. She. She. ...") on 5 of 9 clips |
+| base.en | 1.17 (77% faster) | 2 of 7: Ayşe ×2 (Isa) | New clear errors: "arm village", "I was married with 10", "milk magic", "winning dart roasts", "incursable", "helping Keon", and Zeynep and Ahmet lost in one sentence ("with the inner penoment") |
+
+**Decision:** keep `small.en`. base.en is fast enough, but it fails the rule (every name right and no new clearly
+wrong common words on the real recordings). distil-small.en is slower and loops. The model is now configurable with
+`EVOCA_WHISPER_MODEL` (default `small.en`).
+
+Findings:
+- Per 10 s, short clips cost more (fixed overhead): a 9 s answer takes about 4.5 s with small.en.
+- small.en misses Polly's Turkish names even with the hint (Elif → Aylif, Can → Ken), while base.en gets them on
+  the same audio. Ayşe fails in every model: Polly's English voice does not say it the Turkish way.
+- Model load (warm cache): small.en 3.1 s. The distil-small.en and base.en load times in the run included the download.
+
+## Where the LLM + tools time goes (Oct 18, 2026, one `scripts/e2e_demo.py` run, call-level timing)
+
+| Device request | Nova 2 Lite calls | MCP tool calls | LLM time | MCP time |
+|---|---|---|---|---|
+| Opening (day 1) | 3 | 4 (context, questions, mark asked, reactions delivered) | 4.6 s | 0.29 s (first context call 0.23 s) |
+| Answer turn | 1 | 0 | 0.86 s | 0 |
+| Secret turn ("keep this between us") | 2 (keep_private is a local tool round) | 2 × mark_private | 1.76 s | 0.04 s |
+| "Play me the story" turn | 3 | 2 (search_archive, get_linked_playlist) | 2.59 s | 0.05 s |
+| Opening (day 3) | 3 | 4 | 3.28 s | 0.07 s |
+
+Each Nova round costs about 0.85 s; an MCP call costs 15 to 25 ms. The LLM + tools time is almost all LLM, and
+it grows with the number of tool rounds, not with the tools.
+
+Possible next steps (not done):
+1. Opening: fetch session context and pending questions in code (through the MCP server, same filtering) and put
+   them in the first request, so the model needs one round less: about 0.9 s off every opening.
+2. Playlist: return the linked playlist with the `search_archive` hit (or let the model call both tools in one
+   round): one round less, about 0.85 s off every "play me" turn.
