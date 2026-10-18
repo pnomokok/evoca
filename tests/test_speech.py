@@ -76,10 +76,11 @@ def test_whisper_model_loaded_once_with_measured_settings(monkeypatch):
     from server.speech import WhisperSTT
 
     calls = []
+    models = []
 
     class FakeWhisperModel:
-        def __init__(self, *args, **kwargs):
-            pass
+        def __init__(self, name, *args, **kwargs):
+            models.append(name)
 
         def transcribe(self, audio, **kwargs):
             calls.append(kwargs)
@@ -91,6 +92,7 @@ def test_whisper_model_loaded_once_with_measured_settings(monkeypatch):
                         types.SimpleNamespace(WhisperModel=FakeWhisperModel))
     monkeypatch.setattr(WhisperSTT, "_model", None)
     monkeypatch.setattr(WhisperSTT, "loads", 0)
+    monkeypatch.delenv("EVOCA_WHISPER_MODEL", raising=False)
 
     threads = [threading.Thread(target=WhisperSTT.preload) for _ in range(8)]
     for t in threads:
@@ -100,8 +102,36 @@ def test_whisper_model_loaded_once_with_measured_settings(monkeypatch):
     result = anyio.run(WhisperSTT().transcribe, bytes(2 * 16_000), "A family story.")
 
     assert WhisperSTT.loads == 1
+    assert models == [WhisperSTT.DEFAULT_MODEL]
     assert result.words == [{"w": "hi", "start_ms": 100, "end_ms": 300}]
     assert calls[-1]["beam_size"] == 1
     assert calls[-1]["vad_filter"] is True
     assert calls[-1]["word_timestamps"] is True
     assert calls[-1]["initial_prompt"] == "A family story."
+
+
+def test_whisper_model_from_env(monkeypatch):
+    import sys
+    import types
+
+    from server.speech import WhisperSTT
+
+    models = []
+
+    class FakeWhisperModel:
+        def __init__(self, name, *args, **kwargs):
+            models.append(name)
+
+        def transcribe(self, audio, **kwargs):
+            return iter([]), types.SimpleNamespace(duration=1.0)
+
+    monkeypatch.setitem(sys.modules, "faster_whisper",
+                        types.SimpleNamespace(WhisperModel=FakeWhisperModel))
+    monkeypatch.setattr(WhisperSTT, "_model", None)
+    monkeypatch.setattr(WhisperSTT, "loads", 0)
+    monkeypatch.setenv("EVOCA_WHISPER_MODEL", "base.en")
+
+    WhisperSTT.preload()
+
+    assert models == ["base.en"]
+    assert WhisperSTT.loads == 1

@@ -6,7 +6,8 @@ anyio.to_thread.run_sync so they never block the async event loop.
 
 STT
 ---
-WhisperSTT   – faster-whisper small.en on CPU (int8).
+WhisperSTT   – faster-whisper on CPU (int8); model from env EVOCA_WHISPER_MODEL
+               (default small.en).
                Loaded once at startup; set HF_HOME=data/hf-cache if not set.
                initial_prompt is built from the circle's member names and
                relations (spike results show names fail without hints).
@@ -64,7 +65,7 @@ class STT(Protocol):
 
 
 class WhisperSTT:
-    """Loads faster-whisper small.en once (per process); transcribes in a thread.
+    """Loads the faster-whisper model once (per process); transcribes in a thread.
 
     Settings, measured on experiments/audio (CPU, int8, warm model):
       beam_size=1 + vad_filter    answer1.m4a (9 s) 3.5 s, test1.m4a (73 s) 12.7 s,
@@ -77,6 +78,7 @@ class WhisperSTT:
     not pay the ~3 s load.
     """
 
+    DEFAULT_MODEL = "small.en"
     BEAM_SIZE = 1
     VAD_FILTER = True
 
@@ -91,10 +93,11 @@ class WhisperSTT:
                 if not os.environ.get("HF_HOME"):
                     os.environ["HF_HOME"] = str(Path("data") / "hf-cache")
                 from faster_whisper import WhisperModel
+                name = os.environ.get("EVOCA_WHISPER_MODEL") or cls.DEFAULT_MODEL
                 t0 = time.perf_counter()
-                cls._model = WhisperModel("small.en", device="cpu", compute_type="int8")
+                cls._model = WhisperModel(name, device="cpu", compute_type="int8")
                 cls.loads += 1
-                log.info("Whisper small.en loaded in %.1f s", time.perf_counter() - t0)
+                log.info("Whisper %s loaded in %.1f s", name, time.perf_counter() - t0)
             return cls._model
 
     @classmethod
