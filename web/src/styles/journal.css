@@ -10,11 +10,6 @@
   white-space: nowrap;
 }
 
-.my-questions-ask {
-  margin-top: var(--space-4);
-  align-self: flex-start;
-}
-
 .question-list {
   list-style: none;
   padding: 0;

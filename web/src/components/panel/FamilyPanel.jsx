@@ -7,26 +7,14 @@ import AskQuestionModal from './AskQuestionModal';
 import RecordMemoryModal from './RecordMemoryModal';
 import FamilySettings from './FamilySettings';
 import MyQuestions from './MyQuestions';
-import { BookOpen, Hourglass, ListChecks, MessageSquarePlus, Mic, Settings, Sparkles, Tv } from 'lucide-react';
+import { BookOpen, Hourglass, ListChecks, MessageSquarePlus, Tv } from 'lucide-react';
 
+// The archive's pages under its header (ArchiveHeader): the page comes from the URL (AppContext).
+// Below 768 px the bottom bar holds Journal, Chapters, Questions and Ask.
 export default function FamilyPanel() {
-  const { panelSubTab, setPanelSubTab, circleData, setActiveTab, currentViewerId } = useApp();
-  const [askModalOpen, setAskModalOpen] = useState(false);
-  const [recordModalOpen, setRecordModalOpen] = useState(false);
-  const [targetPeriod, setTargetPeriod] = useState(null);
-  const [initialPrompt, setInitialPrompt] = useState('');
+  const { panelSubTab, storyBack, navigate, circleData, currentViewerId, isSignedIn, askDialog, openAsk, closeAsk, recordOpen, closeRecord } = useApp();
   // Bumped when the ask dialog closes, so My questions shows a question just asked.
   const [askCount, setAskCount] = useState(0);
-
-  const handleOpenAskModal = (period = null, prompt = '') => {
-    setTargetPeriod(period);
-    setInitialPrompt(prompt);
-    setAskModalOpen(true);
-  };
-
-  const handleOpenRecordModal = () => {
-    setRecordModalOpen(true);
-  };
 
   // The center person talks to Evoca on the device; the panel never asks or records for her.
   // Only once the circle data belongs to the current viewer (a switch updates the id first).
@@ -34,87 +22,20 @@ export default function FamilyPanel() {
   const isCenter = role === 'center';
   const isAdmin = role === 'admin';
   const centerFirst = circleData?.me?.name?.split(' ')[0] || '';
-  const askHandler = isCenter ? null : handleOpenAskModal;
-  const recordHandler = isCenter ? null : handleOpenRecordModal;
+  const askHandler = isCenter ? null : openAsk;
   // Family settings is for the circle's admin only, My questions for those who can ask;
-  // anyone else lands on the journal.
+  // anyone else sees the journal (AppContext also puts the journal in the address bar).
   const subTab = (panelSubTab === 'settings' && !isAdmin) || (panelSubTab === 'questions' && isCenter) ? 'feed' : panelSubTab;
+  const current = subTab === 'story' ? storyBack : subTab;
+  const goTo = (key) => navigate({ tab: 'panel', subTab: key });
 
   return (
     <div className="family-panel-canvas">
-      {/* Sub-Header Navigation */}
-      <nav className="panel-editorial-subnav" aria-label="Archive navigation">
-        <div className="subnav-left">
-          <button
-            className={`subnav-pill ${subTab === 'feed' ? 'active' : ''}`}
-            onClick={() => setPanelSubTab('feed')}
-          >
-            <BookOpen size={16} />
-            <span>Family Journal</span>
-          </button>
-
-          <button
-            className={`subnav-pill ${subTab === 'lifeline' ? 'active' : ''}`}
-            onClick={() => setPanelSubTab('lifeline')}
-          >
-            <Hourglass size={16} />
-            <span>Life Chapters</span>
-          </button>
-
-          <button
-            className={`subnav-pill ${subTab === 'story' ? 'active' : ''}`}
-            onClick={() => setPanelSubTab('story')}
-          >
-            <Sparkles size={16} />
-            <span>Story Detail</span>
-          </button>
-
-          {!isCenter && (
-            <button
-              className={`subnav-pill ${subTab === 'questions' ? 'active' : ''}`}
-              onClick={() => setPanelSubTab('questions')}
-            >
-              <ListChecks size={16} />
-              <span>My questions</span>
-            </button>
-          )}
-
-          {isAdmin && (
-            <button
-              className={`subnav-pill ${subTab === 'settings' ? 'active' : ''}`}
-              onClick={() => setPanelSubTab('settings')}
-            >
-              <Settings size={16} />
-              <span>Family settings</span>
-            </button>
-          )}
-        </div>
-
-        {!isCenter && (
-          <div className="subnav-right">
-            <button
-              className="editorial-action-btn question"
-              onClick={() => handleOpenAskModal(null, '')}
-            >
-              <MessageSquarePlus size={15} />
-              <span>Ask a Question</span>
-            </button>
-
-            <button
-              className="editorial-action-btn record"
-              onClick={handleOpenRecordModal}
-            >
-              <Mic size={15} />
-              <span>Record Memory</span>
-            </button>
-          </div>
-        )}
-      </nav>
-
-      {isCenter && (
+      {/* Signed in only: in the demo the storyteller's pick opens the device instead of the archive. */}
+      {isCenter && isSignedIn && (
         <div className="sensitive-guard-alert center-device-note" role="note" style={{ margin: '12px auto', maxWidth: '960px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
           <p style={{ margin: 0 }}>{centerFirst || 'The storyteller'} talks to Evoca on the Living Room Device.</p>
-          <button type="button" className="editorial-btn secondary" onClick={() => setActiveTab('device')}>
+          <button type="button" className="editorial-btn secondary" onClick={() => navigate({ tab: 'device' })}>
             <Tv size={15} />
             <span>Open the Living Room Device</span>
           </button>
@@ -124,10 +45,7 @@ export default function FamilyPanel() {
       {/* Main Experience View */}
       <div className="panel-experience-content">
         {subTab === 'feed' && (
-          <FamilyDashboard
-            onOpenAskModal={askHandler}
-            onOpenRecordModal={recordHandler}
-          />
+          <FamilyDashboard onOpenAskModal={askHandler} />
         )}
         {subTab === 'lifeline' && (
           <LifelineView onOpenAskModal={askHandler} />
@@ -136,7 +54,7 @@ export default function FamilyPanel() {
           <StoryView />
         )}
         {subTab === 'questions' && !isCenter && (
-          <MyQuestions onOpenAskModal={askHandler} reloadKey={askCount} />
+          <MyQuestions reloadKey={askCount} />
         )}
         {subTab === 'settings' && isAdmin && (
           <FamilySettings />
@@ -144,35 +62,30 @@ export default function FamilyPanel() {
       </div>
 
       {/* Mobile Bottom Navigation Bar */}
-      <nav className="mobile-archival-nav" aria-label="Mobile navigation">
+      <nav className="mobile-archival-nav" aria-label="Family archive">
         <button
-          className={`mobile-tab-btn ${subTab === 'feed' ? 'active' : ''}`}
-          onClick={() => setPanelSubTab('feed')}
+          className={`mobile-tab-btn ${current === 'feed' ? 'active' : ''}`}
+          onClick={() => goTo('feed')}
+          aria-current={subTab === 'feed' ? 'page' : undefined}
         >
           <BookOpen size={18} />
           <span>Journal</span>
         </button>
 
         <button
-          className={`mobile-tab-btn ${subTab === 'lifeline' ? 'active' : ''}`}
-          onClick={() => setPanelSubTab('lifeline')}
+          className={`mobile-tab-btn ${current === 'lifeline' ? 'active' : ''}`}
+          onClick={() => goTo('lifeline')}
+          aria-current={subTab === 'lifeline' ? 'page' : undefined}
         >
           <Hourglass size={18} />
           <span>Chapters</span>
         </button>
 
-        <button
-          className={`mobile-tab-btn ${subTab === 'story' ? 'active' : ''}`}
-          onClick={() => setPanelSubTab('story')}
-        >
-          <Sparkles size={18} />
-          <span>Story</span>
-        </button>
-
         {!isCenter && (
           <button
-            className={`mobile-tab-btn ${subTab === 'questions' ? 'active' : ''}`}
-            onClick={() => setPanelSubTab('questions')}
+            className={`mobile-tab-btn ${current === 'questions' ? 'active' : ''}`}
+            onClick={() => goTo('questions')}
+            aria-current={subTab === 'questions' ? 'page' : undefined}
           >
             <ListChecks size={18} />
             <span>Questions</span>
@@ -182,7 +95,7 @@ export default function FamilyPanel() {
         {!isCenter && (
           <button
             className="mobile-tab-btn action-ask"
-            onClick={() => handleOpenAskModal(null, '')}
+            onClick={() => openAsk()}
           >
             <MessageSquarePlus size={18} />
             <span>Ask</span>
@@ -192,15 +105,15 @@ export default function FamilyPanel() {
 
       {/* Modals */}
       {/* Mounted only while open, so each opening starts from fresh state */}
-      {askModalOpen && !isCenter && (
+      {askDialog && !isCenter && (
         <AskQuestionModal
-          onClose={() => { setAskModalOpen(false); setAskCount(n => n + 1); }}
-          defaultPeriod={targetPeriod}
-          initialPrompt={initialPrompt}
+          onClose={() => { closeAsk(); setAskCount(n => n + 1); }}
+          defaultPeriod={askDialog.period}
+          initialPrompt={askDialog.prompt}
         />
       )}
-      {recordModalOpen && !isCenter && (
-        <RecordMemoryModal onClose={() => setRecordModalOpen(false)} />
+      {recordOpen && !isCenter && (
+        <RecordMemoryModal onClose={closeRecord} />
       )}
     </div>
   );

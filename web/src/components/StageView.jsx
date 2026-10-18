@@ -1,14 +1,13 @@
 import React from 'react';
 import { useApp } from '../context/useApp';
-import DemoControls from './DemoControls';
-import { Users } from 'lucide-react';
 import '../styles/stage.css';
 
-// "Watch the loop" (demo only): Fatma's device and Elif's phone side by side, the demo clock on top.
+// "Watch the loop" (demo only): Fatma's device and Elif's phone side by side, under the demo strip
+// (DemoStrip: the clock, the person picker and "Exit demo").
 // Each pane is the app itself in an iframe with its own fixed identity in the URL
 // (?embed=device|panel&person=<id>); the panes tell each other about changes (utils/stageChannel.js).
 export default function StageView() {
-  const { peopleList, centerPersonId, circleData, currentViewerId, viewerReady, setActiveTab } = useApp();
+  const { peopleList, centerPersonId, circleData, currentViewerId, viewerReady } = useApp();
 
   const members = circleData?.members || [];
   const center = members.find(m => m.id === centerPersonId) || peopleList.find(p => p.id === centerPersonId);
@@ -29,20 +28,6 @@ export default function StageView() {
 
   return (
     <div className="stage-page">
-      <header className="stage-bar">
-        <button type="button" className="stage-brand" onClick={() => setActiveTab('landing')} title="Go to Evoca Overview">
-          <span className="brand-monogram">E</span>
-          <span className="brand-name">Evoca</span>
-        </button>
-        {circleData?.circle?.name && <span className="stage-pill">Demo · {circleData.circle.name}</span>}
-        <span className="stage-spacer" />
-        <DemoControls inline />
-        <button type="button" className="stage-btn quiet" onClick={() => setActiveTab('panel')}>
-          <Users size={14} />
-          Pick a role
-        </button>
-      </header>
-
       <main className="stage" aria-label="Watch the loop">
         <section className="stage-pane device-pane">
           <p className="stage-label">

@@ -1,0 +1,279 @@
+/* ==========================================================================
+   NAVIGATION: the demo strip (demo layer), the archive header and the person
+   picker (docs/web-navigation.md). Tokens from index.css.
+   ========================================================================== */
+
+/* The demo strip: thin, honey, clearly "Demo"; above the product on every demo page. */
+.demo-strip {
+  position: relative;
+  z-index: 120;
+  background: var(--honey-soft);
+  border-bottom: 1px solid rgba(227, 154, 76, 0.35);
+}
+
+.demo-strip-inner {
+  width: 94%;
+  max-width: 1440px;
+  margin: 0 auto;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.demo-strip-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-label);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--bg-ivory);
+  background: var(--text-charcoal);
+  border: 0;
+  border-radius: var(--radius-full);
+  padding: 4px 10px;
+  margin-right: var(--space-1);
+}
+
+.demo-strip-label.as-button { cursor: pointer; padding: 6px 12px; }
+
+.demo-strip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 600 12.5px var(--font-sans);
+  color: var(--text-charcoal);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(48, 47, 41, 0.14);
+  border-radius: var(--radius-full);
+  padding: 5px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition-gentle);
+}
+
+.demo-strip-btn:hover { background: var(--bg-white); }
+.demo-strip-btn.active { background: var(--bg-white); border-color: var(--border-paper-dark); box-shadow: var(--shadow-subtle); }
+.demo-strip-btn.quiet { background: transparent; border-color: transparent; color: var(--text-charcoal-muted); }
+.demo-strip-btn.quiet:hover { color: var(--text-charcoal); }
+.demo-strip-btn.viewer strong { font-weight: 700; }
+.demo-strip-spacer { flex: 1; }
+
+/* The clock controls inside the strip (inline on the stage and on mobile) */
+.demo-strip .demo-controls.inline .stage-btn { padding: 5px 12px; font-size: 12.5px; }
+
+.demo-strip-panel {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--bg-white);
+  border-bottom: 1px solid var(--border-paper);
+  box-shadow: var(--shadow-dialog);
+}
+
+.demo-strip-panel .demo-controls.inline { flex-wrap: wrap; }
+
+@media (max-width: 768px) {
+  .demo-strip-inner { width: auto; height: 38px; padding: 0 16px; }
+}
+
+/* The archive header: one row at 1366 px. */
+.archive-header .topbar-inner {
+  width: 94%;
+  flex-wrap: nowrap;
+  gap: var(--space-4);
+}
+
+.archive-header .topbar-brand {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  flex: none;
+}
+
+.archive-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.archive-tabs .subnav-pill { white-space: nowrap; padding: 7px 12px; }
+
+.archive-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+
+.archive-actions .editorial-action-btn { white-space: nowrap; }
+
+.archive-me {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-charcoal);
+  white-space: nowrap;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-left: var(--space-2);
+}
+
+.archive-menu { display: none; position: relative; margin-left: auto; }
+
+.archive-menu-btn {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  background: var(--bg-white);
+  border: 1px solid var(--border-paper);
+  border-radius: var(--radius-sm);
+  color: var(--text-charcoal);
+  cursor: pointer;
+}
+
+.archive-menu .demo-menu { min-width: 200px; }
+.archive-menu .demo-menu button { display: flex; align-items: center; gap: 8px; }
+
+.archive-menu-me {
+  margin: 0 0 4px;
+  padding: 6px 10px 8px;
+  font-size: var(--text-helper);
+  color: var(--text-charcoal-muted);
+  border-bottom: 1px solid var(--border-paper);
+}
+
+.archive-identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--text-helper);
+  color: var(--text-charcoal-muted);
+  min-width: 0;
+}
+
+.archive-identity strong { color: var(--text-charcoal); font-weight: 600; }
+
+/* Between a phone and 1200 px the row may wrap. */
+@media (max-width: 1200px) and (min-width: 769px) {
+  .archive-header .topbar-inner { flex-wrap: wrap; }
+}
+
+@media (max-width: 768px) {
+  .archive-tabs,
+  .archive-actions { display: none; }
+  .archive-menu { display: block; }
+  .archive-header .topbar-inner { width: auto; padding: 0 16px; }
+  .archive-header .brand-name { font-size: 19px; }
+}
+
+/* A stage pane's phone: who is holding it, and the menu. */
+.archive-header.embedded { position: static; padding: 14px 0 8px; border-bottom: 0; }
+
+/* The device page: the device centred, nothing of the product around it. */
+.device-viewport {
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-4) var(--space-6);
+}
+
+.device-away-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 0;
+  color: var(--text-charcoal-muted);
+  font: 600 var(--text-helper) var(--font-sans);
+  cursor: pointer;
+}
+
+.device-away-link:hover { color: var(--text-charcoal); }
+
+/* "Who do you want to be?" */
+.modal-sheet.archival-dialog.person-picker { max-width: 680px; }
+
+.person-picker-grid {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-4) 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-3);
+}
+
+.person-option {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  padding: var(--space-4) var(--space-3);
+  background: var(--bg-white);
+  border: 1px solid var(--border-paper);
+  border-radius: var(--radius-md);
+  color: var(--text-charcoal);
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: var(--transition-gentle);
+}
+
+.person-option:hover { background: var(--bg-paper-light); }
+
+.person-option.current,
+.person-option.suggested {
+  border-color: var(--accent-terracotta);
+  background: var(--accent-terracotta-soft);
+}
+
+.person-option strong {
+  font-family: var(--font-serif);
+  font-size: 19px;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+.person-line { font-size: var(--text-helper); color: var(--text-charcoal-muted); font-weight: 600; }
+.person-view { font-size: 12.5px; line-height: 1.45; color: var(--text-charcoal-muted); }
+
+.person-badge {
+  font-size: var(--text-label);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-terracotta);
+}
+
+@media (max-width: 600px) {
+  .person-picker-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* "Recommended" on the demo modal's first option */
+.demo-entry-tag {
+  font: 700 var(--text-label) var(--font-sans);
+  font-style: normal;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-sage);
+  background: var(--accent-sage-soft);
+  border-radius: var(--radius-full);
+  padding: 2px 8px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
