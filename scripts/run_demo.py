@@ -3,6 +3,8 @@ Start the Evoca demo with one command (Windows, macOS, Linux):
 
     python scripts/run_demo.py
 
+- Reads ./.env if it exists (KEY=VALUE lines) and passes it to both
+  servers; a variable already set in the environment wins.
 - Seeds data/demo.db if it does not exist yet (never touches data/evoca.db).
 - Starts the MCP server on port 8000 and the backend on port 8080, both with
   EVOCA_DB_PATH=data/demo.db and EVOCA_DEMO_MODE=1, so the demo controls
@@ -34,8 +36,29 @@ def port_in_use(port: int) -> bool:
         return s.connect_ex(("127.0.0.1", port)) == 0
 
 
+def read_env_file(path: Path) -> dict[str, str]:
+    """KEY=VALUE lines of a .env file; blank lines, comments and lines
+    without "=" are skipped, and matching quotes around a value are removed."""
+    values: dict[str, str] = {}
+    if not path.is_file():
+        return values
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = (part.strip() for part in line.split("=", 1))
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        if key:
+            values[key] = value
+    return values
+
+
 def demo_env() -> dict[str, str]:
     env = dict(os.environ)
+    # ./.env only fills in what the environment does not already set.
+    for key, value in read_env_file(REPO / ".env").items():
+        env.setdefault(key, value)
     env.update({
         "EVOCA_DB_PATH": str(DEMO_DB),
         "EVOCA_DEMO_MODE": "1",

@@ -46,3 +46,10 @@
 - Severity: Medium (three separate runtime failures in one day).
 - Workaround: Added an "MCP Python SDK v2" section to the Kiro steering file with the correct names.
 - Suggestion: Ship an official steering/rules snippet for Kiro with the SDK, or have Kiro detect the installed SDK version.
+## 7. Upgrading to the Paid plan does not lift the Region lock
+- Task: Use Amazon Polly in eu-central-1 or us-east-1 after upgrading the project account to the Paid plan.
+- Expected: The upgrade removes the plan's service and Region limits.
+- Actual: Polly was still denied in eu-central-1 and us-east-1 with the same service control policy message (only a policy ID). The documented ways out are a separate account or turning on "advanced features", which cannot be undone.
+- Severity: Medium (we upgraded expecting the lock to go away; it did not, and the remaining options were not reversible).
+- Workaround: Kept Polly in the project Region (eu-north-1, standard engine).
+- Suggestion: Say in the upgrade flow that the project Region stays fixed, and which services work only there.

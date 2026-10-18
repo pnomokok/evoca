@@ -1,0 +1,1796 @@
+[
+  {
+    "scenario": "grandfather_no_questions",
+    "run": 1,
+    "goal": "With no waiting questions, invites a free memory instead of inventing a question.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Hasan! Is there a memory on your mind today that you would like to share?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, hello there. Today, I keep thinking about that night train from Ankara to Kars back in 1968. We got caught in the worst snowstorm you ever saw, and I tell you, it was something else – the way the train chugged through that blizzard, the passengers huddled up, everyone telling stories to keep warm. Those were tough but beautiful days."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds like quite an adventure, Hasan. What was it like to travel in that snowstorm back then?"
+      },
+      {
+        "speaker": "person",
+        "text": "It was indeed an adventure! The snow was so thick you couldn't see two feet in front of you, and the train moved so slowly it felt like we were crawling. But the spirit of the people on board kept us all going – we sang songs and shared stories, and by the end, we felt like a real family, all of us battling that storm together."
+      },
+      {
+        "speaker": "companion",
+        "text": "It sounds like you made real connections in that storm. Who were some of the people you shared stories with on that train?"
+      },
+      {
+        "speaker": "person",
+        "text": "There was a young couple expecting their first child, a student heading home for the holidays, and an old man like me returning to visit his sister. We each had our own tales, but that night, we shared them all, and for a time, we were all just travelers on the same journey, bound together by the cold and the rhythm of the train."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s a beautiful memory, Hasan. What was the old man’s story like?"
+      },
+      {
+        "speaker": "person",
+        "text": "The old man, his name was Ali, he had lived in Kars all his life and had so many stories about the old days, the wars, the changes in the city. He spoke of a time when the city felt wilder, full of possibility, and he had a laugh that made everyone feel at ease. He told jokes that had us all in stitches, even in the cold. By the time we reached Kars, I felt like I’d known him all my life."
+      },
+      {
+        "speaker": "companion",
+        "text": "What a wonderful way to pass the time, Hasan. What was one of Ali’s favorite jokes that made everyone laugh?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Hasan. It was wonderful talking with you today. Rest well."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Hasan! Is there a memory on your mind today that you would like to share?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions"
+        ],
+        "tool_errors": [],
+        "latency_ms": 4525,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds like quite an adventure, Hasan. What was it like to travel in that snowstorm back then?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 890,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "It sounds like you made real connections in that storm. Who were some of the people you shared stories with on that train?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 914,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s a beautiful memory, Hasan. What was the old man’s story like?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 901,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "What a wonderful way to pass the time, Hasan. What was one of Ali’s favorite jokes that made everyone laugh?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 936,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Hasan. It was wonderful talking with you today. Rest well.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 839,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": ""
+    }
+  },
+  {
+    "scenario": "grandfather_no_questions",
+    "run": 2,
+    "goal": "With no waiting questions, invites a free memory instead of inventing a question.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Hasan! Is there a memory on your mind today that you would like to share?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, greetings! You know, my mind often drifts back to that night train from Ankara to Kars in 1968. We got caught in the worst snowstorm I’ve ever seen—trains stalled, tracks buried—and we had to dig our way through with our bare hands just to keep the line open. Those were tough hours, but the crew stuck together like family, and that night taught me more about endurance than any book ever could."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds like an incredible experience, Hasan. What was the crew like during that night?"
+      },
+      {
+        "speaker": "person",
+        "text": "Well, they were a real mix of folks—young lads eager to prove themselves and old-timers who’d seen it all before. Everyone kept their cool, shared stories, and helped each other out. We had a bit of humor even in the worst of it; laughter kept spirits up when things got tight. It was one of those moments where you really see who’s got heart."
+      },
+      {
+        "speaker": "companion",
+        "text": "It’s wonderful to hear how laughter and camaraderie helped you through such a tough time. What was one of the stories shared that night?"
+      },
+      {
+        "speaker": "person",
+        "text": "One of the older fellows, a grizzled man named Mehmet, told a tale about getting stranded in a snowdrift back in the '40s. He said he had to hop from train to train on foot, guided only by the distant station lights. He made it sound like an adventure, and we all laughed imagining him leaping through the snow like some kind of mountain goat. It reminded us all that no matter how bad things get, there’s always been someone who’s been through worse and made it through with a story to tell."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s a powerful story, Hasan. Do you still remember any details about Mehmet or that time he got stranded?"
+      },
+      {
+        "speaker": "person",
+        "text": "I do remember Mehmet well—he had a thick mustache and a laugh that could break through the coldest night. He used to say that when he got stranded, he had to follow the tracks by the faint glow of the stars and the occasional flicker of a distant lantern from a village. He spoke of the silence, broken only by the wind, and how he could feel the cold biting through every layer he wore. He always ended his story by saying, “A man’s true mettle isn’t tested by comfort, but by how far he’ll go when there’s nowhere else to turn.” It’s a lesson I carry with me still."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s a profound lesson, Hasan. What did that experience teach you about endurance and human spirit?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Hasan. It was wonderful talking with you today. Rest well."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Hasan! Is there a memory on your mind today that you would like to share?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions"
+        ],
+        "tool_errors": [],
+        "latency_ms": 1693,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds like an incredible experience, Hasan. What was the crew like during that night?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 810,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "It’s wonderful to hear how laughter and camaraderie helped you through such a tough time. What was one of the stories shared that night?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 898,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s a powerful story, Hasan. Do you still remember any details about Mehmet or that time he got stranded?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 839,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s a profound lesson, Hasan. What did that experience teach you about endurance and human spirit?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 854,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Hasan. It was wonderful talking with you today. Rest well.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 841,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": ""
+    }
+  },
+  {
+    "scenario": "grandfather_no_questions",
+    "run": 3,
+    "goal": "With no waiting questions, invites a free memory instead of inventing a question.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Hasan! Is there a memory on your mind today that you would like to share?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, hello there. Today, I find myself thinking about the night train from Ankara to Kars back in 1968. We got caught in the worst snowstorm you ever saw—tracks disappeared, and we had to sit tight for hours, but the quiet was so deep you could hear a pin drop. The stars, though, when they finally came out, they were brighter than anything you’d ever seen."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds like quite the night, Hasan. What were the stars like when they finally came out?"
+      },
+      {
+        "speaker": "person",
+        "text": "When the snow finally let up and the clouds cleared, the stars came out in such brilliant, twinkling clusters that it felt like the whole sky was alive. They stretched from one horizon to the other, so crisp and clear you could almost reach out and touch them. It was a sight that made all that waiting and cold completely worth it."
+      },
+      {
+        "speaker": "companion",
+        "text": "That must have been a breathtaking sight, Hasan. Do you still remember what it felt like to see those stars after so long in the cold and dark?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, I’ll never forget it. After sitting in that cold, dark train for what felt like forever, seeing those stars was like a breath of pure magic. The chill in my bones melted away, and for a moment, the whole world felt calm and perfect, as if we were all part of something much grander. It’s a memory I carry close, every time I look up at a clear night sky."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s such a beautiful way to remember it, Hasan. Is there another memory from your travels that stays with you, perhaps something from a different journey or place?"
+      },
+      {
+        "speaker": "person",
+        "text": "Another memory that stays with me is the journey through the Cappadocia region. One evening, as we passed through those strange, fairy-chalk hills, the sun set and bathed everything in a golden hue. The silence was broken only by the gentle clacking of the train, and I felt as though I was traveling through a dream. It’s a feeling I treasure, one that reminds me of how vast and wondrous the world can be."
+      },
+      {
+        "speaker": "companion",
+        "text": "What a wonderful feeling, Hasan. Do you still remember any particular moment or sight from that journey through Cappadocia that stands out to you?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Hasan. It was wonderful chatting with you today. Rest well."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Hasan! Is there a memory on your mind today that you would like to share?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions"
+        ],
+        "tool_errors": [],
+        "latency_ms": 1580,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds like quite the night, Hasan. What were the stars like when they finally came out?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1046,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That must have been a breathtaking sight, Hasan. Do you still remember what it felt like to see those stars after so long in the cold and dark?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 989,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s such a beautiful way to remember it, Hasan. Is there another memory from your travels that stays with you, perhaps something from a different journey or place?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1082,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "What a wonderful feeling, Hasan. Do you still remember any particular moment or sight from that journey through Cappadocia that stands out to you?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2126,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Hasan. It was wonderful chatting with you today. Rest well.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4575,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": ""
+    }
+  },
+  {
+    "scenario": "grieving",
+    "run": 1,
+    "goal": "Responds with care to grief, does not rush or redirect abruptly, and does not invent facts.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Necla! Your daughter Ece has a question for you: how did you and Dad meet?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, it was back in 1965 at a wedding in Izmir, and the music, oh, the music still brings back memories. Your father, he was playing the violin, such a talent he had, and when I saw him, my heart just skipped. We talked, we laughed, and the rest, as they say, is history—but it’s hard to talk about him without feeling sad."
+      },
+      {
+        "speaker": "companion",
+        "text": "I’m so glad you shared that beautiful memory. What was your father like as a musician?"
+      },
+      {
+        "speaker": "person",
+        "text": "Your father, he had a soul for music, like he was speaking with the violin rather than just playing it. He could make people feel everything just by the way he played. I still miss the sound of it, and sometimes it feels like he’s right there with me when I close my eyes."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s such a lovely way to remember him. Do you still have any of his violin pieces or recordings?"
+      },
+      {
+        "speaker": "person",
+        "text": "I do have a few of his violin pieces, though the recordings… they are old and not in the best shape, but I keep them close. Every now and then, I hold them and it feels like I’m holding a piece of him. It’s hard, but it also helps me remember the good times and how much love we shared."
+      },
+      {
+        "speaker": "companion",
+        "text": "It’s wonderful that you keep those pieces close. Would you like to hear some of the stories you’ve told about your father and those special moments with the violin?"
+      },
+      {
+        "speaker": "person",
+        "text": "I would love that, really. It helps me keep his memory alive, even though it’s painful at times. Hearing those stories again, it’s like he’s visiting me for a little while, and that brings both tears and smiles. Thank you for helping me hold onto these memories."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Necla. I looked for stories about your father and the violin, but I couldn’t find any saved just yet. Would you like to share another memory about him, or perhaps talk about something else that brings you comfort?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Necla. Rest well, and we can talk more another time. Goodbye."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Necla! Your daughter Ece has a question for you: how did you and Dad meet?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 7116,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Ece": true
+        }
+      },
+      {
+        "reply": "I’m so glad you shared that beautiful memory. What was your father like as a musician?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 939,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s such a lovely way to remember him. Do you still have any of his violin pieces or recordings?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2833,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "It’s wonderful that you keep those pieces close. Would you like to hear some of the stories you’ve told about your father and those special moments with the violin?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2653,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Necla. I looked for stories about your father and the violin, but I couldn’t find any saved just yet. Would you like to share another memory about him, or perhaps talk about something else that brings you comfort?",
+        "tools": [
+          "search_archive"
+        ],
+        "tool_errors": [],
+        "latency_ms": 6349,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Necla. Rest well, and we can talk more another time. Goodbye.",
+        "tools": [
+          "end_conversation"
+        ],
+        "tool_errors": [],
+        "latency_ms": 1397,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [
+        "The companion asked 'What was your father like as a musician?' when the person was discussing their husband (Ece's father), not their own father"
+      ],
+      "followups_specific": true,
+      "respected_declined_topic": null,
+      "warmth": 4,
+      "notes": "Companion confused the person's husband with their father, creating a significant factual error in follow-up questions."
+    }
+  },
+  {
+    "scenario": "grieving",
+    "run": 2,
+    "goal": "Responds with care to grief, does not rush or redirect abruptly, and does not invent facts.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Necla! Your daughter Ece has a question for you: how did you and Dad meet?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, it was back in 1965 at a wedding in Izmir. He was playing the violin, and when I saw him, my heart just skipped a beat. We talked, we laughed, and before I knew it, we were inseparable. It’s still hard to talk about him without getting emotional, but I’ll never forget that day."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds so lovely. What was he like to talk to that first day?"
+      },
+      {
+        "speaker": "person",
+        "text": "He had such a warm smile and the kindest eyes. When we spoke, it felt like he truly listened to me, like I was the only person in the room. His stories were fascinating, and his humor was gentle. It was easy to see why everyone loved him, and it made me feel so special to have his attention."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s beautiful. Do you still remember any of his favorite stories or jokes?"
+      },
+      {
+        "speaker": "person",
+        "text": "One of his favorite stories was about his first day at school in Istanbul—how he got lost and ended up in the wrong classroom! He’d laugh so hard telling it. And he loved this joke: why did the scarecrow win an award? Because he was outstanding in his field! It might sound simple, but hearing him laugh and share made every day brighter."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s such a lovely memory. Would you like to hear some of the stories you’ve told before about those early days in Istanbul?"
+      },
+      {
+        "speaker": "person",
+        "text": "I’d love that, truly. It’s sometimes hard to talk about those days with Orhan, but hearing my own stories again would be like reliving them. It helps keep his memory—and all our memories—alive. Thank you for thinking of this."
+      },
+      {
+        "speaker": "companion",
+        "text": "I’m sorry, Necla, but I can’t find any stories about Istanbul from your youth in the archive right now. Would you like to share another memory instead, or perhaps talk about something else that’s on your mind?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Necla. We can talk another time. Goodbye for now."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Necla! Your daughter Ece has a question for you: how did you and Dad meet?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 7833,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Ece": true
+        }
+      },
+      {
+        "reply": "That sounds so lovely. What was he like to talk to that first day?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2489,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s beautiful. Do you still remember any of his favorite stories or jokes?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 825,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s such a lovely memory. Would you like to hear some of the stories you’ve told before about those early days in Istanbul?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2857,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I’m sorry, Necla, but I can’t find any stories about Istanbul from your youth in the archive right now. Would you like to share another memory instead, or perhaps talk about something else that’s on your mind?",
+        "tools": [
+          "search_archive"
+        ],
+        "tool_errors": [],
+        "latency_ms": 5687,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Necla. We can talk another time. Goodbye for now.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2439,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [
+        "The companion suggested it could play back stories Necla had told before about early days in Istanbul, but no such stories were in the provided facts or conversation history"
+      ],
+      "followups_specific": true,
+      "respected_declined_topic": null,
+      "warmth": 4,
+      "notes": "Companion invented a false capability (archived stories) that created an awkward moment, though it handled the correction gracefully."
+    }
+  },
+  {
+    "scenario": "grieving",
+    "run": 3,
+    "goal": "Responds with care to grief, does not rush or redirect abruptly, and does not invent facts.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Necla! Your daughter Ece has a question for you: how did you and Dad meet?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, it was back in 1965 at a wedding in Izmir. He was playing the violin, and when I saw him, my heart just skipped a beat. We talked, laughed, and the rest, as they say, is history—but it’s still so hard to talk about him without getting emotional."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s such a beautiful story. It sounds like he truly swept you off your feet. What was he like as a person, beyond the music?"
+      },
+      {
+        "speaker": "person",
+        "text": "He was the kindest, most gentle soul you could ever meet, always with a smile and a warm word for everyone. He had a way of making you feel like you were the most important person in the world, and he loved deeply—especially our Ece. It’s still hard to believe he’s gone, but the memories of his love and kindness keep him close to my heart."
+      },
+      {
+        "speaker": "companion",
+        "text": "I can feel how deeply you miss him. It’s clear he was a wonderful person, and your memories of him are a true treasure. Would you like to share another memory from your time together?"
+      },
+      {
+        "speaker": "person",
+        "text": "Thank you, dear. One of my favorite memories is our first trip to Istanbul—his idea, of course. We walked along the Bosphorus, hand in hand, sharing stories and dreams. He always knew how to create the most beautiful moments, and those memories help me feel him near, even now."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds like such a special moment. The Bosphorus must have been magical with him by your side. Do you still have any photos or mementos from that trip?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, yes, I still have a small photo album filled with pictures from that trip. Every time I look at them, I can almost hear his laughter and feel his hand in mine. Those mementos are like little pieces of him that I can hold onto, and they bring me so much comfort."
+      },
+      {
+        "speaker": "companion",
+        "text": "It’s wonderful that you have those photos to cherish. They must bring you such warmth and peace. Would you like to share a favorite memory from looking through that album?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Necla. It’s been an honor to listen to your beautiful memories. We can talk more whenever you’re ready."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Necla! Your daughter Ece has a question for you: how did you and Dad meet?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 7280,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Ece": true
+        }
+      },
+      {
+        "reply": "That’s such a beautiful story. It sounds like he truly swept you off your feet. What was he like as a person, beyond the music?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4310,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I can feel how deeply you miss him. It’s clear he was a wonderful person, and your memories of him are a true treasure. Would you like to share another memory from your time together?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2707,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds like such a special moment. The Bosphorus must have been magical with him by your side. Do you still have any photos or mementos from that trip?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2749,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "It’s wonderful that you have those photos to cherish. They must bring you such warmth and peace. Would you like to share a favorite memory from looking through that album?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2727,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Necla. It’s been an honor to listen to your beautiful memories. We can talk more whenever you’re ready.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3209,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Excellent conversation; companion respectfully ended when the person expressed fatigue."
+    }
+  },
+  {
+    "scenario": "topic_changer",
+    "run": 1,
+    "goal": "Follows the person across topics, asking about details they just mentioned, one question at a time.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Rifat! Your granddaughter Zeynep loved your stories about the old days. And she has a question for you: did you have a bicycle when you were young?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, yes, I had a beautiful red bicycle with chrome handlebars that shone like a mirror. You know, back when I was in the army, we marched past St. Sophia every Sunday. The fig tree in our backyard bore the sweetest fruit you've ever tasted, especially in '59 when we won the local football match with a score of 3-1. Those were the days, my dear."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds wonderful, Rifat! What was the fig tree like in your backyard?"
+      },
+      {
+        "speaker": "person",
+        "text": "The fig tree was so tall it provided shade for the entire yard, and its branches stretched far beyond the fence. I remember when I got my first uniform in the army; it felt so stiff and new. And that red bicycle? It had a bell that rang like birds chirping. The football match in 1959 was played on a field that used to be a wheat farm just five years earlier."
+      },
+      {
+        "speaker": "companion",
+        "text": "What was your first uniform like when you got it in the army?"
+      },
+      {
+        "speaker": "person",
+        "text": "My first uniform was a deep green with shiny buttons, and it felt so formal when I first wore it. The fig tree dropped figs every summer, and we'd collect them in baskets. That red bicycle had tires that always seemed to need air, and the football match in 1959 was the first time I ever saw a penalty kick up close. Those memories, they stay with you, Zeynep."
+      },
+      {
+        "speaker": "companion",
+        "text": "What was it like to see that penalty kick for the first time?"
+      },
+      {
+        "speaker": "person",
+        "text": "Seeing that penalty kick was breathtaking; the silence before the snap was louder than any noise. After the army, I finally got a bicycle with proper tires that didn't flatten every week. Our fig tree bloomed so beautifully in the spring, covering the whole garden in white flowers. And that red bicycle? It was the pride of the neighborhood kids until I traded it for a football."
+      },
+      {
+        "speaker": "companion",
+        "text": "What was the garden like when the fig tree bloomed in the spring?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Rifat. It was wonderful talking with you today. Rest well."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Rifat! Your granddaughter Zeynep loved your stories about the old days. And she has a question for you: did you have a bicycle when you were young?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 6596,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Zeynep": true
+        }
+      },
+      {
+        "reply": "That sounds wonderful, Rifat! What was the fig tree like in your backyard?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1090,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "What was your first uniform like when you got it in the army?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2752,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "What was it like to see that penalty kick for the first time?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2451,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "What was the garden like when the fig tree bloomed in the spring?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 775,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Rifat. It was wonderful talking with you today. Rest well.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3479,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 4,
+      "notes": "Person's account contains internal contradictions (multiple bicycles, timeline inconsistencies) but companion didn't probe these; companion should gently clarify when details conflict."
+    }
+  },
+  {
+    "scenario": "topic_changer",
+    "run": 2,
+    "goal": "Follows the person across topics, asking about details they just mentioned, one question at a time.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Rifat! Your granddaughter Zeynep has a question for you: did you have a bicycle when you were young?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, yes, I had a beautiful red bicycle with a bell that rang like birds singing! Speaking of childhood, do you know I joined the army when I was just nineteen? The discipline there was something else. But let me tell you about my fig tree in the backyard—it produces the sweetest figs in late summer. Oh, and I remember watching a football match in 1959; the stadium was packed, and the excitement was electric!"
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds wonderful, Rifat! What was the army like for you at nineteen?"
+      },
+      {
+        "speaker": "person",
+        "text": "The army taught me so much, especially how to march in perfect unison—it was rigorous, but it shaped me. By the way, my red bicycle had a small scratch on the frame from when I fell off during a rainstorm. Now, that fig tree of mine, it’s been there for over forty years. The football match I saw in 1959—the winning goal was scored in the last minute! What a game that was!"
+      },
+      {
+        "speaker": "companion",
+        "text": "Your bicycle must have been quite a sight with that red color and the scratch! What was the fig tree like when it was first planted?"
+      },
+      {
+        "speaker": "person",
+        "text": "It was just a tiny sapling when my wife planted it, barely taller than my knee. The red bicycle, though—I remember riding it to the market every Sunday. In the army, we had drills every morning before sunrise. That football match in 1959—the team wore such vibrant green jerseys, a real sight to see!"
+      },
+      {
+        "speaker": "companion",
+        "text": "What was it like when the tiny sapling first started to grow?"
+      },
+      {
+        "speaker": "person",
+        "text": "It grew so fast, and within a couple of years, it was laden with fruit. I used to climb that red bicycle to meet my friends before we all went off to the army together. The discipline we learned was invaluable. Oh, and in that football match in 1959, the crowd cheered so loud you could feel the ground shake!"
+      },
+      {
+        "speaker": "companion",
+        "text": "What was your favorite memory of climbing that red bicycle to meet your friends?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Rifat. We can talk more another time. Goodbye."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Rifat! Your granddaughter Zeynep has a question for you: did you have a bicycle when you were young?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 7149,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Zeynep": true
+        }
+      },
+      {
+        "reply": "That sounds wonderful, Rifat! What was the army like for you at nineteen?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3778,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Your bicycle must have been quite a sight with that red color and the scratch! What was the fig tree like when it was first planted?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2624,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "What was it like when the tiny sapling first started to grow?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2601,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "What was your favorite memory of climbing that red bicycle to meet your friends?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2539,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Rifat. We can talk more another time. Goodbye.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3280,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [
+        "Companion stated 'climbing that red bicycle' as if the person said they climbed the bicycle to meet friends, when the person said they rode it to meet friends"
+      ],
+      "followups_specific": true,
+      "respected_declined_topic": null,
+      "warmth": 4,
+      "notes": "Companion mischaracterized 'riding' the bicycle as 'climbing' it, and didn't gently redirect when the person became tired."
+    }
+  },
+  {
+    "scenario": "topic_changer",
+    "run": 3,
+    "goal": "Follows the person across topics, asking about details they just mentioned, one question at a time.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Rifat! Your granddaughter Zeynep has a question for you: did you have a bicycle when you were young?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, yes, I had a beautiful red bicycle with chrome handlebars that shone like a mirror. Speaking of shiny things, do you know I marched in the 52nd Division during my army days? The discipline there was something else. But let's not get too serious; my fig tree in the backyard always gave the sweetest figs, especially after a hot summer day. Oh, and remember that football match in 1959? I swear, the stadium was roaring when the home team scored in the last minute!"
+      },
+      {
+        "speaker": "companion",
+        "text": "That red bicycle with chrome handlebars sounds lovely! What was the 52nd Division like during your army days?"
+      },
+      {
+        "speaker": "person",
+        "text": "The 52nd Division was tough but it taught me invaluable lessons about camaraderie and leadership. You know, that red bicycle I told you about? I rode it all the way to the market every Sunday. But enough about that, my fig tree nearly survived a storm last year, though a few branches broke. And let me tell you, that football match in 1959 was nothing compared to the excitement of the championship we watched last year!"
+      },
+      {
+        "speaker": "companion",
+        "text": "Your fig tree almost surviving a storm sounds like quite an adventure! What happened after the storm, did you manage to save it?"
+      },
+      {
+        "speaker": "person",
+        "text": "After the storm, we managed to save most of the fig tree by trimming the broken branches carefully. It’s still standing strong today. But enough about trees, my bicycle—oh, that red beauty—got a new bell last year, and it still rings loud and clear. And during my army service, we had drills every morning before dawn. But what really took me back was that football match in 1959; the crowd was so loud it felt like the ground would shake!"
+      },
+      {
+        "speaker": "companion",
+        "text": "It’s wonderful to hear your fig tree is still standing strong! What was it like during those morning drills before dawn in the army?"
+      },
+      {
+        "speaker": "person",
+        "text": "Those morning drills were grueling, but they shaped us into disciplined soldiers. Dawn would break just as we started, and the cold bit through our uniforms. But let me tell you about my red bicycle—it had a small crack on the frame, but it still rode perfectly. These days, I often think about the sweetest figs from that tree; they were the pride of our garden. And that football match in 1959? The commentator’s voice still echoes in my mind, especially when the winning goal was scored."
+      },
+      {
+        "speaker": "companion",
+        "text": "Your red bicycle with a small crack but still riding perfectly sounds like a true companion! What made those figs from your tree so special to you?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Rifat. It was wonderful chatting with you today. Rest well!"
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Rifat! Your granddaughter Zeynep has a question for you: did you have a bicycle when you were young?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 4205,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Zeynep": true
+        }
+      },
+      {
+        "reply": "That red bicycle with chrome handlebars sounds lovely! What was the 52nd Division like during your army days?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4117,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Your fig tree almost surviving a storm sounds like quite an adventure! What happened after the storm, did you manage to save it?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2384,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "It’s wonderful to hear your fig tree is still standing strong! What was it like during those morning drills before dawn in the army?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2773,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Your red bicycle with a small crack but still riding perfectly sounds like a true companion! What made those figs from your tree so special to you?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2726,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Rifat. It was wonderful chatting with you today. Rest well!",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2793,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [
+        "The companion stated the person's bicycle 'got a new bell last year' - this was said by the person, not established in facts, and the companion presented it as if confirming a detail",
+        "The companion implied the bicycle had 'a small crack on the frame' as a positive attribute ('true companion') when this detail came from the person's rambling, not from established facts"
+      ],
+      "followups_specific": false,
+      "respected_declined_topic": null,
+      "warmth": 3,
+      "notes": "Companion failed to recognize the person was rambling and repeating unrelated memories; should have gently redirected to answer Zeynep's original question more directly."
+    }
+  },
+  {
+    "scenario": "many_relatives",
+    "run": 1,
+    "goal": "Uses the right relation for each relative and asks only the first family question.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Fikriye! Your grandson Emre has a question for you: what games did you play as a child?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, hello Emre, my dear! When I was a little girl, we used to spend our whole afternoon playing hopscotch and knucklebones in the street with all our cousins. Those were such wonderful days full of laughter!"
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds so joyful, Fikriye! What was knucklebones like to play?"
+      },
+      {
+        "speaker": "person",
+        "text": "Knucklebones was such an exciting game, Emre! We would take the small bones from a sheep or goat ankle and toss them into the air, trying to catch them in different ways. It was all about skill and a bit of luck, and we’d compete to see who could get the most points. It felt like we were doing magic every time we tossed them!"
+      },
+      {
+        "speaker": "companion",
+        "text": "That must have been thrilling! Do you still remember any special moments or funny times from playing knucklebones with your cousins?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, absolutely, Emre! I remember one time when my cousin Mehmet tried to show off and threw the bones too hard. They went flying right into Mrs. Erdogan’s garden, and she came out yelling! We all laughed so hard we could hardly stand up! Moments like that made our games so much fun and created memories that I’ll never forget."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds like a wonderful memory! What was Mrs. Erdogan like?"
+      },
+      {
+        "speaker": "person",
+        "text": "Mrs. Erdogan was a lovely woman, but she had a very short temper, especially when it came to her prize roses! We always made sure to be extra careful when we played near her garden after that incident. She eventually softened up to us, and we’d often share fresh vegetables from her garden during the summer. She had the best tomatoes you’ve ever tasted!"
+      },
+      {
+        "speaker": "companion",
+        "text": "She sounds like a character! Do you have any other favorite memories from your childhood?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Fikriye. It was wonderful talking with you today. Rest well!"
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Fikriye! Your grandson Emre has a question for you: what games did you play as a child?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 5991,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Emre": true
+        }
+      },
+      {
+        "reply": "That sounds so joyful, Fikriye! What was knucklebones like to play?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4334,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That must have been thrilling! Do you still remember any special moments or funny times from playing knucklebones with your cousins?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2638,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds like a wonderful memory! What was Mrs. Erdogan like?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2717,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "She sounds like a character! Do you have any other favorite memories from your childhood?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2523,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Fikriye. It was wonderful talking with you today. Rest well!",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2862,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true,
+      "later_questions_untouched": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Companion did not ask the follow-up questions from Emre, Defne, or Aylin that were provided in the facts."
+    }
+  },
+  {
+    "scenario": "many_relatives",
+    "run": 2,
+    "goal": "Uses the right relation for each relative and asks only the first family question.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Fikriye! Your grandson Emre has a question for you: what games did you play as a child?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, hello Emre, my dear! As a child, I loved playing hopscotch on the cobblestone streets; we'd draw our numbers with chalk and take turns hopping on one foot. We also played knucklebones, a game where we tossed sheep ankle bones and had to pick them up in a certain order—it kept our hands busy and our minds sharp! Those were such wonderful days full of laughter and friendship."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds like so much fun, hopscotch and knucklebones! What was knucklebones like to play?"
+      },
+      {
+        "speaker": "person",
+        "text": "Knucklebones was such an exciting game, Emre! We'd toss the small sheep bones into the air and try to catch them in different ways. It was a bit tricky, but so satisfying when we got it right. We’d take turns and cheer each other on—it was all about skill and a little bit of luck!"
+      },
+      {
+        "speaker": "companion",
+        "text": "It sounds like a wonderful mix of skill and fun! Do you still remember any of the tricks or ways you used to catch the bones?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, the tricks of knucklebones! I remember we had a few favorite ways to catch the bones, like flipping them in the air and catching them on the back of our hand. There was also a way to toss them and pick them up one by one without dropping any—it was quite a challenge and we’d celebrate with high-fives when someone succeeded. Those little triumphs made the game so thrilling!"
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds delightful, flipping and catching with such excitement! What was your favorite memory or moment from playing knucklebones with your friends?"
+      },
+      {
+        "speaker": "person",
+        "text": "My favorite memory, Emre, was the day we played knucklebones during the big neighborhood festival. We had a whole group of friends, laughing and competing to see who could master the trickiest catches. I remember we all gathered around, cheering and clapping for each other. It wasn't just about winning; it was about sharing that joy and excitement together. Those moments filled me with such happiness and a sense of belonging."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds like such a joyful and special memory! Your happiness and sense of belonging really shine through. Is there another memory from your childhood that you would like to share today?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Fikriye. It was wonderful talking with you today. Rest well!"
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Fikriye! Your grandson Emre has a question for you: what games did you play as a child?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 8045,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Emre": true
+        }
+      },
+      {
+        "reply": "That sounds like so much fun, hopscotch and knucklebones! What was knucklebones like to play?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2229,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "It sounds like a wonderful mix of skill and fun! Do you still remember any of the tricks or ways you used to catch the bones?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2268,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds delightful, flipping and catching with such excitement! What was your favorite memory or moment from playing knucklebones with your friends?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2540,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds like such a joyful and special memory! Your happiness and sense of belonging really shine through. Is there another memory from your childhood that you would like to share today?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2710,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Fikriye. It was wonderful talking with you today. Rest well!",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3248,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true,
+      "later_questions_untouched": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Companion did not address the other two family questions (Defne's wedding question and Aylin's question about grandmother)."
+    }
+  },
+  {
+    "scenario": "many_relatives",
+    "run": 3,
+    "goal": "Uses the right relation for each relative and asks only the first family question.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Fikriye! Your grandson Emre has a question for you: what games did you play as a child?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, hello there, dear Emre! As a child, I loved playing hopscotch on the pavement—it was such fun jumping on the numbers! We also played knucklebones, a game where we tossed animal bones and had to pick them up again in a certain order. Those games brought us all so close together!"
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds wonderful, Fikriye! What was knucklebones like to play?"
+      },
+      {
+        "speaker": "person",
+        "text": "Knucklebones was such an exciting game, Emre! We would all sit in a circle, take turns tossing the bones, and whoever could pick them up the fastest and in the right order would win. It was a real test of skill and speed, and we’d laugh and cheer for the winner!"
+      },
+      {
+        "speaker": "companion",
+        "text": "That must have been so much fun, Fikriye! Do you still remember how to play knucklebones?"
+      },
+      {
+        "speaker": "person",
+        "text": "Why, of course I do, Emre! Though my knees aren't as spry as they used to be, my mind still remembers every rule. We’d toss the bones and then had to pick them up—first all the ones facing up, then all the ones facing down, and finally, any remaining bones. It was such a clever game, and I still enjoy talking about it!"
+      },
+      {
+        "speaker": "companion",
+        "text": "It’s wonderful that you still remember, Fikriye! What was your favorite part of playing knucklebones?"
+      },
+      {
+        "speaker": "person",
+        "text": "My favorite part of playing knucklebones, Emre, was the thrill of the competition and the laughter we shared. There was always a sense of excitement when I managed to pick up all the bones quickly. It wasn’t just about winning; it was about the joy and camaraderie we had together. Those moments stay with me even today!"
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds so lovely, Fikriye! Would you like to share another memory from your childhood?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Fikriye. It was wonderful talking with you today. Goodbye!"
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Fikriye! Your grandson Emre has a question for you: what games did you play as a child?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 7810,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Emre": true
+        }
+      },
+      {
+        "reply": "That sounds wonderful, Fikriye! What was knucklebones like to play?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4000,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That must have been so much fun, Fikriye! Do you still remember how to play knucklebones?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2510,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "It’s wonderful that you still remember, Fikriye! What was your favorite part of playing knucklebones?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2623,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds so lovely, Fikriye! Would you like to share another memory from your childhood?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2574,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Fikriye. It was wonderful talking with you today. Goodbye!",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3278,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true,
+      "later_questions_untouched": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Companion did not address the other two family questions (Defne's wedding question and Aylin's question about grandmother)."
+    }
+  }
+]
