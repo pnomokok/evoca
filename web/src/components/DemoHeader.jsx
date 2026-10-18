@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../context/useApp';
-import { Sparkles, BookOpen, Tv, User, Database, Server } from 'lucide-react';
+import DemoControls from './DemoControls';
+import { Sparkles, BookOpen, Tv, User } from 'lucide-react';
 
 export default function DemoHeader() {
   const {
@@ -8,8 +9,6 @@ export default function DemoHeader() {
     setActiveTab,
     currentViewerId,
     switchViewer,
-    useMock,
-    toggleMock,
     circleData,
     peopleList
   } = useApp();
@@ -64,7 +63,7 @@ export default function DemoHeader() {
           </button>
         </nav>
 
-        {/* Quiet Viewer and API Mode Controls */}
+        {/* Viewer picker and demo clock */}
         <div className="topbar-controls">
           <div className="viewer-picker">
             <User size={13} className="viewer-icon" />
@@ -83,17 +82,7 @@ export default function DemoHeader() {
             </select>
           </div>
 
-          {/* Mock samples are a development aid; production always uses the live backend */}
-          {import.meta.env.DEV && (
-            <button
-              className={`api-mode-chip ${useMock ? 'mock' : 'live'}`}
-              onClick={() => toggleMock(!useMock)}
-              title="Development only: switch between sample data and the live backend"
-            >
-              {useMock ? <Database size={12} /> : <Server size={12} />}
-              <span>{useMock ? 'Sample data' : 'Live data'}</span>
-            </button>
-          )}
+          <DemoControls />
         </div>
       </div>
     </header>

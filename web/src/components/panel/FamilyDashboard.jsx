@@ -23,7 +23,7 @@ const PERIOD_PROMPTS = {
 };
 
 export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
-  const { setSelectedStoryId, setPanelSubTab, showToast, circleData, currentViewerId, viewerReady, centerPersonId, switchViewer } = useApp();
+  const { setSelectedStoryId, setPanelSubTab, showToast, circleData, currentViewerId, viewerReady, centerPersonId, switchViewer, dataVersion } = useApp();
   // Loaded data is keyed by viewer; another viewer's feed is never shown.
   const [loaded, setLoaded] = useState({ viewerId: null, feedItems: [], lifeline: null });
   const [playingKey, setPlayingKey] = useState(null);
@@ -53,7 +53,7 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
     }
     loadData();
     return () => { cancelled = true; };
-  }, [viewerReady, centerPersonId, currentViewerId]);
+  }, [viewerReady, centerPersonId, currentViewerId, dataVersion]);
 
   useEffect(() => {
     const state = answerRef;
