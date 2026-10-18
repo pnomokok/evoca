@@ -33,7 +33,7 @@ import re
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 
 from core.access import can_see
@@ -41,6 +41,7 @@ from core.db import SessionLocal
 from core.enums import SessionStart
 from core.models import Circle, Question, Segment, Story
 from core.models import Session as OrmSession
+from server.auth import Viewer, viewer_dependency
 from server.wav_writer import read_slice
 
 log = logging.getLogger(__name__)
@@ -55,6 +56,9 @@ _MEDIA_TYPES = {"mp3": "audio/mpeg", "wav": "audio/wav"}
 
 def _deny() -> HTTPException:
     return HTTPException(status_code=403, detail=_DENIED)
+
+
+audio_viewer = viewer_dependency(_deny)
 
 
 def _within(start: int, end: int, rng: dict) -> bool:
@@ -116,26 +120,25 @@ async def get_audio_slice(
     session_id: str,
     start: int = Query(..., ge=0),
     end: int = Query(..., gt=0),
-    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
-    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
+    viewer: Viewer = Depends(audio_viewer),
 ):
     """Return a WAV slice of the session audio, if the viewer may hear it."""
     if end <= start:
         raise HTTPException(status_code=400, detail="end must be greater than start.")
-    if not x_person_id:
+    if not viewer.person_id:
         raise _deny()
 
     with SessionLocal() as db:
         sess: OrmSession | None = db.get(OrmSession, session_id)
-        if sess is None or (x_circle_id and x_circle_id != sess.circle_id):
+        if sess is None or (viewer.circle_id and viewer.circle_id != sess.circle_id):
             raise _deny()
 
         entitled = (
-            _may_hear_whole_session(db, x_person_id, sess)
-            or _allowed_by_story(db, x_person_id, sess, start, end)
-            or _allowed_by_answer(db, x_person_id, sess, start, end)
+            _may_hear_whole_session(db, viewer.person_id, sess)
+            or _allowed_by_story(db, viewer.person_id, sess, start, end)
+            or _allowed_by_answer(db, viewer.person_id, sess, start, end)
         )
-        if not entitled or not _private_parts_allowed(db, x_person_id, session_id, start, end):
+        if not entitled or not _private_parts_allowed(db, viewer.person_id, session_id, start, end):
             raise _deny()
 
     try:
@@ -151,20 +154,19 @@ async def get_audio_slice(
 @router.get("/api/tts/{file}")
 async def get_tts_file(
     file: str,
-    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
-    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
+    viewer: Viewer = Depends(audio_viewer),
 ):
     """Serve a generated reply audio file to a participant of its session."""
     match = _TTS_NAME.match(file)
     if not match:
         raise HTTPException(status_code=400, detail="Invalid file name.")
-    if not x_person_id:
+    if not viewer.person_id:
         raise _deny()
 
     with SessionLocal() as db:
         sess = db.get(OrmSession, match["session_id"])
-        if (sess is None or x_person_id not in (sess.participant_ids or [])
-                or (x_circle_id and x_circle_id != sess.circle_id)):
+        if (sess is None or viewer.person_id not in (sess.participant_ids or [])
+                or (viewer.circle_id and viewer.circle_id != sess.circle_id)):
             raise _deny()
 
     path = TTS_DIR / file

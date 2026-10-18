@@ -21,7 +21,7 @@ Privacy rules applied here:
 - Removing a member deletes only the membership: the person and their stories
   stay, and can_see() decides access as before (they are no longer a member).
   The center cannot be removed or changed; the last admin cannot be removed
-  or demoted.
+  or demoted. Removing a member also revokes their invite link and sessions.
 
 Functions take an open SQLAlchemy session and an explicit viewer_id, like the
 other services, and commit their own writes.
@@ -236,6 +236,8 @@ def remove_member(db: DbSession, viewer_id: str, circle_id: str, person_id: str)
     require_admin(db, viewer_id, circle_id)
     m = _membership(db, circle_id, person_id)
     _guard(db, m, losing_admin=True)
+    from core.services.auth import revoke_person_links   # auth imports this module
+    revoke_person_links(db, circle_id, person_id)
     db.delete(m)
     db.commit()
     return {"id": person_id, "removed": True}

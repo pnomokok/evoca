@@ -1,0 +1,5 @@
+{
+  "invite_url_path": "/join/<invite token>",
+  "token": "<invite token, shown only here>",
+  "person_id": "person_fatma"
+}

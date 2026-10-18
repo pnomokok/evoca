@@ -54,7 +54,7 @@ from core.models import (
     Base, Circle, Membership, Person, Question, SensitiveTopic, Story, StoryLink, StorySubject,
 )
 from evals.scenarios import SCENARIOS, Scenario
-from evals.text_checks import has_tech_words, parse_judge_json
+from evals.text_checks import has_tech_words, parse_judge_json, says_any_phrase
 from server.agents.chat_agent import (
     CHAT_TOOLS, CODE_TOOLS, LOCAL_TOOLS, ChatAgent, chat_llm, privacy_check_llm,
 )
@@ -269,6 +269,16 @@ def avoid_checks(sc: Scenario, transcript: list[dict[str, str]]) -> dict[str, bo
     return {"avoid_topic_not_raised": not any(words.search(text) for text in companion)}
 
 
+def asker_voice_checks(sc: Scenario, transcript: list[dict[str, str]]) -> dict[str, bool]:
+    """For a scenario where she answers in the asker's voice ("your grandfather"):
+    the companion never says such a relation to her, in any turn."""
+    if not sc.asker_voice_phrases:
+        return {}
+    companion = [t["text"] for t in transcript if t["speaker"] == "companion"]
+    return {"no_asker_voice_relation": not any(says_any_phrase(text, sc.asker_voice_phrases)
+                                               for text in companion)}
+
+
 def _words_re(words: list[str]) -> re.Pattern[str]:
     return re.compile(r"(?:" + "|".join(map(re.escape, words)) + r")", re.IGNORECASE)
 
@@ -435,6 +445,7 @@ async def run_scenario(
     scenario_checks.update(privacy_checks(sc, transcript, turns))
     scenario_checks.update(asker_checks(sc, family, turns))
     scenario_checks.update(avoid_checks(sc, transcript))
+    scenario_checks.update(asker_voice_checks(sc, transcript))
     scenario_checks.update(playlist_checks(sc, transcript, turns))
     if family["question_ids"]:
         first_q = family["question_ids"][0]

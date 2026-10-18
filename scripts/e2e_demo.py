@@ -166,10 +166,9 @@ class Servers:
             "PYTHONPATH": str(REPO) + os.pathsep + env.get("PYTHONPATH", ""),
             "PYTHONIOENCODING": "utf-8",
         })
-        if not self.restart:
-            env["EVOCA_DEMO_MODE"] = "1"
-        else:
-            env.pop("EVOCA_DEMO_MODE", None)
+        # Demo mode in both paths: the script signs in with X-Person-Id, which
+        # only demo mode accepts. With --restart the clock offset stays 0.
+        env["EVOCA_DEMO_MODE"] = "1"
         env.setdefault("HF_HOME", str(REPO / "data" / "hf-cache"))
         return env
 

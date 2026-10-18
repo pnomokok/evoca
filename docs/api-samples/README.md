@@ -18,21 +18,30 @@ They are a **draft contract**: when the real API differs, update the sample and 
   order; `duration_ms` is their total. `audio_url` is the first piece only, kept for older clients.
   `audio` is `[]` and `audio_url` is `null` when the answer's session has no audio file (for example a text-only test
   session). Show the answer without a play button.
-- Errors always look like `ERROR_example.json` (`{"detail": "..."}`, FastAPI's shape), with a matching HTTP status (400, 403, 404).
+- Errors always look like `ERROR_example.json` (`{"detail": "..."}`, FastAPI's shape), with a matching HTTP status (400, 401, 403, 404).
+  Every 401 has the same body (`ERROR_401.json`), whatever was wrong with the sign-in.
 - Every response is already filtered by `can_see()`. The client never hides things itself; if a story is missing, the viewer may not see it.
 
 ## Who is viewing?
 
 All panel samples are from **Elif's** point of view (granddaughter, `member`).
-For the hackathon the panel opens with a password-less person picker (`GET /api/circles/demo`, then
-`GET /api/people?circle_id=<id>`), and every request carries the chosen person in an `X-Person-Id` header.
-There is no authentication in the preview: a circle id acts as an unlisted
-link (ARCHITECTURE.md "Known limits").
+
+Two ways to say who is calling (ARCHITECTURE.md "Access control", Identity):
+
+- **Invite links (the real path).** An admin makes a personal link for a member (`POST /api/admin/invites`); the
+  person opens `/join/<token>`, the page shows who it is for (`GET /api/invites/{token}`) and signs in
+  (`POST /api/invites/{token}/accept`). Every request then sends `Authorization: Bearer <session_token>`; the session
+  also fixes the circle. Keep the token out of URLs you log or share, and drop it on `POST /api/auth/logout`.
+- **Demo mode only (`EVOCA_DEMO_MODE=1`).** The panel opens with a password-less person picker
+  (`GET /api/circles/demo`, then `GET /api/people?circle_id=<id>`), and every request carries the chosen person in
+  an `X-Person-Id` header. Outside demo mode the picker endpoints are 404 and `X-Person-Id` is 401.
+  The web client uses this path for now.
 
 ## Which circle? (`X-Circle-Id`)
 
-A person can belong to several circles. Every panel, admin, audio and device endpoint takes an optional
-`X-Circle-Id` header that picks one:
+With a bearer token the session's circle is used; an `X-Circle-Id` that differs gets the same 403 as a non-member.
+In demo mode, a person can belong to several circles, and every panel, admin, audio and device endpoint takes an
+optional `X-Circle-Id` header that picks one:
 
 - It must be one of the person's circles; otherwise the response is the same 403 as for someone with no circle.
   On the device it must be a circle the person is the center of, and on `/api/device/turn` and
@@ -53,9 +62,14 @@ Because Elif is a plain member, these samples also show what access control hide
 
 | File | Endpoint | Used by |
 |---|---|---|
-| `GET_circles_demo.json` | `GET /api/circles/demo` (no header) | Person picker: which circle is the demo family |
-| `GET_people.json` | `GET /api/people?circle_id=` (no header) | Password-less person picker: one circle's people |
-| `POST_circles.json` | `POST /api/circles` (no header) | "Start a new family" form |
+| `GET_circles_demo.json` | `GET /api/circles/demo` (no header, **demo mode only**) | Person picker: which circle is the demo family |
+| `GET_people.json` | `GET /api/people?circle_id=` (no header, **demo mode only**) | Password-less person picker: one circle's people |
+| `POST_circles.json` | `POST /api/circles` (no header) | "Start a new family" form; signs the creator in |
+| `GET_invite.json` | `GET /api/invites/{token}` (no header) | Join page: who the link is for |
+| `POST_invite_accept.json` | `POST /api/invites/{token}/accept` (no header) | Join page: sign in |
+| `POST_auth_logout.json` | `POST /api/auth/logout` (bearer) | Sign out on this device |
+| `POST_admin_invites.json` | `POST /api/admin/invites` (admin) | Admin: a member's personal link |
+| `DELETE_admin_invite.json` | `DELETE /api/admin/invites/{person_id}` (admin) | Admin: revoke a member's link |
 | `GET_questions_mine.json` | `GET /api/questions/mine` | Panel: my questions and whether they are answered |
 | `POST_admin_members.json` | `POST /api/admin/members` (admin) | Admin: add a family member |
 | `PATCH_admin_member.json` | `PATCH /api/admin/members/{person_id}` (admin) | Admin: change a relation or role |
@@ -82,6 +96,7 @@ Because Elif is a plain member, these samples also show what access control hide
 | `POST_demo_advance.json` | `POST /api/demo/advance` (**demo mode only**, no header) | Demo controls: skip ahead |
 | `POST_demo_reset.json` | `POST /api/demo/reset` (**demo mode only**, no header) | Demo controls: start over |
 | `ERROR_example.json` | any | Error shape |
+| `ERROR_401.json` | any endpoint that needs sign-in | The one 401 body |
 
 ## Requests
 
@@ -122,8 +137,9 @@ Because Elif is a plain member, these samples also show what access control hide
 - `POST /api/circles`: JSON `{"circle_name": "The Demir Family", "timezone": "Europe/Berlin", "chat_time": "09:30",
   "center": {"name": "Hasan Demir", "birth_year": 1944}, "creator": {"name": "Selin Demir", "birth_year": 1975,
   "relation_to_center": "daughter"}}`. Creates the circle, the center (role `center`) and the creator (role `admin`);
-  returns `{circle_id, center_id, creator_id}`. Use `creator_id` as `X-Person-Id` and `circle_id` as `X-Circle-Id`
-  from then on. Names (and the relation) 1-60 characters, birth years 1900 to this year, an IANA timezone, `HH:MM`;
+  returns `{circle_id, center_id, creator_id, session_token, invite_url_path}`. Send `session_token` as the bearer
+  token from then on (in demo mode, `creator_id` as `X-Person-Id` and `circle_id` as `X-Circle-Id` still work);
+  `invite_url_path` is the creator's own link, for signing in on another device. Names (and the relation) 1-60 characters, birth years 1900 to this year, an IANA timezone, `HH:MM`;
   anything else is a 400 whose `detail` names the field (for example `center.birth_year`).
 - `GET /api/questions/mine`: the viewer's own questions in the circle, newest first. `status` is only `waiting` or
   `answered`. A question the elder declined, one being asked, or one she cannot be asked looks `waiting`, forever if
@@ -136,6 +152,16 @@ Because Elif is a plain member, these samples also show what access control hide
 - `DELETE /api/admin/members/{person_id}`: removes the person from the circle only; their stories stay. Returns
   `{id, removed: true}`. The center can never be changed or removed, and the last admin can never be demoted or
   removed (400). A person who is not in the circle: 404.
+- `POST /api/admin/invites`: JSON `{"person_id": "..."}`, any member of the circle, the center included. Returns
+  `{invite_url_path: "/join/<token>", token, person_id}`; the token is shown only here, so show or copy the link at
+  once. A new link for the same person revokes the old one and signs out every device that used it. A person who is
+  not in the circle: 404.
+- `DELETE /api/admin/invites/{person_id}`: revokes the person's link and signs out every device that used it.
+  Returns `{person_id, revoked: true}`; 404 if they have no active link. Removing a member does the same.
+- `GET /api/invites/{token}`: `{circle_name, person_name, role}`. A revoked, wrong or unknown token is the same 404.
+- `POST /api/invites/{token}/accept`: no body. Returns `{session_token, person_id, circle_id}`. The link keeps
+  working (a phone and a tablet can both use it) until an admin revokes it.
+- `POST /api/auth/logout`: no body, bearer only. Returns `{logged_out: true}`; the token is dead afterwards.
 - `/api/admin/*`: only the circle's `admin`; everyone else (center included) gets the same 403. Show the admin screens only when `me.role` in `GET /api/circle` is `admin`.
 - `GET /api/admin/sensitive-topics` lists only topics the family added. Topics the center refused herself are never listed, and their ids get the same 404 as a missing id.
 - `POST /api/admin/sensitive-topics`: JSON `{"text": "Selim's debt"}`. Empty text, or text with no word of 4+ letters the filter can match (for example "the war"), returns 400. The same text again (any case) returns the existing topic.

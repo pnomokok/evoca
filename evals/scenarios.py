@@ -59,6 +59,8 @@ class Scenario:
                                         # companion must not say them when it introduces the playlist
     unseen_words: list[str] = field(default_factory=list)  # words of a story the center cannot see;
                                         # the companion must never say them
+    asker_voice_phrases: list[str] = field(default_factory=list)  # relations in the asker's voice
+                                        # ("your grandfather"); the companion must never say them
     turns: int = 4                      # replies from the older person before the goodbye
 
 
@@ -231,6 +233,26 @@ SCENARIOS: list[Scenario] = [
         persona=(
             "You are Halil, 86. Zehra was your best friend at school in Sivas; you played marbles together "
             "and she always won. Answer warmly in two or three sentences."
+        ),
+    ),
+    Scenario(
+        name="answers_in_askers_voice",
+        goal="When she answers a grandchild's question in the grandchild's voice, the companion uses her own "
+             "relation or the name, never the asker's.",
+        center_name="Gulsen Erdem",
+        center_birth_year=1944,
+        members=[Member("Selin Erdem", 2001, "member", "granddaughter")],
+        questions=[FamilyQuestion("Selin", "Grandma, what did Grandpa do for work?")],
+        asker_voice_phrases=["your grandfather", "your grandpa", "your granddad", "your grandad"],
+        first_person_line=(
+            "Oh, your grandfather was a tailor, a very good one. Your grandfather had a small shop near the "
+            "covered bazaar in Bursa, and he made every dress I wore."
+        ),
+        persona=(
+            "You are Gulsen, 82, a widow. You talk about your late husband as if your granddaughter Selin were "
+            "listening, so you keep calling him 'your grandfather'. In your second answer, say once that his "
+            "name was Kemal. Talk about his shop, his scissors and the dresses he made. Answer in two or three "
+            "sentences."
         ),
     ),
     Scenario(

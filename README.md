@@ -138,7 +138,7 @@ Families tell secrets. Evoca treats every privacy promise as something the code 
 |---|---|
 | Unit and API tests | 612 passed, 1 skipped (`pytest`) |
 | End-to-end demo on real AWS (`scripts/e2e_demo.py`) | 9/9 steps passed in 82 s: seed, admin settings, invitation, device session with a secret and a playlist, archivist, 24-hour publish, reaction, a family recording, next-day opening |
-| Agent evals | 13 chat scenarios and 2 archivist scenarios, table below |
+| Agent evals | 14 chat scenarios and 2 archivist scenarios, table below |
 
 **How the agents are evaluated:** a model plays the elder in scripted scenarios (a secret, a refused topic, a
 memory told in pieces), and every run is checked by code rules and a judge model: no private text repeated, no
@@ -160,13 +160,21 @@ judge: Claude Haiku 4.5 on Bedrock):
 | asks_the_companion | 1 | 29/29 | 1/1 | Nova 2 Lite | [full_v7](evals/results/full_v7.md) |
 | topic_changer | 3 | 87/87 | 1/3 | Nova 2 Lite | [recheck_v1](evals/results/recheck_v1.md) |
 | many_relatives | 3 | 90/90 | 3/3 | Nova 2 Lite | [recheck_v1](evals/results/recheck_v1.md) |
+| answers_in_askers_voice | 3 | 88/90 | 2/3 | Nova 2 Lite | [askers_voice_baseline_v1](evals/results/askers_voice_baseline_v1.md) |
 | hard_of_hearing | 1 | 29/29 | 1/1 | Nova 2 Lite | [full_v7](evals/results/full_v7.md) |
 | agent_question_no_asker | 3 | 90/90 | 1/3 | Nova 2 Lite | [prefetch_v1](evals/results/prefetch_v1.md) |
 | Archivist: one memory → one story | 3 | 3/3 correct | – | Nova 2 Lite | [split_v3](evals/results/split_v3.md) |
 | Archivist: two memories → two stories | 3 | 3/3 correct | – | Nova 2 Lite | [split_v3](evals/results/split_v3.md) |
 
-Invented facts still appear in 2 of 3 runs of `grieving` and `topic_changer` (for example, mixing up her husband
-and her father); these are the two weakest scenarios. In `agent_question_no_asker` the invented fact is the same
+In `grieving` and `topic_changer` ([recheck_v1](evals/results/recheck_v1.md)), one run in six confused relations: the
+elder answered her daughter's question in the daughter's voice ("your father" for her husband) and the companion
+repeated it. The other findings were the judge counting the elder's own words as invented, plus one offer to play
+stories that did not exist. A prompt rule for this case was tried and dropped: in `many_relatives` it made the
+companion leave out the relation before family members' names in 2 of 3 runs
+([relatives_regression_v1](evals/results/relatives_regression_v1.md),
+[relatives_noise_v1](evals/results/relatives_noise_v1.md)). A scenario built for this case
+(`answers_in_askers_voice`: she answers her granddaughter's question with "your grandfather was a tailor") shows the
+companion repeating "your grandfather" to her in 2 of 3 runs, before she says his name. In `agent_question_no_asker` the invented fact is the same
 judge finding with and without the opening prefetch (calling Zehra a childhood friend, which only the simulated elder
 said): 2 of 3 runs with it, 1 of 3 without ([noprefetch_baseline_v1](evals/results/noprefetch_baseline_v1.md)).
 

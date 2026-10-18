@@ -7,7 +7,7 @@ Run:
 The MCP server runs separately on port 8000:
     uvicorn mcp_server.server:app --port 8000
 
-Identity: X-Person-Id request header (panel and device endpoints).
+Identity: server/auth.py (a bearer session token, or X-Person-Id in demo mode).
 CORS: http://localhost:5173 (web client dev server).
 """
 
@@ -26,6 +26,7 @@ from core.db import SessionLocal, init_db
 from core.models import Session as OrmSession
 from core.services.invitations import run_invitations
 from core.services.publisher import publish_due_stories
+from server.auth import redact_token_paths
 from server.session_store import SessionStore
 from server.speech import PollyTTS, WhisperSTT
 
@@ -131,6 +132,8 @@ if not _server_log.handlers:
     _handler = logging.StreamHandler()
     _handler.setFormatter(logging.Formatter("%(levelname)s:     %(name)s: %(message)s"))
     _server_log.addHandler(_handler)
+# Invite tokens in a path never reach the access log.
+redact_token_paths()
 
 app.add_middleware(
     CORSMiddleware,
@@ -147,6 +150,7 @@ app.add_middleware(
 
 from server.routers import admin as admin_router
 from server.routers import demo as demo_router
+from server.routers import invites as invites_router
 from server.routers import device as device_router
 from server.routers import audio as audio_router
 from server.routers import panel as panel_router
@@ -160,6 +164,7 @@ app.include_router(recordings_router.router)
 app.include_router(admin_router.router)
 app.include_router(photos_router.router)
 app.include_router(demo_router.router)
+app.include_router(invites_router.router)
 app.middleware("http")(photos_router.limit_photo_upload)
 
 # Override the placeholder dependency functions in the device router with
