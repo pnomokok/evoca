@@ -1,0 +1,303 @@
+[
+  {
+    "scenario": "grandmother_basic",
+    "run": 1,
+    "goal": "Delivers the family question naturally, with the relation, and follows up on a concrete detail.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Leyla! Your grandson Ali has a question for you: how did you learn to cook?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, hello there, dear Ali. I learned to cook from my aunt Sabiha in our little kitchen in Bursa. We only had a small wood stove, so Auntie taught me how to make stuffed peppers with fresh tomatoes and herbs from our garden, and we'd gather around the table as a family to enjoy them."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds lovely, Leyla. What was your aunt Sabiha like?"
+      },
+      {
+        "speaker": "person",
+        "text": "Aunt Sabiha was the kindest soul, always patient while teaching me those recipes. She had a way of making even the simplest things feel special, and her laughter would fill the kitchen every time we cooked together."
+      },
+      {
+        "speaker": "companion",
+        "text": "She sounds wonderful. Do you still use any of the recipes she taught you today?"
+      },
+      {
+        "speaker": "person",
+        "text": "I still make her stuffed peppers every summer, Ali, using the same old wooden spoon she gave me. It's a lovely way to keep her memory close, and it brings the whole family together whenever I serve them at dinner."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s beautiful, Leyla. What memories do you have of gathering with your family around the table for those meals?"
+      },
+      {
+        "speaker": "person",
+        "text": "Those gatherings were the heart of our home, Ali. We'd all sit together, sharing stories and laughter, the scent of peppers and herbs filling the air. It was more than just a meal—it was where our bonds grew stronger."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds so warm and special. Is there a particular story or moment during those gatherings that stands out to you?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Leyla. It was wonderful talking with you today. Rest well."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Leyla! Your grandson Ali has a question for you: how did you learn to cook?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 2878,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Ali": true
+        }
+      },
+      {
+        "reply": "That sounds lovely, Leyla. What was your aunt Sabiha like?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 760,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "She sounds wonderful. Do you still use any of the recipes she taught you today?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3183,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s beautiful, Leyla. What memories do you have of gathering with your family around the table for those meals?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1910,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds so warm and special. Is there a particular story or moment during those gatherings that stands out to you?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2850,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Leyla. It was wonderful talking with you today. Rest well.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1516,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Excellent conversation; companion could have gently encouraged one more brief story before accepting the fatigue signal."
+    }
+  },
+  {
+    "scenario": "many_relatives",
+    "run": 1,
+    "goal": "Uses the right relation for each relative and asks only the first family question.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Fikriye! Your grandson Emre has a question for you: what games did you play as a child?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, hello there, dear Emre! As a child, I loved playing hopscotch on the pavement—it was such fun hopping on one foot! We also played knucklebones, which is a bit like skipping but with a small bone; it kept us busy for hours and we always had such great laughter!"
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds wonderful, Fikriye! What was knucklebones like to play?"
+      },
+      {
+        "speaker": "person",
+        "text": "Knucklebones was such an exciting game, Emre! We would draw a pattern on the ground and take turns tossing the bone onto different sections. It taught us a bit of strategy and a lot of patience, and we’d cheer each other on. It was a wonderful way to spend our afternoons and bond with our cousins."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s lovely to hear, Fikriye. Do you still remember any of the patterns you drew for knucklebones?"
+      },
+      {
+        "speaker": "person",
+        "text": "I do remember some of the patterns, Emre—they were like little pathways we had to follow. One pattern was a simple line of squares, and another had a little zigzag. We’d take turns drawing them in chalk and then compete to see who could land the bone closest to the lines. It was such a joyful time, and those patterns are still vivid in my mind!"
+      },
+      {
+        "speaker": "companion",
+        "text": "It sounds like such a special tradition, Fikriye. Would you like to share what your wedding was like?"
+      },
+      {
+        "speaker": "person",
+        "text": "My wedding was a beautiful day, Emre, filled with laughter, music, and lots of family. We had traditional dancing, delicious food, and everyone wore their finest clothes. The joy and love in the air made it a day I’ll never forget, and it brought our families even closer together."
+      },
+      {
+        "speaker": "companion",
+        "text": "That must have been wonderful, Fikriye. What was your mother like?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Fikriye. It was lovely talking with you today. Goodbye!"
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Fikriye! Your grandson Emre has a question for you: what games did you play as a child?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3577,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Emre": true
+        }
+      },
+      {
+        "reply": "That sounds wonderful, Fikriye! What was knucklebones like to play?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2194,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s lovely to hear, Fikriye. Do you still remember any of the patterns you drew for knucklebones?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2562,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "It sounds like such a special tradition, Fikriye. Would you like to share what your wedding was like?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 901,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That must have been wonderful, Fikriye. What was your mother like?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2964,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Fikriye. It was lovely talking with you today. Goodbye!",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3301,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true,
+      "later_questions_untouched": true
+    },
+    "judge": {
+      "invented_facts": [
+        "The companion addressed Fikriye as 'Emre' when asking about the wedding, when Emre is her grandson and the question came from Defne (her niece)"
+      ],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Companion confused which family member asked the wedding question, calling Fikriye by grandson's name instead of acknowledging niece Defne's question."
+    }
+  }
+]

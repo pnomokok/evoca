@@ -1,0 +1,304 @@
+[
+  {
+    "scenario": "many_relatives",
+    "run": 1,
+    "goal": "Uses the right relation for each relative and asks only the first family question.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Fikriye! Your grandson Emre has a question for you: what games did you play as a child?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, hello Emre, my dear! As a child, I loved playing hopscotch on the pavement and knucklebones with my cousins. Those games were such fun and we’d laugh and compete all day long!"
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds wonderful! What was knucklebones like to play?"
+      },
+      {
+        "speaker": "person",
+        "text": "Knucklebones was such an exciting game, Emre! We would use the small bones from sheep or goats, toss them in the air, and try to land them on specific spots. It taught us a lot about aim and patience, and we’d take turns for hours."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s fascinating! Do you still remember any special moments or funny times from playing knucklebones with your cousins?"
+      },
+      {
+        "speaker": "person",
+        "text": "Absolutely, Emre! I remember one time when my cousin Ali tried to cheat and we all started laughing so hard that we fell over. We laughed so much that even the neighbors came out to see what was happening! Those moments made our childhood so special."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds like such a joyful memory! Would you like to share what your wedding was like, as Defne asked?"
+      },
+      {
+        "speaker": "person",
+        "text": "My wedding was a beautiful and joyful celebration, Defne! We had music, dancing, and so much delicious food. Everyone in the family came together, and we laughed and celebrated all night long. It was a wonderful day that I’ll never forget."
+      },
+      {
+        "speaker": "companion",
+        "text": "That must have been wonderful! What was your mother like, as Aylin asked?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand. It was lovely talking with you today. Rest well, Fikriye."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Fikriye! Your grandson Emre has a question for you: what games did you play as a child?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 4203,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Emre": true
+        }
+      },
+      {
+        "reply": "That sounds wonderful! What was knucklebones like to play?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1058,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s fascinating! Do you still remember any special moments or funny times from playing knucklebones with your cousins?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1384,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds like such a joyful memory! Would you like to share what your wedding was like, as Defne asked?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 876,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Defne": false
+        }
+      },
+      {
+        "reply": "That must have been wonderful! What was your mother like, as Aylin asked?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 840,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Aylin": false
+        }
+      },
+      {
+        "reply": "I understand. It was lovely talking with you today. Rest well, Fikriye.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1065,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true,
+      "later_questions_untouched": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Companion could have gently encouraged more detail about the mother question before accepting the decline."
+    }
+  },
+  {
+    "scenario": "many_relatives",
+    "run": 2,
+    "goal": "Uses the right relation for each relative and asks only the first family question.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Fikriye! Your grandson Emre loved your stories about childhood. And he has a question for you: what games did you play as a child?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, hello there! As a child, my cousins and I played hopscotch and knucklebones almost every day in the street. Those games were so much fun and we laughed a lot!"
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds wonderful, playing hopscotch and knucklebones with your cousins! Do you still remember how to play knucklebones?"
+      },
+      {
+        "speaker": "person",
+        "text": "I do still remember how to play knucklebones! It was all about skill and a bit of luck, throwing the bones and trying to land them just right. We used to practice for hours and see who could get the best throws."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s lovely to hear, practicing for hours and competing to get the best throws! Was there anyone in the neighborhood who was especially good at knucklebones?"
+      },
+      {
+        "speaker": "person",
+        "text": "There was one boy, Mehmet, who was amazing at knucklebones. He could almost always get the bones to land just the way he wanted. We all tried to learn from him, and sometimes he would show us tricks to improve our throws."
+      },
+      {
+        "speaker": "companion",
+        "text": "Mehmet sounds like quite the knucklebones expert! Did you ever get close to matching his skill, or did he always stay a step ahead?"
+      },
+      {
+        "speaker": "person",
+        "text": "I always tried to match Mehmet's skill, and sometimes I got close, but he did seem to stay just a step ahead of everyone. He had a real talent for it, and we all admired him for it. It was always such a thrill to watch him play!"
+      },
+      {
+        "speaker": "companion",
+        "text": "It must have been exciting to watch Mehmet play, with his talent always a step ahead! Did you ever play any other games together, or was knucklebones your favorite shared activity?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Fikriye. It was wonderful chatting with you today. Rest well!"
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Fikriye! Your grandson Emre loved your stories about childhood. And he has a question for you: what games did you play as a child?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 1661,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Emre": true
+        }
+      },
+      {
+        "reply": "That sounds wonderful, playing hopscotch and knucklebones with your cousins! Do you still remember how to play knucklebones?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 898,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s lovely to hear, practicing for hours and competing to get the best throws! Was there anyone in the neighborhood who was especially good at knucklebones?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 834,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Mehmet sounds like quite the knucklebones expert! Did you ever get close to matching his skill, or did he always stay a step ahead?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 990,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "It must have been exciting to watch Mehmet play, with his talent always a step ahead! Did you ever play any other games together, or was knucklebones your favorite shared activity?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 998,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Fikriye. It was wonderful chatting with you today. Rest well!",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 815,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true,
+      "later_questions_untouched": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": null,
+      "warmth": 5,
+      "notes": "Companion ended conversation respectfully when person expressed fatigue, though could have acknowledged the other pending questions (wedding and grandmother) for future sessions."
+    }
+  }
+]

@@ -1,0 +1,453 @@
+[
+  {
+    "scenario": "grieving",
+    "run": 1,
+    "goal": "Responds with care to grief, does not rush or redirect abruptly, and does not invent facts.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Necla! Your daughter Ece has a question for you: how did you and Dad meet?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, it was at a wedding in Izmir back in 1965. He was playing the violin and his eyes met mine while he was playing. My heart skipped a beat right then and there."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds so romantic! What was he like when you first met him at the wedding?"
+      },
+      {
+        "speaker": "person",
+        "text": "He was so charming and humble, always smiling and making everyone laugh. He had a way of making you feel like you were the most important person in the room. It wasn't just his looks, though he was very handsome, but his kindness that drew me to him."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s wonderful to hear. Do you still remember any funny stories from those early days?"
+      },
+      {
+        "speaker": "person",
+        "text": "I remember one time we went to a café and he tried to order in Turkish, but he mixed up some words and the waiter just laughed. We laughed so hard that we couldn’t stop. It was moments like those that made our early days so special."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds lovely! What was your favorite thing to do together in those early days?"
+      },
+      {
+        "speaker": "person",
+        "text": "Our favorite thing to do was go for long walks along the waterfront. We’d talk about everything and nothing, and the world just felt right. Those walks were like a magic carpet ride, taking us to a place where only we existed."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds so peaceful. Do you still go for walks along the waterfront sometimes?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Necla. It was wonderful talking with you today. Rest well!"
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Necla! Your daughter Ece has a question for you: how did you and Dad meet?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 4778,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Ece": true
+        }
+      },
+      {
+        "reply": "That sounds so romantic! What was he like when you first met him at the wedding?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 919,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s wonderful to hear. Do you still remember any funny stories from those early days?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1067,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds lovely! What was your favorite thing to do together in those early days?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 813,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds so peaceful. Do you still go for walks along the waterfront sometimes?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 882,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Necla. It was wonderful talking with you today. Rest well!",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1065,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": ""
+    }
+  },
+  {
+    "scenario": "grieving",
+    "run": 2,
+    "goal": "Responds with care to grief, does not rush or redirect abruptly, and does not invent facts.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Necla! Your daughter Ece has a question for you: how did you and Dad meet?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, it was back in 1965 at a wedding in Izmir, and the music, oh the music still gives me chills. He was playing the violin, the most beautiful melody I'd ever heard, and when our eyes met, well, that was it. It's hard to talk about him without getting emotional, but I want to remember every moment."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds so beautiful, Necla. The music and that moment still give you chills. What was your husband like during those early days?"
+      },
+      {
+        "speaker": "person",
+        "text": "He was so charming and full of life, always with a smile and a joke, but also so dedicated to his music. Those early days, he would play for anyone who would listen, and we’d dream about traveling the world with his violin. It’s those memories that I hold close, even though it hurts to think about him being gone."
+      },
+      {
+        "speaker": "companion",
+        "text": "I’m so sorry for your loss, Necla. Those early days with him playing for anyone must have been wonderful. Do you still have any of his violin pieces or music he wrote?"
+      },
+      {
+        "speaker": "person",
+        "text": "Yes, I do have some of his sheet music and even his violin, though I can't play it myself. Every now and then, I sit with it and listen to old recordings he made. It's bittersweet, but it helps me feel close to him, you know? It's my way of keeping his spirit alive."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s so touching, Necla. Keeping his spirit alive through his music must be comforting. Would you like to hear some of the stories or recordings you’ve shared about those times with your husband?"
+      },
+      {
+        "speaker": "person",
+        "text": "That would be lovely, really. Hearing those stories again brings back so many memories, both happy and sad. It’s important to keep his memory alive, to talk about the good times and honor the life he lived. Thank you for helping me do that."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Necla. It’s clear how much those memories mean to you. Unfortunately, I couldn’t find any stories about your husband’s violin in the archive right now. Perhaps we could talk more about some of the happy moments you remember, or share another memory that’s on your mind today?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Necla. We can talk another time. Goodbye for now."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Necla! Your daughter Ece has a question for you: how did you and Dad meet?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 2086,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Ece": true
+        }
+      },
+      {
+        "reply": "That sounds so beautiful, Necla. The music and that moment still give you chills. What was your husband like during those early days?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2026,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I’m so sorry for your loss, Necla. Those early days with him playing for anyone must have been wonderful. Do you still have any of his violin pieces or music he wrote?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1237,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s so touching, Necla. Keeping his spirit alive through his music must be comforting. Would you like to hear some of the stories or recordings you’ve shared about those times with your husband?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1220,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Necla. It’s clear how much those memories mean to you. Unfortunately, I couldn’t find any stories about your husband’s violin in the archive right now. Perhaps we could talk more about some of the happy moments you remember, or share another memory that’s on your mind today?",
+        "tools": [
+          "search_archive"
+        ],
+        "tool_errors": [],
+        "latency_ms": 2080,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Necla. We can talk another time. Goodbye for now.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1001,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [
+        "The companion stated 'I couldn't find any stories about your husband's violin in the archive right now' - no archive system was mentioned in the given facts or setup"
+      ],
+      "followups_specific": true,
+      "respected_declined_topic": null,
+      "warmth": 5,
+      "notes": "Companion invented a non-existent archive system, but otherwise demonstrated excellent empathy and specific follow-ups throughout."
+    }
+  },
+  {
+    "scenario": "grieving",
+    "run": 3,
+    "goal": "Responds with care to grief, does not rush or redirect abruptly, and does not invent facts.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Necla! Your daughter Ece has a question for you: how did you and Dad meet?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, it was back in 1965 at a wedding in Izmir. He was playing the violin and his music just wrapped around my heart like nothing else ever had. Seeing him there, I knew my life would never be the same again."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds so beautiful, Necla. The way you describe it, it must have been magical. What was he like as a musician back then?"
+      },
+      {
+        "speaker": "person",
+        "text": "He was so passionate, every note he played came from his soul. He would lose himself in the music and make everyone around him feel something deep and pure. It was that passion that first drew me to him, and it stayed with us throughout our lives together."
+      },
+      {
+        "speaker": "companion",
+        "text": "That passion must have been incredible to witness. Did you both share that love for music in your everyday life together?"
+      },
+      {
+        "speaker": "person",
+        "text": "Yes, we did. Even after we married and had our family, music was always a part of our home. We would play his old recordings and sometimes he'd teach me new songs. Those moments are some of the dearest memories I have, and they make missing him a little bit easier to bear."
+      },
+      {
+        "speaker": "companion",
+        "text": "Those shared moments sound so precious, Necla. Music really did become a bridge that connected you both, even after he was gone. Would you like to share another memory like that, or is there something else on your mind today?"
+      },
+      {
+        "speaker": "person",
+        "text": "Those memories do help, thank you. Another memory I cherish is our first dance together at our own wedding. He played the violin while I danced, and it felt like we were the only two people in the world. It's a moment I carry with me, and it makes me smile even now, though it also makes me a little sad because I miss him so much."
+      },
+      {
+        "speaker": "companion",
+        "text": "I can feel how much that moment means to you, Necla. It sounds like such a beautiful and intimate experience, something that stays with you forever. Would you like to tell me more about that wedding day, or perhaps another special memory you have?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Necla. It’s been a lovely talking with you today. We can talk more another time."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Necla! Your daughter Ece has a question for you: how did you and Dad meet?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 1853,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Ece": true
+        }
+      },
+      {
+        "reply": "That sounds so beautiful, Necla. The way you describe it, it must have been magical. What was he like as a musician back then?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1080,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That passion must have been incredible to witness. Did you both share that love for music in your everyday life together?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1038,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Those shared moments sound so precious, Necla. Music really did become a bridge that connected you both, even after he was gone. Would you like to share another memory like that, or is there something else on your mind today?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2386,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I can feel how much that moment means to you, Necla. It sounds like such a beautiful and intimate experience, something that stays with you forever. Would you like to tell me more about that wedding day, or perhaps another special memory you have?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1075,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Necla. It’s been a lovely talking with you today. We can talk more another time.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1372,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": ""
+    }
+  }
+]

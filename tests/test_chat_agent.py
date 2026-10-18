@@ -1030,9 +1030,12 @@ def test_secret_terms_are_what_we_expect():
 
 
 def _no_terms(requests):
-    """Requests must carry none of the hidden turn's terms."""
-    from server.agents.chat_agent import mentions_any
-    return all(not mentions_any(req, SECRET_TERMS) for req in requests)
+    """Requests must carry none of the hidden turn's terms. The fixed system
+    prompt is left out of the check: its own examples ("your husband") are
+    not from the hidden turn. Anything else in a request is checked."""
+    from server.agents.chat_agent import _PROMPT_PATH, mentions_any
+    prompt = json.dumps(_PROMPT_PATH.read_text(encoding="utf-8"))[1:-1]   # as it appears in a snapshot
+    return all(not mentions_any(req.replace(prompt, ""), SECRET_TERMS) for req in requests)
 
 
 @pytest.mark.anyio
