@@ -17,6 +17,18 @@ function writeStorage(key, value) {
   }
 }
 
+const SESSION_KEY = 'evoca_session';
+
+// {session_token, person_id, circle_id} from an invite link or a new family, or null.
+function readSession() {
+  try {
+    const value = JSON.parse(readStorage(SESSION_KEY) || 'null');
+    return value?.session_token && value?.person_id ? value : null;
+  } catch {
+    return null;
+  }
+}
+
 function apiError(status, message) {
   const err = new Error(message);
   err.status = status;
@@ -50,30 +62,61 @@ async function handleResponse(res) {
 
 class EvocaApiClient {
   constructor() {
-    this.currentViewerId = readStorage('evoca_viewer_id') || '';
+    // Two identity modes: a stored sign-in session (bearer token), else the demo person picker.
+    this.session = readSession();
+    this.demoViewerId = readStorage('evoca_viewer_id') || '';
     // Left behind by the removed sample-data mode.
     writeStorage('evoca_use_mock', null);
   }
 
+  get isSignedIn() {
+    return Boolean(this.session);
+  }
+
+  // The person every request is made as: the session's person, or the demo picker's choice.
+  get currentViewerId() {
+    return this.session ? this.session.person_id : this.demoViewerId;
+  }
+
+  setSession(session) {
+    this.session = session ? {
+      session_token: session.session_token,
+      person_id: session.person_id,
+      circle_id: session.circle_id
+    } : null;
+    writeStorage(SESSION_KEY, this.session ? JSON.stringify(this.session) : null);
+  }
+
+  clearSession() {
+    this.setSession(null);
+  }
+
+  // Demo picker only; a signed-in session fixes the person.
   setViewer(personId) {
-    this.currentViewerId = personId;
+    this.demoViewerId = personId;
     writeStorage('evoca_viewer_id', personId || null);
   }
 
+  // Signed in: only the bearer token (the session fixes person and circle).
+  // Demo: X-Person-Id, the given person (the device acts as the center) or the picked viewer.
   getHeaders(customHeaders = {}, overridePersonId = null) {
-    const personId = overridePersonId || this.currentViewerId;
     const headers = { ...customHeaders };
+    if (this.session) {
+      headers.Authorization = `Bearer ${this.session.session_token}`;
+      return headers;
+    }
+    const personId = overridePersonId || this.demoViewerId;
     if (personId) {
       headers['X-Person-Id'] = personId;
     }
     return headers;
   }
 
-  // --- Audio and photos: fetch with X-Person-Id and hand back a blob URL ---
+  // --- Audio and photos: fetch with the identity header and hand back a blob URL ---
   // (a plain <audio src> or <img src> cannot send the header).
   async fetchBlobUrl(path, personId = null) {
     if (!path) return null;
-    // The person header only ever goes to our own API.
+    // The identity header only ever goes to our own API.
     if (!path.startsWith('/') && !path.startsWith(`${API_BASE_URL}/`)) {
       throw apiError(400, 'Not available');
     }
@@ -305,6 +348,75 @@ class EvocaApiClient {
       method: 'POST',
       headers: this.getHeaders(),
       body: formData
+    });
+    return handleResponse(res);
+  }
+
+  // --- A new family (POST /api/circles, no identity): returns the creator's session and link ---
+  async createCircle(body) {
+    const res = await fetch(`${API_BASE_URL}/api/circles`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    return handleResponse(res);
+  }
+
+  // --- Invite links (no identity): who the link is for, then a sign-in session ---
+  async getInvite(token) {
+    const res = await fetch(`${API_BASE_URL}/api/invites/${encodeURIComponent(token)}`);
+    return handleResponse(res);
+  }
+
+  async acceptInvite(token) {
+    const res = await fetch(`${API_BASE_URL}/api/invites/${encodeURIComponent(token)}/accept`, { method: 'POST' });
+    return handleResponse(res);
+  }
+
+  // Ends the stored session on the server (bearer only), then forgets it here even if that failed.
+  async logout() {
+    if (!this.session) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/auth/logout`, { method: 'POST', headers: this.getHeaders() });
+      await handleResponse(res);
+    } finally {
+      this.clearSession();
+    }
+  }
+
+  // --- Members and their invite links (admin only: /api/admin/*) ---
+  async addMember({ name, birth_year, relation_to_center, role }) {
+    const res = await fetch(`${API_BASE_URL}/api/admin/members`, {
+      method: 'POST',
+      headers: this.getHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ name, birth_year, relation_to_center, role })
+    });
+    return handleResponse(res);
+  }
+
+  async patchMember(personId, changes) {
+    const res = await fetch(`${API_BASE_URL}/api/admin/members/${personId}`, {
+      method: 'PATCH',
+      headers: this.getHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(changes)
+    });
+    return handleResponse(res);
+  }
+
+  async removeMember(personId) {
+    const res = await fetch(`${API_BASE_URL}/api/admin/members/${personId}`, {
+      method: 'DELETE',
+      headers: this.getHeaders()
+    });
+    return handleResponse(res);
+  }
+
+  // A personal link for any member (the center included); revokes their old link and its devices.
+  async createInvite(personId) {
+    const res = await fetch(`${API_BASE_URL}/api/admin/invites`, {
+      method: 'POST',
+      headers: this.getHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ person_id: personId })
     });
     return handleResponse(res);
   }

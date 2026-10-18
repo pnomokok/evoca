@@ -23,7 +23,7 @@ const PERIOD_PROMPTS = {
 };
 
 export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
-  const { setSelectedStoryId, setPanelSubTab, showToast, circleData, currentViewerId, viewerReady, centerPersonId, switchViewer, dataVersion } = useApp();
+  const { setSelectedStoryId, setPanelSubTab, showToast, circleData, currentViewerId, viewerReady, centerPersonId, switchViewer, dataVersion, isSignedIn } = useApp();
   // Loaded data is keyed by viewer; another viewer's feed is never shown.
   const [loaded, setLoaded] = useState({ viewerId: null, feedItems: [], lifeline: null });
   const [playingKey, setPlayingKey] = useState(null);
@@ -254,7 +254,7 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
         <FamilyTreeCard
           circleData={circleData}
           currentViewerId={currentViewerId}
-          onSwitchViewer={switchViewer}
+          onSwitchViewer={isSignedIn ? null : switchViewer}
           storyCount={storyCount}
           onOpenRecordModal={onOpenRecordModal}
           onOpenTreeModal={() => setIsTreeModalOpen(true)}
