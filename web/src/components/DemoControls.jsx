@@ -9,7 +9,8 @@ const CLOCK_REFRESH_MS = 60_000;
 
 // The demo clock and its menu (GET /api/demo/clock, POST /api/demo/advance, POST /api/demo/reset).
 // Rendered only in demo mode: a 404 from the clock hides it.
-export default function DemoControls() {
+// inline: the stage's bar, with every action as a visible button instead of a menu.
+export default function DemoControls({ inline = false }) {
   const { circleData, demoAdvance, demoReset, showToast, isSignedIn } = useApp();
   const [clock, setClock] = useState(null);
   const [demoMode, setDemoMode] = useState(false);
@@ -69,6 +70,55 @@ export default function DemoControls() {
     await run(demoReset, 'The demo has started over');
   };
 
+  const resetDialog = confirmReset && (
+    <Modal onClose={() => setConfirmReset(false)} labelledBy="reset-dialog-title" sheetStyle={{ maxWidth: '440px' }}>
+      <div className="modal-title-row">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-terracotta)' }}>
+          <AlertTriangle size={20} />
+          <h3 id="reset-dialog-title" className="archival-dialog-title" style={{ margin: 0 }}>Reset the demo?</h3>
+        </div>
+      </div>
+      <p style={{ fontSize: '14px', lineHeight: '1.6', margin: '16px 0', color: 'var(--text-charcoal-muted)' }}>
+        The demo family goes back to its starting stories and the clock goes back to today.
+        Everything recorded, asked or uploaded since then is deleted.
+      </p>
+      <div className="dialog-action-bar">
+        <button type="button" className="editorial-btn secondary" onClick={() => setConfirmReset(false)}>
+          Cancel
+        </button>
+        <button type="button" className="editorial-btn primary" onClick={handleReset}>
+          Reset demo
+        </button>
+      </div>
+    </Modal>
+  );
+
+  if (inline) {
+    return (
+      <div className="demo-controls inline" role="group" aria-label="Demo clock">
+        <span className="demo-clock-text">
+          <Clock size={13} />
+          Demo time <b data-testid="demo-clock">{busy ? 'Moving time...' : formatDemoClock(clock?.now, timeZone)}</b>
+        </span>
+        <button type="button" className="stage-btn" onClick={() => advance(1, '1 hour')} disabled={busy}>+1 hour</button>
+        <button
+          type="button"
+          className="stage-btn"
+          onClick={() => advance(nextMorningHours, 'next morning')}
+          disabled={busy || nextMorningHours == null}
+          title={circleData?.circle?.chat_time ? `To ${circleData.circle.chat_time} tomorrow, the family's chat time` : undefined}
+        >
+          Next morning
+        </button>
+        <button type="button" className="stage-btn" onClick={() => advance(24, '1 day')} disabled={busy}>+1 day</button>
+        {!isSignedIn && (
+          <button type="button" className="stage-btn quiet" onClick={() => setConfirmReset(true)} disabled={busy}>Reset</button>
+        )}
+        {resetDialog}
+      </div>
+    );
+  }
+
   return (
     <div className="demo-controls" ref={menuRef}>
       <button
@@ -107,28 +157,7 @@ export default function DemoControls() {
         </div>
       )}
 
-      {confirmReset && (
-        <Modal onClose={() => setConfirmReset(false)} labelledBy="reset-dialog-title" sheetStyle={{ maxWidth: '440px' }}>
-          <div className="modal-title-row">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-terracotta)' }}>
-              <AlertTriangle size={20} />
-              <h3 id="reset-dialog-title" className="archival-dialog-title" style={{ margin: 0 }}>Reset the demo?</h3>
-            </div>
-          </div>
-          <p style={{ fontSize: '14px', lineHeight: '1.6', margin: '16px 0', color: 'var(--text-charcoal-muted)' }}>
-            The demo family goes back to its starting stories and the clock goes back to today.
-            Everything recorded, asked or uploaded since then is deleted.
-          </p>
-          <div className="dialog-action-bar">
-            <button type="button" className="editorial-btn secondary" onClick={() => setConfirmReset(false)}>
-              Cancel
-            </button>
-            <button type="button" className="editorial-btn primary" onClick={handleReset}>
-              Reset demo
-            </button>
-          </div>
-        </Modal>
-      )}
+      {resetDialog}
     </div>
   );
 }

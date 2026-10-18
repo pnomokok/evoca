@@ -25,6 +25,7 @@ import { formatDuration } from '../../utils/format';
 import BlobPhoto from './BlobPhoto';
 import AddPhotoModal from './AddPhotoModal';
 import Modal from '../Modal';
+import { announceChange } from '../../utils/stageChannel';
 
 const REACTIONS = [
   { key: 'heart', emoji: '❤️', label: 'Love it' },
@@ -323,6 +324,7 @@ export default function StoryView() {
         ...prev,
         reactions: { present: res.present || [], mine: res.mine || [] }
       }));
+      announceChange('reaction');
     } catch (err) {
       console.error(err);
       showToast("Your reaction couldn't be saved.", 'error');

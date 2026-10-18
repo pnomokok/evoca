@@ -1,0 +1,274 @@
+/* ==========================================================================
+   THE FAMILY JOURNAL: questions and their answers (web/DESIGN.md)
+   ========================================================================== */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.my-questions-ask {
+  margin-top: var(--space-4);
+  align-self: flex-start;
+}
+
+.question-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 640px;
+}
+
+.question-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.question-card {
+  background: var(--bg-white);
+  border: 1px solid #EADFCB;
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-subtle);
+}
+
+.question-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: var(--space-2);
+}
+
+.question-meta {
+  font-size: var(--text-label);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-charcoal-faint);
+}
+
+.question-text {
+  font-family: var(--font-serif);
+  font-size: var(--text-lead);
+  line-height: 1.4;
+  color: var(--text-charcoal);
+  margin: 0 0 var(--space-3);
+}
+
+.question-open {
+  margin-top: var(--space-2);
+  padding-left: 0;
+}
+
+/* The journey: You asked → Waiting for her morning chat → Answered */
+.question-journey {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.question-journey li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--text-helper);
+  color: var(--text-charcoal-faint);
+  position: relative;
+}
+
+.question-journey li i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--border-paper-dark);
+  flex: none;
+}
+
+.question-journey li.done { color: var(--text-charcoal); }
+.question-journey li.done i { background: var(--accent-sage); border-color: var(--accent-sage); }
+.question-journey li.now { color: #9A5B1E; font-weight: 600; }
+.question-journey li.now i {
+  border-color: var(--honey);
+  background: var(--honey-soft);
+  box-shadow: 0 0 0 4px rgba(227, 154, 76, 0.15);
+}
+
+/* The answer card */
+.answer-card {
+  background: var(--bg-white);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 14px 34px rgba(48, 47, 41, 0.14);
+}
+
+.answer-hero {
+  position: relative;
+  height: 160px;
+  background: var(--bg-paper);
+}
+
+.answer-hero-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.answer-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 40%, rgba(20, 17, 13, 0.55));
+  pointer-events: none;
+}
+
+/* No photo: a designed card in the same place, never an empty image box. */
+.answer-hero-designed {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(90% 120% at 15% 0%, rgba(240, 168, 94, 0.55) 0%, rgba(240, 168, 94, 0) 60%),
+    linear-gradient(135deg, #B9825A 0%, #8C5A3C 55%, #5E3F2C 100%);
+  color: rgba(251, 243, 228, 0.55);
+  font-family: var(--font-serif);
+  font-size: 44px;
+}
+
+.answer-from {
+  position: absolute;
+  left: 16px;
+  bottom: 12px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--device-text);
+  font-size: var(--text-label);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.answer-from .initials-avatar { box-shadow: 0 0 0 2px var(--device-text); }
+
+.answer-body {
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.answer-asked {
+  font-size: var(--text-helper);
+  color: var(--text-charcoal-muted);
+  margin: 0;
+}
+
+.answer-title {
+  font-family: var(--font-serif);
+  font-size: var(--text-title);
+  font-weight: 500;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.answer-player {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.answer-play {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 50%;
+  border: 0;
+  background: var(--accent-terracotta);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(169, 95, 70, 0.35);
+}
+
+.answer-play:hover { background: var(--accent-terracotta-hover); }
+
+.answer-progress {
+  flex: 1;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--bg-paper);
+  overflow: hidden;
+}
+
+.answer-progress span {
+  display: block;
+  height: 100%;
+  background: var(--accent-terracotta);
+  transition: width 0.25s linear;
+}
+
+.answer-time {
+  font-size: var(--text-helper);
+  color: var(--text-charcoal-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.answer-summary {
+  font-size: var(--text-helper);
+  color: var(--text-charcoal-muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.answer-call {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  color: var(--text-charcoal);
+  margin: 0;
+}
+
+.answer-reactions {
+  display: flex;
+  gap: 8px;
+}
+
+.answer-reaction {
+  border: 1px solid var(--border-paper-dark);
+  background: var(--bg-white);
+  border-radius: var(--radius-full);
+  padding: 6px 12px;
+  font-size: 16px;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: var(--transition-gentle);
+}
+
+.answer-reaction:hover { background: var(--bg-paper-light); }
+.answer-reaction.present { border-color: rgba(227, 154, 76, 0.55); }
+.answer-reaction.mine {
+  background: var(--accent-terracotta-soft);
+  border-color: var(--accent-terracotta);
+}
+
+.answer-when {
+  font-size: var(--text-label);
+  color: var(--text-charcoal-faint);
+  margin: 0;
+}
+
+/* In the activity list the card sits among other activity cards. */
+.activity-cards-list .answer-card { max-width: 640px; }

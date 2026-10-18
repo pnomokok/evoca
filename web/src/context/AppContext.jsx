@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { apiClient } from '../api/client';
 import { AppContext } from './useApp';
+import { announceChange, listenForChanges } from '../utils/stageChannel';
 
 // Signed in (bearer): the session fixes person and circle, so GET /api/circle gives everything;
 // the device invitation only for the center, the one person the device acts as.
@@ -37,6 +38,10 @@ async function fetchDemoData() {
 
   // The last choice (localStorage), else the oldest person with role "member".
   let viewerId = apiClient.currentViewerId;
+  // A stage pane is only ever the person in its URL; an unknown id (a stale stage) loads nothing.
+  if (apiClient.embed && !people.some(p => p.id === viewerId)) {
+    return { people, centerId, viewerId: '', circle: null, invitation: null };
+  }
   if (!people.some(p => p.id === viewerId)) {
     const members = people.filter(p => p.circles?.some(c => c.role === 'member'));
     let preferred = members[0] || people[0];
@@ -65,11 +70,12 @@ async function fetchDemoData() {
 
 // initialTab 'home': the signed-in person's own place once loaded (the device for the center,
 // otherwise the family panel). restartApp(tab) remounts the app after the identity changed.
-export function AppProvider({ children, initialTab = 'landing', initialToast = null, restartApp, openCreateFamily }) {
+// A stage pane (apiClient.embed) starts on its own view and loads again when another pane announces a change.
+export function AppProvider({ children, initialTab = 'landing', initialPanelSubTab = 'feed', initialToast = null, restartApp, openCreateFamily }) {
   const [activeTab, setActiveTab] = useState(initialTab === 'home' ? 'panel' : initialTab); // 'landing' | 'device' | 'panel'
   const openHomeRef = useRef(initialTab === 'home');
   const [isSignedIn] = useState(apiClient.isSignedIn);
-  const [panelSubTab, setPanelSubTab] = useState('feed'); // 'feed' | 'lifeline' | 'story' | 'questions' | 'settings'
+  const [panelSubTab, setPanelSubTab] = useState(initialPanelSubTab); // 'feed' | 'lifeline' | 'story' | 'questions' | 'settings'
   const [selectedStoryId, setSelectedStoryId] = useState(null);
   const [currentViewerId, setCurrentViewerId] = useState(apiClient.currentViewerId);
   // False until the stored viewer id has been checked (see fetchInitialData).
@@ -144,6 +150,16 @@ export function AppProvider({ children, initialTab = 'landing', initialToast = n
     return () => { cancelled = true; };
   }, [applyInitialData, handleLoadError]);
 
+  // A stage pane: another pane changed something, so load again. After a reset the stage
+  // reloads the panes with the new ids; the old ids would only give 403s here.
+  useEffect(() => {
+    if (!apiClient.embed) return undefined;
+    return listenForChanges((reason) => {
+      if (reason === 'reset') return;
+      loadInitialData().then(() => setDataVersion(v => v + 1));
+    });
+  }, [loadInitialData]);
+
   // Demo picker only: when the viewer changes, reload circle data.
   const switchViewer = async (personId) => {
     if (apiClient.isSignedIn) return;
@@ -164,6 +180,7 @@ export function AppProvider({ children, initialTab = 'landing', initialToast = n
   // Demo controls: move the clock, then reload people, circle and invitation, and let every view refetch.
   const demoAdvance = async (hours) => {
     const clock = await apiClient.postDemoAdvance(hours);
+    announceChange('clock');
     await loadInitialData();
     setDataVersion(v => v + 1);
     return clock;
@@ -178,6 +195,7 @@ export function AppProvider({ children, initialTab = 'landing', initialToast = n
     setResetVersion(v => v + 1);
     try {
       await apiClient.postDemoReset();
+      announceChange('reset');
     } finally {
       await loadInitialData();
       setDataVersion(v => v + 1);

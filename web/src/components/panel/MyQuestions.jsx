@@ -1,34 +1,64 @@
 import React, { useEffect, useState } from 'react';
 import { useApp } from '../../context/useApp';
 import { apiClient } from '../../api/client';
-import { ChevronRight, MessageSquarePlus } from 'lucide-react';
+import { MessageSquarePlus } from 'lucide-react';
 import { formatWhen } from '../../utils/format';
+import Avatar from '../Avatar';
+import AnswerCard from './AnswerCard';
+import '../../styles/journal.css';
 
-// The viewer's own questions (GET /api/questions/mine). The API only says "waiting" or "answered";
-// anything else is shown as waiting too, and the page never guesses why a question is still waiting.
+// The three steps of a question. The API only says "waiting" or "answered", so a question is on
+// step 2 until it is answered; the page never guesses why it is still waiting.
+const JOURNEY = ['You asked', 'Waiting for her morning chat', 'Answered'];
+
+function Journey({ answered }) {
+  const current = answered ? 3 : 2;
+  return (
+    <ol className="question-journey" aria-label={answered ? 'Answered' : 'Waiting for her morning chat'}>
+      {JOURNEY.map((label, i) => {
+        const step = i + 1;
+        const state = step < current || answered ? 'done' : step === current ? 'now' : 'todo';
+        return (
+          <li key={label} className={state} aria-current={state === 'now' ? 'step' : undefined}>
+            <i aria-hidden="true" />{label}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+// The viewer's own questions (GET /api/questions/mine), each with its journey; an answered one
+// shows its answer card from the feed (GET /api/feed).
 export default function MyQuestions({ onOpenAskModal, reloadKey }) {
   const { circleData, currentViewerId, viewerReady, dataVersion, setSelectedStoryId, setPanelSubTab } = useApp();
-  const [loaded, setLoaded] = useState({ viewerId: null, questions: [], failed: false });
+  const [loaded, setLoaded] = useState({ viewerId: null, questions: [], answers: {}, failed: false });
 
   useEffect(() => {
     if (!viewerReady) return;
     let cancelled = false;
-    apiClient.getMyQuestions()
-      .then(questions => { if (!cancelled) setLoaded({ viewerId: currentViewerId, questions: questions || [], failed: false }); })
+    Promise.all([apiClient.getMyQuestions(), apiClient.getFeed().catch(() => null)])
+      .then(([questions, feed]) => {
+        if (cancelled) return;
+        const answers = Object.fromEntries((feed?.items || [])
+          .filter(i => i.type === 'question_answered' && i.answer && i.question?.id)
+          .map(i => [i.question.id, i]));
+        setLoaded({ viewerId: currentViewerId, questions: questions || [], answers, failed: false });
+      })
       .catch(err => {
         console.error('Could not load my questions:', err);
-        if (!cancelled) setLoaded({ viewerId: currentViewerId, questions: [], failed: true });
+        if (!cancelled) setLoaded({ viewerId: currentViewerId, questions: [], answers: {}, failed: true });
       });
     return () => { cancelled = true; };
   }, [viewerReady, currentViewerId, dataVersion, reloadKey]);
 
   const ready = loaded.viewerId === currentViewerId;
   const questions = ready ? loaded.questions : [];
-  const memberName = (id) => circleData?.members?.find(m => m.id === id)?.name || '';
+  const member = (id) => circleData?.members?.find(m => m.id === id) || null;
   const center = circleData?.members?.find(m => m.role === 'center');
   const centerFirst = center?.name?.split(' ')[0] || '';
 
-  const openAnswer = (storyId) => {
+  const openStory = (storyId) => {
     setSelectedStoryId(storyId);
     setPanelSubTab('story');
   };
@@ -38,61 +68,52 @@ export default function MyQuestions({ onOpenAskModal, reloadKey }) {
       <header className="section-header-editorial">
         <span className="section-eyebrow">Your questions</span>
         <h1 className="section-title-serif">My questions</h1>
-        <p className="section-desc">What you asked, and the stories that answered it.</p>
+        <p className="section-desc">
+          {centerFirst ? `${centerFirst} answers in her morning chat, in her own voice.` : 'Answered in the morning chat, in her own voice.'}
+        </p>
+        {onOpenAskModal && (
+          <button type="button" className="editorial-btn primary my-questions-ask" onClick={() => onOpenAskModal(null, '')}>
+            <MessageSquarePlus size={16} />
+            <span>{centerFirst ? `Ask ${centerFirst} a question` : 'Ask a question'}</span>
+          </button>
+        )}
       </header>
 
-      <section className="side-archival-card" aria-label="My questions">
-        {!ready && <p className="section-desc" role="status">Loading your questions...</p>}
-        {ready && loaded.failed && <p role="alert">Not available.</p>}
-        {ready && !loaded.failed && questions.length === 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-            <p className="section-desc" style={{ margin: 0 }}>
-              You haven't asked anything yet. {centerFirst ? `${centerFirst} answers` : 'Questions are answered'} in the next morning chat.
-            </p>
-            {onOpenAskModal && (
-              <button type="button" className="editorial-btn primary" onClick={() => onOpenAskModal(null, '')}>
-                <MessageSquarePlus size={15} />
-                <span>Ask a question</span>
-              </button>
-            )}
-          </div>
-        )}
+      {!ready && <p className="section-desc" role="status">Loading your questions...</p>}
+      {ready && loaded.failed && <p role="alert">Not available.</p>}
+      {ready && !loaded.failed && questions.length === 0 && (
+        <p className="section-desc">
+          You haven't asked anything yet. Your questions and their answers will appear here.
+        </p>
+      )}
 
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-          {questions.map(q => {
-            const answered = q.status === 'answered' && Boolean(q.answer_story_id);
-            const details = [memberName(q.target_person_id) && `To ${memberName(q.target_person_id)}`, formatWhen(q.created_at)]
-              .filter(Boolean).join(' · ');
-            const content = (
-              <>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <strong>{q.text}</strong>
-                  <div className="section-desc">{details}</div>
+      <ul className="question-list" aria-label="My questions">
+        {questions.map(q => {
+          const answered = q.status === 'answered' && Boolean(q.answer_story_id);
+          const answerItem = answered ? loaded.answers[q.id] : null;
+          const target = member(q.target_person_id);
+          return (
+            <li key={q.id} className="question-item">
+              <div className="question-card" data-testid="question-card" data-status={answered ? 'answered' : 'waiting'}>
+                <div className="question-head">
+                  {target && <Avatar person={target} size={28} />}
+                  <span className="question-meta">
+                    {[target && `To ${target.name.split(' ')[0]}`, formatWhen(q.created_at)].filter(Boolean).join(' · ')}
+                  </span>
                 </div>
-                <span className={`status-pill ${answered ? 'has_stories' : 'waiting'}`}>{answered ? 'Answered' : 'Waiting'}</span>
-                {answered && <ChevronRight size={16} aria-hidden="true" />}
-              </>
-            );
-            const rowStyle = { display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid var(--border-paper)' };
-            return (
-              <li key={q.id}>
-                {answered ? (
-                  <button
-                    type="button"
-                    onClick={() => openAnswer(q.answer_story_id)}
-                    title="Open the story that answers it"
-                    style={{ ...rowStyle, width: '100%', background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', textAlign: 'left', cursor: 'pointer', color: 'inherit', font: 'inherit' }}
-                  >
-                    {content}
+                <p className="question-text">“{q.text}”</p>
+                <Journey answered={answered} />
+                {answered && !answerItem && (
+                  <button type="button" className="editorial-btn quiet question-open" onClick={() => openStory(q.answer_story_id)}>
+                    Open the story that answers it →
                   </button>
-                ) : (
-                  <div style={rowStyle}>{content}</div>
                 )}
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+              </div>
+              {answerItem && <AnswerCard item={answerItem} showQuestion={false} />}
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

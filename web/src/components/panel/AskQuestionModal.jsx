@@ -4,6 +4,7 @@ import { apiClient } from '../../api/client';
 import { X, AlertTriangle, Send } from 'lucide-react';
 import { PERIOD_LABELS } from '../../utils/periods';
 import Modal from '../Modal';
+import { announceChange } from '../../utils/stageChannel';
 
 const SUGGESTIONS = [
   'How was your house kept warm in winter?',
@@ -42,6 +43,7 @@ export default function AskQuestionModal({ onClose, defaultPeriod = null, initia
         // Show the backend's message as it is; it never names the topic.
         setFilterWarning(res.message);
       } else {
+        announceChange('question');
         showToast(
           centerFirst ? `Your question is saved for ${centerFirst}'s next morning chat.` : 'Your question is saved for the next morning chat.',
           "info"

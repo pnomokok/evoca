@@ -29,6 +29,19 @@ function readSession() {
   }
 }
 
+// A pane of the "Watch the loop" stage: ?embed=device|panel&person=<id>. Its demo identity comes
+// from the URL only, so it never reads or writes the stored sign-in or picker choice.
+function readEmbed() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const kind = params.get('embed');
+    const person = params.get('person');
+    return (kind === 'device' || kind === 'panel') && person ? { kind, person } : null;
+  } catch {
+    return null;
+  }
+}
+
 function apiError(status, message) {
   const err = new Error(message);
   err.status = status;
@@ -63,8 +76,10 @@ async function handleResponse(res) {
 class EvocaApiClient {
   constructor() {
     // Two identity modes: a stored sign-in session (bearer token), else the demo person picker.
-    this.session = readSession();
-    this.demoViewerId = readStorage('evoca_viewer_id') || '';
+    // A stage pane is always the demo person in its URL.
+    this.embed = readEmbed();
+    this.session = this.embed ? null : readSession();
+    this.demoViewerId = this.embed ? this.embed.person : (readStorage('evoca_viewer_id') || '');
     // Left behind by the removed sample-data mode.
     writeStorage('evoca_use_mock', null);
   }
@@ -94,7 +109,7 @@ class EvocaApiClient {
   // Demo picker only; a signed-in session fixes the person.
   setViewer(personId) {
     this.demoViewerId = personId;
-    writeStorage('evoca_viewer_id', personId || null);
+    if (!this.embed) writeStorage('evoca_viewer_id', personId || null);
   }
 
   // Signed in: only the bearer token (the session fixes person and circle).
@@ -215,8 +230,9 @@ class EvocaApiClient {
   }
 
   // --- Lifeline ---
-  async getLifeline(personId) {
-    const res = await fetch(`${API_BASE_URL}/api/lifeline/${personId}`, { headers: this.getHeaders() });
+  // asPersonId: ask as someone else in demo mode (the device asks as the center person).
+  async getLifeline(personId, asPersonId = null) {
+    const res = await fetch(`${API_BASE_URL}/api/lifeline/${personId}`, { headers: this.getHeaders({}, asPersonId) });
     return handleResponse(res);
   }
 

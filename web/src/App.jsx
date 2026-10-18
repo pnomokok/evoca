@@ -8,10 +8,41 @@ import FamilyPanel from './components/panel/FamilyPanel';
 import LandingPage from './components/LandingPage';
 import JoinPage from './components/JoinPage';
 import CreateFamilyWizard from './components/CreateFamilyWizard';
+import StageView from './components/StageView';
+import DemoEntryModal from './components/DemoEntryModal';
+import Avatar from './components/Avatar';
 import { Info, AlertCircle, Users } from 'lucide-react';
 
+// A stage pane marks its document so the stage's styles can make the page fit the frame.
+if (apiClient.embed) document.documentElement.dataset.embed = apiClient.embed.kind;
+
+function Toast() {
+  const { toast } = useApp();
+  if (!toast) return null;
+  return (
+    <div className="toast-popup" role="status">
+      {toast.type === 'error' ? (
+        <AlertCircle size={18} color="#ef4444" />
+      ) : (
+        <Info size={18} color="var(--accent-gold)" />
+      )}
+      <span>{toast.message}</span>
+    </div>
+  );
+}
+
 function MainContent() {
-  const { activeTab, enterDemo, openCreateFamily, isSignedIn, toast } = useApp();
+  const { activeTab, enterDemo, openCreateFamily, isSignedIn } = useApp();
+  const [choosingDemo, setChoosingDemo] = useState(false);
+
+  if (activeTab === 'stage') {
+    return (
+      <div className="app-container">
+        <StageView />
+        <Toast />
+      </div>
+    );
+  }
 
   return (
     <div className="app-container">
@@ -28,24 +59,45 @@ function MainContent() {
               </button>
             </div>
           )}
-          {/* The demo entry: it forgets any stored sign-in and opens the demo family. */}
-          <LandingPage onOpenDemo={(tab) => enterDemo(tab || 'panel')} />
+          {/* The demo entry: watch the loop or pick a role; either forgets any stored sign-in. */}
+          <LandingPage onOpenDemo={(tab) => (tab === 'device' ? enterDemo('device') : setChoosingDemo(true))} />
         </div>}
         {activeTab === 'panel' && <FamilyPanel />}
         {activeTab === 'device' && <DeviceScreen />}
       </main>
 
-      {/* Global Toast */}
-      {toast && (
-        <div className="toast-popup" role="status">
-          {toast.type === 'error' ? (
-            <AlertCircle size={18} color="#ef4444" />
-          ) : (
-            <Info size={18} color="var(--accent-gold)" />
-          )}
-          <span>{toast.message}</span>
-        </div>
+      <Toast />
+      {choosingDemo && (
+        <DemoEntryModal
+          onClose={() => setChoosingDemo(false)}
+          onWatchLoop={() => { setChoosingDemo(false); enterDemo('stage'); }}
+          onPickRole={() => { setChoosingDemo(false); enterDemo('panel'); }}
+        />
       )}
+    </div>
+  );
+}
+
+// One pane of the stage: the device as the center person, or the family panel on a phone.
+function EmbedContent() {
+  const { activeTab, circleData } = useApp();
+  if (activeTab === 'device') {
+    return (
+      <div className="app-container embed-device-view">
+        <DeviceScreen />
+        <Toast />
+      </div>
+    );
+  }
+  const me = circleData?.me;
+  return (
+    <div className="app-container">
+      <div className="embed-phone-head">
+        {me && <Avatar person={me} size={30} />}
+        <span><strong>{me?.name?.split(' ')[0] || ''}</strong>{circleData?.circle?.name ? ` · ${circleData.circle.name}` : ''}</span>
+      </div>
+      <FamilyPanel />
+      <Toast />
     </div>
   );
 }
@@ -56,6 +108,17 @@ function joinTokenFromPath() {
 }
 
 export default function App() {
+  if (apiClient.embed) {
+    return (
+      <AppProvider initialTab={apiClient.embed.kind} initialPanelSubTab="questions">
+        <EmbedContent />
+      </AppProvider>
+    );
+  }
+  return <FullApp />;
+}
+
+function FullApp() {
   const [joinToken, setJoinToken] = useState(joinTokenFromPath);
   // A new key remounts the whole app with fresh state whenever who is calling changes
   // (joined, created a family, left, back to the demo), so nothing from the old identity lingers.
