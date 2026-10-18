@@ -176,60 +176,6 @@ h1, h2, h3, h4, .serif-font {
   font-weight: 500;
 }
 
-.topbar-nav {
-  display: flex;
-  background: var(--bg-paper-light);
-  padding: 4px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--border-paper);
-  gap: 3px;
-}
-
-.topbar-nav-link {
-  background: transparent;
-  border: none;
-  color: var(--text-charcoal-muted);
-  padding: 6px 16px;
-  border-radius: var(--radius-full);
-  font-size: 13.5px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  transition: var(--transition-gentle);
-}
-
-.topbar-nav-link:hover {
-  color: var(--text-charcoal);
-}
-
-.topbar-nav-link.active {
-  background: var(--bg-white);
-  color: var(--text-charcoal);
-  box-shadow: 0 1px 3px rgba(48, 47, 41, 0.08);
-}
-
-.topbar-controls {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.viewer-picker {
-  display: flex;
-  align-items: center;
-  background: var(--bg-white);
-  border: 1px solid var(--border-paper);
-  border-radius: var(--radius-sm);
-  padding: 5px 12px;
-  gap: 6px;
-}
-
-.viewer-icon {
-  color: var(--accent-sage);
-}
-
 .archival-select {
   background: transparent;
   border: none;
@@ -259,20 +205,6 @@ h1, h2, h3, h4, .serif-font {
 
 .topbar-text-btn:hover {
   background: var(--bg-paper-light);
-}
-
-/* "Create your family" on the landing page */
-.own-family-band {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding: 12px 16px;
-  background: var(--bg-paper-light);
-  border-bottom: 1px solid var(--border-paper);
-  font-size: 14px;
-  color: var(--text-charcoal);
 }
 
 /* Personal links, members, field errors */
@@ -343,12 +275,6 @@ h1, h2, h3, h4, .serif-font {
   padding: 10px 12px;
   background: var(--bg-paper-light);
   border-radius: var(--radius-sm);
-}
-
-/* The landing page with the "Create your family" band above it */
-.landing-stack {
-  width: 100%;
-  min-width: 0;
 }
 
 /* Title and close button side by side (the dialogs of this feature) */
@@ -482,23 +408,6 @@ h1, h2, h3, h4, .serif-font {
   }
 }
 
-/* Sub-Header Navigation */
-.panel-editorial-subnav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--border-paper);
-  padding-bottom: 14px;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.subnav-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
 .subnav-pill {
   background: transparent;
   border: 1px solid transparent;
@@ -524,12 +433,6 @@ h1, h2, h3, h4, .serif-font {
   color: var(--accent-terracotta);
   border-color: var(--border-paper);
   box-shadow: var(--shadow-subtle);
-}
-
-.subnav-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
 }
 
 .editorial-action-btn {
@@ -564,12 +467,6 @@ h1, h2, h3, h4, .serif-font {
 
 .editorial-action-btn.record:hover {
   background: var(--bg-paper-light);
-}
-
-@media (max-width: 768px) {
-  .panel-editorial-subnav {
-    display: none;
-  }
 }
 
 /* ==========================================================================
@@ -891,20 +788,6 @@ h1, h2, h3, h4, .serif-font {
   flex-shrink: 0;
 }
 
-.inline-record-link {
-  background: transparent;
-  border: none;
-  color: var(--accent-terracotta);
-  font-weight: 600;
-  font-size: 11.5px;
-  cursor: pointer;
-  padding: 0;
-}
-
-.inline-record-link:hover {
-  text-decoration: underline;
-}
-
 /* Minimalist Visual Family Tree Diagram */
 .minimal-tree-canvas {
   display: flex;
@@ -937,8 +820,6 @@ h1, h2, h3, h4, .serif-font {
   justify-content: center;
   color: #FFFFFF;
   font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
   position: relative;
   user-select: none;
   box-shadow: 0 2px 7px rgba(48, 47, 41, 0.1);
@@ -960,11 +841,6 @@ h1, h2, h3, h4, .serif-font {
   width: 33px;
   height: 33px;
   font-size: 11px;
-}
-
-.minimal-avatar-circle:hover {
-  transform: scale(1.08);
-  box-shadow: 0 5px 14px rgba(48, 47, 41, 0.18);
 }
 
 .minimal-avatar-circle.active-viewer {
@@ -1067,39 +943,6 @@ h1, h2, h3, h4, .serif-font {
   width: 86%;
   gap: 12px;
   margin-top: -1px;
-}
-
-/* Subtle Dashed Add Memory Action Button */
-.minimal-add-action-btn {
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-  width: 27px;
-  height: 27px;
-  border-radius: 50%;
-  border: 1.5px dashed var(--border-paper-dark);
-  background: transparent;
-  color: var(--text-charcoal-muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: var(--transition-gentle);
-}
-
-.minimal-add-action-btn:hover {
-  background: var(--bg-white);
-  border-color: var(--accent-terracotta);
-  color: var(--accent-terracotta);
-  transform: scale(1.08);
-  box-shadow: var(--shadow-subtle);
-}
-
-.minimal-tree-footer-cue {
-  font-size: 10.5px;
-  color: var(--text-charcoal-faint);
-  text-align: center;
-  margin-top: 2px;
 }
 
 /* ==========================================================================
@@ -1209,27 +1052,6 @@ h1, h2, h3, h4, .serif-font {
   line-height: 1.55;
   color: var(--text-charcoal-muted);
   margin: 2px 0 0 0;
-}
-
-.gen-links {
-  margin-top: 6px;
-}
-
-.gen-action-link {
-  background: transparent;
-  border: none;
-  color: var(--accent-terracotta);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0;
-}
-
-.gen-action-link:hover {
-  text-decoration: underline;
 }
 
 .gen-grandchildren-row {
@@ -2208,47 +2030,6 @@ h1, h2, h3, h4, .serif-font {
 
 .inline-listen-link:hover {
   text-decoration: underline;
-}
-
-/* Dashboard Editorial Footer Callout */
-.dashboard-editorial-footer {
-  margin-top: 24px;
-  background: var(--bg-paper-light);
-  border: 1px solid var(--border-paper);
-  border-radius: var(--radius-xl);
-  padding: 32px 38px;
-}
-
-@media (max-width: 600px) {
-  .dashboard-editorial-footer {
-    padding: 24px 18px;
-  }
-}
-
-.footer-callout {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  flex-wrap: wrap;
-}
-
-.footer-callout-text h3 {
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--text-charcoal);
-}
-
-.footer-callout-text p {
-  font-size: 13px;
-  color: var(--text-charcoal-muted);
-  margin-top: 4px;
-}
-
-.footer-callout-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
 }
 
 /* ==========================================================================

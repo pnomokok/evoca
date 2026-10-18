@@ -165,6 +165,41 @@ html {
   box-shadow: 0 4px 14px rgba(169, 95, 70, 0.35);
 }
 
+.landing-nav-cta.secondary {
+  background: var(--bg-white);
+  color: var(--text-charcoal);
+  border: 1px solid var(--border-paper-dark);
+  box-shadow: none;
+}
+
+.landing-nav-cta.secondary:hover {
+  background: var(--bg-paper-light);
+  box-shadow: none;
+}
+
+/* The brand on the left of the landing header, the buttons on the right */
+.landing-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.landing-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+@media (max-width: 480px) {
+  .landing-subnav-inner { padding: 10px 16px; gap: 10px; }
+  .landing-brand .brand-name { display: none; }
+  .landing-nav-cta { padding: 8px 12px; }
+}
+
 /* --------------------------------------------------------------------------
    1. HERO SECTION (Dark, Cinematic, Warm Emotional)
    -------------------------------------------------------------------------- */

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useApp } from '../../context/useApp';
 import { apiClient } from '../../api/client';
-import { MessageSquarePlus } from 'lucide-react';
 import { formatWhen } from '../../utils/format';
 import Avatar from '../Avatar';
 import AnswerCard from './AnswerCard';
@@ -30,8 +29,9 @@ function Journey({ answered }) {
 
 // The viewer's own questions (GET /api/questions/mine), each with its journey; an answered one
 // shows its answer card from the feed (GET /api/feed).
-export default function MyQuestions({ onOpenAskModal, reloadKey }) {
-  const { circleData, currentViewerId, viewerReady, dataVersion, setSelectedStoryId, setPanelSubTab } = useApp();
+// "Ask a question" is in the archive header and the bottom bar.
+export default function MyQuestions({ reloadKey }) {
+  const { circleData, currentViewerId, viewerReady, dataVersion, openStory } = useApp();
   const [loaded, setLoaded] = useState({ viewerId: null, questions: [], answers: {}, failed: false });
 
   useEffect(() => {
@@ -58,11 +58,6 @@ export default function MyQuestions({ onOpenAskModal, reloadKey }) {
   const center = circleData?.members?.find(m => m.role === 'center');
   const centerFirst = center?.name?.split(' ')[0] || '';
 
-  const openStory = (storyId) => {
-    setSelectedStoryId(storyId);
-    setPanelSubTab('story');
-  };
-
   return (
     <div className="lifeline-archive-page my-questions-page">
       <header className="section-header-editorial">
@@ -71,12 +66,6 @@ export default function MyQuestions({ onOpenAskModal, reloadKey }) {
         <p className="section-desc">
           {centerFirst ? `${centerFirst} answers in her morning chat, in her own voice.` : 'Answered in the morning chat, in her own voice.'}
         </p>
-        {onOpenAskModal && (
-          <button type="button" className="editorial-btn primary my-questions-ask" onClick={() => onOpenAskModal(null, '')}>
-            <MessageSquarePlus size={16} />
-            <span>{centerFirst ? `Ask ${centerFirst} a question` : 'Ask a question'}</span>
-          </button>
-        )}
       </header>
 
       {!ready && <p className="section-desc" role="status">Loading your questions...</p>}

@@ -18,7 +18,7 @@ import { formatDuration } from '../../utils/format';
 import BlobPhoto from './BlobPhoto';
 
 export default function LifelineView({ onOpenAskModal }) {
-  const { setSelectedStoryId, setPanelSubTab, showToast, centerPersonId, currentViewerId, viewerReady, dataVersion } = useApp();
+  const { openStory, showToast, centerPersonId, currentViewerId, viewerReady, dataVersion } = useApp();
   // Loaded data is keyed by viewer and person; data for another viewer is never shown.
   const [loaded, setLoaded] = useState({ key: null, data: null, failed: false });
   const [editingStoryId, setEditingStoryId] = useState(null);
@@ -75,10 +75,7 @@ export default function LifelineView({ onOpenAskModal }) {
     }
   };
 
-  const handleOpenStory = (storyId) => {
-    setSelectedStoryId(storyId);
-    setPanelSubTab('story');
-  };
+  const handleOpenStory = openStory;
 
   if (current.failed) {
     return (

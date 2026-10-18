@@ -22,7 +22,6 @@ export default function FamilyTreeModal({
   const members = circleData?.members || [];
   const center = members.find(m => m.role === 'center');
   const others = members.filter(m => m !== center);
-  const centerFirst = center?.name?.split(' ')[0];
 
   const openLifeline = () => {
     onClose();
@@ -61,12 +60,6 @@ export default function FamilyTreeModal({
                     <div className="gen-name-row">
                       <strong>{center.name}</strong>
                       {center.birth_year && <span className="gen-year-pill">Born {center.birth_year}</span>}
-                    </div>
-                    <div className="gen-links">
-                      <button className="gen-action-link" onClick={openLifeline}>
-                        <BookOpen size={14} />
-                        <span>See {centerFirst ? `${centerFirst}'s` : 'the'} life chapters →</span>
-                      </button>
                     </div>
                   </div>
                 </div>

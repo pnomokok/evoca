@@ -112,6 +112,15 @@ class EvocaApiClient {
     if (!this.embed) writeStorage('evoca_viewer_id', personId || null);
   }
 
+  // True once someone has chosen a person in the picker (before that, it suggests the default member).
+  get viewerChosen() {
+    return readStorage('evoca_viewer_chosen') === '1';
+  }
+
+  markViewerChosen() {
+    writeStorage('evoca_viewer_chosen', '1');
+  }
+
   // Signed in: only the bearer token (the session fixes person and circle).
   // Demo: X-Person-Id, the given person (the device acts as the center) or the picked viewer.
   getHeaders(customHeaders = {}, overridePersonId = null) {

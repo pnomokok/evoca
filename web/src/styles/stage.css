@@ -1,48 +1,14 @@
 /* ==========================================================================
-   THE STAGE: "Watch the loop" (demo only). Device, phone and demo bar fit one
-   1366x768 screen: the device width follows the height that is left.
+   THE STAGE: "Watch the loop" (demo only). Device, phone and the demo strip
+   (styles/navigation.css) fit one 1366x768 screen: the device width follows the height that is left.
    ========================================================================== */
 .stage-page {
-  --bar-h: 60px;
+  --bar-h: 44px;
   --pane-h: calc(100vh - var(--bar-h) - 72px);
   --device-w: min(720px, calc((var(--pane-h) - 270px) * 1.6));
   --phone-w: 390px;
-  min-height: 100vh;
   background: var(--bg-ivory);
 }
-
-.stage-bar {
-  height: var(--bar-h);
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  padding: 0 var(--space-5);
-  border-bottom: 1px solid var(--border-paper);
-  background: rgba(247, 243, 234, 0.85);
-  backdrop-filter: blur(8px);
-}
-
-.stage-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: none;
-  border: 0;
-  cursor: pointer;
-  padding: 0;
-}
-
-.stage-pill {
-  font-size: var(--text-label);
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: var(--radius-full);
-  background: var(--accent-sage-soft);
-  color: var(--accent-sage);
-  white-space: nowrap;
-}
-
-.stage-spacer { flex: 1; }
 
 .demo-controls.inline {
   display: flex;
@@ -144,8 +110,6 @@
 /* Below 1100 px the panes stack; the page scrolls. */
 @media (max-width: 1100px) {
   .stage-page { --device-w: min(720px, calc(100vw - 32px)); }
-  .stage-bar { height: auto; min-height: var(--bar-h); flex-wrap: wrap; padding: 10px 16px; gap: 10px; }
-  .stage-spacer { display: none; }
   .demo-controls.inline { flex-wrap: wrap; }
   .stage { flex-direction: column; align-items: center; padding: var(--space-4); }
   .phone-pane { width: min(var(--phone-w), 100%); }
@@ -165,17 +129,6 @@
 [data-embed="panel"] .app-container { background: var(--bg-ivory); }
 
 .embed-device-view { height: 100vh; overflow: hidden; }
-
-.embed-phone-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 18px 18px 6px;
-  font-size: var(--text-helper);
-  color: var(--text-charcoal-muted);
-}
-
-.embed-phone-head strong { color: var(--text-charcoal); font-weight: 600; }
 
 /* The demo entry */
 .demo-entry-options {

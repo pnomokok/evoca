@@ -1,5 +1,5 @@
 import React from 'react';
-import { Maximize2, Sparkles, Plus } from 'lucide-react';
+import { Maximize2, Sparkles } from 'lucide-react';
 
 const getMemberColor = (member, index) => {
   if (member?.role === 'center') return '#B06543';
@@ -10,12 +10,11 @@ const getMemberColor = (member, index) => {
   return palette[index % palette.length];
 };
 
+// Informative only: who is in the family and how many stories are kept ("Full view" opens the whole tree).
 export default function FamilyTreeCard({
   circleData,
   currentViewerId,
-  onSwitchViewer,
   storyCount = 0,
-  onOpenRecordModal,
   onOpenTreeModal
 }) {
   const circle = circleData?.circle;
@@ -73,18 +72,6 @@ export default function FamilyTreeCard({
           <div className="counter-inline-row empty">
             <Sparkles size={13} className="sparkle-mini" />
             <span>No family stories yet</span>
-            {onOpenRecordModal && (
-              <>
-                <span className="counter-sep">·</span>
-                <button
-                  type="button"
-                  className="inline-record-link"
-                  onClick={() => onOpenRecordModal()}
-                >
-                  Record the first one today →
-                </button>
-              </>
-            )}
           </div>
         )}
       </div>
@@ -94,16 +81,14 @@ export default function FamilyTreeCard({
         {/* Top Node: Center Person (Grandmother / Center) */}
         {centerMember && (
           <div className="tree-node-unit level-1">
-            <button
-              type="button"
+            <span
               className={`minimal-avatar-circle ${centerMember.id === currentViewerId ? 'active-viewer' : ''}`}
               style={{ backgroundColor: getMemberColor(centerMember, 0) }}
-              onClick={() => onSwitchViewer && onSwitchViewer(centerMember.id)}
-              title={onSwitchViewer ? `View as ${centerMember.name}` : centerMember.name}
+              title={centerMember.name}
             >
               <span className="avatar-initials">{getInitials(centerMember.name)}</span>
               {centerMember.id === currentViewerId && <span className="active-dot-indicator" />}
-            </button>
+            </span>
             <div className="node-caption">
               <span className="node-fullname">{centerMember.name}</span>
               <span className="node-year-sub">{getSub(centerMember)}</span>
@@ -119,16 +104,14 @@ export default function FamilyTreeCard({
         {/* Middle Node: Daughter */}
         {daughterMember && (
           <div className="tree-node-unit level-2">
-            <button
-              type="button"
+            <span
               className={`minimal-avatar-circle ${daughterMember.id === currentViewerId ? 'active-viewer' : ''}`}
               style={{ backgroundColor: getMemberColor(daughterMember, 1) }}
-              onClick={() => onSwitchViewer && onSwitchViewer(daughterMember.id)}
-              title={onSwitchViewer ? `View as ${daughterMember.name}` : daughterMember.name}
+              title={daughterMember.name}
             >
               <span className="avatar-initials">{getInitials(daughterMember.name)}</span>
               {daughterMember.id === currentViewerId && <span className="active-dot-indicator" />}
-            </button>
+            </span>
             <div className="node-caption">
               <span className="node-fullname">{daughterMember.name}</span>
               <span className="node-year-sub">{getSub(daughterMember)}</span>
@@ -150,16 +133,14 @@ export default function FamilyTreeCard({
         <div className="tree-nodes-tier-bottom">
           {grandChild1 && (
             <div className="tree-node-unit level-3">
-              <button
-                type="button"
+              <span
                 className={`minimal-avatar-circle ${grandChild1.id === currentViewerId ? 'active-viewer' : ''}`}
                 style={{ backgroundColor: getMemberColor(grandChild1, 2) }}
-                onClick={() => onSwitchViewer && onSwitchViewer(grandChild1.id)}
-                title={onSwitchViewer ? `View as ${grandChild1.name}` : grandChild1.name}
+                title={grandChild1.name}
               >
                 <span className="avatar-initials">{getInitials(grandChild1.name)}</span>
                 {grandChild1.id === currentViewerId && <span className="active-dot-indicator" />}
-              </button>
+              </span>
               <div className="node-caption">
                 <span className="node-fullname">
                   {grandChild1.name} {grandChild1.id === currentViewerId && <em className="you-label">(you)</em>}
@@ -171,16 +152,14 @@ export default function FamilyTreeCard({
 
           {grandChild2 && (
             <div className="tree-node-unit level-3">
-              <button
-                type="button"
+              <span
                 className={`minimal-avatar-circle ${grandChild2.id === currentViewerId ? 'active-viewer' : ''}`}
                 style={{ backgroundColor: getMemberColor(grandChild2, 3) }}
-                onClick={() => onSwitchViewer && onSwitchViewer(grandChild2.id)}
-                title={onSwitchViewer ? `View as ${grandChild2.name}` : grandChild2.name}
+                title={grandChild2.name}
               >
                 <span className="avatar-initials">{getInitials(grandChild2.name)}</span>
                 {grandChild2.id === currentViewerId && <span className="active-dot-indicator" />}
-              </button>
+              </span>
               <div className="node-caption">
                 <span className="node-fullname">
                   {grandChild2.name} {grandChild2.id === currentViewerId && <em className="you-label">(you)</em>}
@@ -190,27 +169,7 @@ export default function FamilyTreeCard({
             </div>
           )}
         </div>
-
-        {/* Add Memory Button */}
-        {onOpenRecordModal && (
-          <button
-            type="button"
-            className="minimal-add-action-btn"
-            onClick={() => onOpenRecordModal()}
-            title="Record a memory"
-            aria-label="Record a memory"
-          >
-            <Plus size={16} />
-          </button>
-        )}
       </div>
-
-      {/* 4. Footer Cue (demo only: a signed-in session cannot switch person) */}
-      {onSwitchViewer && (
-        <div className="minimal-tree-footer-cue">
-          <span>Tap a person to see the archive through their eyes</span>
-        </div>
-      )}
     </aside>
   );
 }

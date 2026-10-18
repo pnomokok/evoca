@@ -26,6 +26,7 @@ import BlobPhoto from './BlobPhoto';
 import AddPhotoModal from './AddPhotoModal';
 import Modal from '../Modal';
 import { announceChange } from '../../utils/stageChannel';
+import { BACK_LABELS, JOURNAL } from '../../utils/routes';
 
 const REACTIONS = [
   { key: 'heart', emoji: '❤️', label: 'Love it' },
@@ -85,8 +86,10 @@ function revokeQueue(queue) {
 export default function StoryView() {
   const {
     selectedStoryId,
-    setSelectedStoryId,
-    setPanelSubTab,
+    storyBack,
+    openStory,
+    closeStory,
+    navigate,
     currentViewerId,
     viewerReady,
     showToast,
@@ -350,7 +353,8 @@ export default function StoryView() {
       await apiClient.patchStory(story.id, { hidden: true });
       showToast('The story is hidden.', 'info');
       setShowHideConfirm(false);
-      setPanelSubTab('feed');
+      // The story is gone for everyone: the journal takes its place in the history.
+      navigate(JOURNAL, { replace: true });
     } catch (err) {
       console.error(err);
       showToast("The story couldn't be hidden.", 'error');
@@ -421,7 +425,7 @@ export default function StoryView() {
       <div className="story-loading-state" style={{ padding: '60px 20px', textAlign: 'center' }} role="alert">
         <AlertTriangle size={36} color="var(--accent-terracotta)" style={{ marginBottom: '16px' }} />
         <h2 style={{ fontSize: '20px', marginBottom: '24px' }}>{data.error}</h2>
-        <button className="editorial-btn primary" onClick={() => setPanelSubTab('feed')}>
+        <button className="editorial-btn primary" onClick={() => navigate(JOURNAL, { replace: true })}>
           <ArrowLeft size={16} /> Back to the journal
         </button>
       </div>
@@ -449,9 +453,9 @@ export default function StoryView() {
     <div className="story-archive-page">
       <nav className="story-breadcrumb-nav" aria-label="Story navigation">
         <div className="breadcrumb-left">
-          <button type="button" className="btn-story-back" onClick={() => setPanelSubTab('feed')}>
+          <button type="button" className="btn-story-back" onClick={closeStory}>
             <ArrowLeft size={16} />
-            <span>Back to the journal</span>
+            <span>{BACK_LABELS[storyBack] || BACK_LABELS.feed}</span>
           </button>
           <span className="breadcrumb-separator">/</span>
           <span className="breadcrumb-active-period">{periodDisplay}</span>
@@ -938,7 +942,7 @@ export default function StoryView() {
                     <div>
                       <div
                         style={{ fontWeight: 500, cursor: 'pointer', color: 'var(--text-primary)' }}
-                        onClick={() => l.story?.id && setSelectedStoryId(l.story.id)}
+                        onClick={() => l.story?.id && openStory(l.story.id)}
                       >
                         {l.story?.title || 'Linked story'}
                       </div>
@@ -976,7 +980,7 @@ export default function StoryView() {
                     <h5
                       className="retelling-title"
                       style={{ cursor: 'pointer' }}
-                      onClick={() => setSelectedStoryId(ret.id)}
+                      onClick={() => openStory(ret.id)}
                     >
                       “{ret.title}”
                     </h5>

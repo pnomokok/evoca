@@ -17,9 +17,10 @@ const REACTIONS = [
 ];
 
 // An answer to the viewer's question (a "question_answered" feed item): the story's photo if it has one,
-// otherwise the designed card; then her voice, "Maybe give her a call." and the reactions (never counts).
+// otherwise the designed card; then her voice, "Maybe give her a call.", the reactions (never counts)
+// and a link to the whole story.
 export default function AnswerCard({ item, showQuestion = true }) {
-  const { showToast, circleData } = useApp();
+  const { showToast, circleData, openStory } = useApp();
   const a = item.answer;
   const [story, setStory] = useState(null);
   const [playing, setPlaying] = useState(false);
@@ -183,6 +184,12 @@ export default function AnswerCard({ item, showQuestion = true }) {
               );
             })}
           </div>
+        )}
+
+        {story && (
+          <button type="button" className="editorial-btn quiet answer-open" onClick={() => openStory(a.story_id)}>
+            Open the story →
+          </button>
         )}
 
         {item.created_at && <p className="answer-when">{formatWhen(item.created_at)}</p>}

@@ -2,7 +2,9 @@ import React, { useCallback, useState } from 'react';
 import { AppProvider } from './context/AppContext';
 import { useApp } from './context/useApp';
 import { apiClient } from './api/client';
-import DemoHeader from './components/DemoHeader';
+import { JOURNAL } from './utils/routes';
+import DemoStrip from './components/DemoStrip';
+import ArchiveHeader from './components/ArchiveHeader';
 import DeviceScreen from './components/DeviceScreen';
 import FamilyPanel from './components/panel/FamilyPanel';
 import LandingPage from './components/LandingPage';
@@ -10,8 +12,9 @@ import JoinPage from './components/JoinPage';
 import CreateFamilyWizard from './components/CreateFamilyWizard';
 import StageView from './components/StageView';
 import DemoEntryModal from './components/DemoEntryModal';
-import Avatar from './components/Avatar';
-import { Info, AlertCircle, Users } from 'lucide-react';
+import PersonPicker from './components/PersonPicker';
+import { Info, AlertCircle, BookOpen } from 'lucide-react';
+import './styles/navigation.css';
 
 // A stage pane marks its document so the stage's styles can make the page fit the frame.
 if (apiClient.embed) document.documentElement.dataset.embed = apiClient.embed.kind;
@@ -31,56 +34,75 @@ function Toast() {
   );
 }
 
-function MainContent() {
-  const { activeTab, enterDemo, openCreateFamily, isSignedIn } = useApp();
-  const [choosingDemo, setChoosingDemo] = useState(false);
-
-  if (activeTab === 'stage') {
-    return (
-      <div className="app-container">
-        <StageView />
-        <Toast />
-      </div>
-    );
-  }
+// The landing page; its demo buttons open the demo modal, which leads to the stage or the person picker.
+function Landing() {
+  const { isSignedIn, openCreateFamily, openHome, navigate } = useApp();
+  const [demoStep, setDemoStep] = useState(null); // null | 'entry' | 'picker'
 
   return (
     <div className="app-container">
-      <DemoHeader />
-
-      <main className="view-viewport" style={{ padding: activeTab === 'landing' ? 0 : undefined }}>
-        {activeTab === 'landing' && <div className="landing-stack">
-          {!isSignedIn && (
-            <div className="own-family-band">
-              <span>Ready to keep your own family's stories?</span>
-              <button type="button" className="editorial-btn primary" onClick={openCreateFamily}>
-                <Users size={15} />
-                <span>Create your family</span>
-              </button>
-            </div>
-          )}
-          {/* The demo entry: watch the loop or pick a role; either forgets any stored sign-in. */}
-          <LandingPage onOpenDemo={(tab) => (tab === 'device' ? enterDemo('device') : setChoosingDemo(true))} />
-        </div>}
-        {activeTab === 'panel' && <FamilyPanel />}
-        {activeTab === 'device' && <DeviceScreen />}
+      <main className="view-viewport" style={{ padding: 0 }}>
+        <LandingPage
+          isSignedIn={isSignedIn}
+          onTryDemo={() => setDemoStep('entry')}
+          onCreateFamily={openCreateFamily}
+          onOpenFamily={openHome}
+        />
       </main>
-
       <Toast />
-      {choosingDemo && (
+      {demoStep === 'entry' && (
         <DemoEntryModal
-          onClose={() => setChoosingDemo(false)}
-          onWatchLoop={() => { setChoosingDemo(false); enterDemo('stage'); }}
-          onPickRole={() => { setChoosingDemo(false); enterDemo('panel'); }}
+          onClose={() => setDemoStep(null)}
+          onWatchLoop={() => { setDemoStep(null); navigate({ tab: 'stage' }); }}
+          onExplore={() => setDemoStep('picker')}
         />
       )}
+      {demoStep === 'picker' && <PersonPicker onClose={() => setDemoStep(null)} />}
+    </div>
+  );
+}
+
+// Every other page: the demo strip on top (demo only), then the stage, the archive or the device.
+function MainContent() {
+  const { activeTab, isSignedIn, navigate } = useApp();
+
+  if (activeTab === 'landing') return <Landing />;
+
+  return (
+    <div className="app-container">
+      {!isSignedIn && <DemoStrip />}
+
+      {activeTab === 'stage' && <StageView />}
+
+      {activeTab === 'panel' && <>
+        <ArchiveHeader />
+        <main className="view-viewport">
+          <FamilyPanel />
+        </main>
+      </>}
+
+      {/* The device is an object, not a web page: no product header. Signed in (only the center gets
+          here), a quiet way back to her family's archive sits outside the device. */}
+      {activeTab === 'device' && (
+        <main className="view-viewport device-viewport">
+          <DeviceScreen />
+          {isSignedIn && (
+            <button type="button" className="device-away-link" onClick={() => navigate(JOURNAL)}>
+              <BookOpen size={14} />
+              <span>Family archive</span>
+            </button>
+          )}
+        </main>
+      )}
+
+      <Toast />
     </div>
   );
 }
 
 // One pane of the stage: the device as the center person, or the family panel on a phone.
 function EmbedContent() {
-  const { activeTab, circleData } = useApp();
+  const { activeTab } = useApp();
   if (activeTab === 'device') {
     return (
       <div className="app-container embed-device-view">
@@ -89,13 +111,9 @@ function EmbedContent() {
       </div>
     );
   }
-  const me = circleData?.me;
   return (
     <div className="app-container">
-      <div className="embed-phone-head">
-        {me && <Avatar person={me} size={30} />}
-        <span><strong>{me?.name?.split(' ')[0] || ''}</strong>{circleData?.circle?.name ? ` · ${circleData.circle.name}` : ''}</span>
-      </div>
+      <ArchiveHeader />
       <FamilyPanel />
       <Toast />
     </div>
@@ -122,11 +140,14 @@ function FullApp() {
   const [joinToken, setJoinToken] = useState(joinTokenFromPath);
   // A new key remounts the whole app with fresh state whenever who is calling changes
   // (joined, created a family, left, back to the demo), so nothing from the old identity lingers.
-  const [start, setStart] = useState(() => ({ key: 0, tab: apiClient.isSignedIn ? 'home' : 'landing', toast: null }));
+  // The page comes from the URL: 'home' opens the family's journal (the device for the center), 'landing' /.
+  const [start, setStart] = useState(() => ({ key: 0, home: false, toast: null }));
   const [creating, setCreating] = useState(false);
 
   const restartApp = useCallback((tab, toast = null) => {
-    setStart(s => ({ key: s.key + 1, tab, toast }));
+    const path = tab === 'home' ? '/archive/journal' : '/';
+    if (window.location.pathname !== path) window.history.pushState(null, '', path);
+    setStart(s => ({ key: s.key + 1, home: tab === 'home', toast }));
   }, []);
   const openCreateFamily = useCallback(() => setCreating(true), []);
 
@@ -146,7 +167,7 @@ function FullApp() {
     <>
       <AppProvider
         key={start.key}
-        initialTab={start.tab}
+        startAtHome={start.home}
         initialToast={start.toast}
         restartApp={restartApp}
         openCreateFamily={openCreateFamily}

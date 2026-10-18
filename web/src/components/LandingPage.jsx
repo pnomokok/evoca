@@ -10,9 +10,8 @@ import {
   Sparkles,
   ShieldCheck,
   Lock,
-  ArrowRight,
   BookOpen,
-  Tv,
+  Users,
   MessageSquare
 } from 'lucide-react';
 
@@ -25,7 +24,9 @@ function GithubIcon({ size = 16 }) {
   );
 }
 
-export default function LandingPage({ onOpenDemo }) {
+// The product's front page. Every demo button (header, hero, closing CTA) opens the demo modal (onTryDemo);
+// signed in, they are "Open your family" (onOpenFamily) instead.
+export default function LandingPage({ isSignedIn, onTryDemo, onCreateFamily, onOpenFamily }) {
   const handleScroll = (id) => {
     const el = document.getElementById(id);
     if (el) {
@@ -40,6 +41,10 @@ export default function LandingPage({ onOpenDemo }) {
           -------------------------------------------------------------------- */}
       <nav className="landing-subnav" aria-label="Page navigation">
         <div className="landing-subnav-inner">
+          <button type="button" className="landing-brand" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Evoca, back to the top">
+            <span className="brand-monogram">E</span>
+            <span className="brand-name">Evoca</span>
+          </button>
           <div className="landing-nav-links">
             <button
               type="button"
@@ -83,24 +88,22 @@ export default function LandingPage({ onOpenDemo }) {
             </button>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <button
-              type="button"
-              className="landing-nav-cta"
-              onClick={() => onOpenDemo('panel')}
-            >
-              <BookOpen size={14} />
-              <span>Try the Demo</span>
-            </button>
-            <button
-              type="button"
-              className="landing-nav-cta"
-              style={{ background: 'var(--accent-sage)', boxShadow: '0 2px 8px rgba(104, 119, 91, 0.25)' }}
-              onClick={() => onOpenDemo('device')}
-            >
-              <Tv size={14} />
-              <span>Living Room Device</span>
-            </button>
+          <div className="landing-nav-actions">
+            {isSignedIn ? (
+              <button type="button" className="landing-nav-cta" onClick={onOpenFamily}>
+                <BookOpen size={14} />
+                <span>Open your family</span>
+              </button>
+            ) : <>
+              <button type="button" className="landing-nav-cta" onClick={onTryDemo}>
+                <Play size={13} fill="currentColor" />
+                <span>Try the demo</span>
+              </button>
+              <button type="button" className="landing-nav-cta secondary" onClick={onCreateFamily}>
+                <Users size={14} />
+                <span>Create your family</span>
+              </button>
+            </>}
           </div>
         </div>
       </nav>
@@ -143,23 +146,17 @@ export default function LandingPage({ onOpenDemo }) {
           </p>
 
           <div className="hero-actions">
-            <button
-              type="button"
-              className="btn-hero-primary"
-              onClick={() => onOpenDemo('panel')}
-            >
-              <Play size={16} fill="currentColor" />
-              <span>Watch &amp; Try Demo</span>
-            </button>
-
-            <button
-              type="button"
-              className="btn-hero-secondary"
-              onClick={() => onOpenDemo('device')}
-            >
-              <Tv size={16} />
-              <span>Living Room Device</span>
-            </button>
+            {isSignedIn ? (
+              <button type="button" className="btn-hero-primary" onClick={onOpenFamily}>
+                <BookOpen size={16} />
+                <span>Open your family</span>
+              </button>
+            ) : (
+              <button type="button" className="btn-hero-primary" onClick={onTryDemo}>
+                <Play size={16} fill="currentColor" />
+                <span>Try the demo</span>
+              </button>
+            )}
 
             <a
               href="https://github.com/pnomokok/evoca"
@@ -225,14 +222,6 @@ export default function LandingPage({ onOpenDemo }) {
               <p className="landing-lead" style={{ fontSize: '15px', marginBottom: '28px' }}>
                 A continuous, gentle cycle that weaves family curiosity directly into morning rituals without imposing technology.
               </p>
-              <button
-                type="button"
-                className="btn-hero-primary"
-                onClick={() => onOpenDemo('panel')}
-              >
-                <span>Experience the Loop</span>
-                <ArrowRight size={16} />
-              </button>
             </div>
 
             <div className="how-steps-stack">
@@ -438,15 +427,6 @@ export default function LandingPage({ onOpenDemo }) {
               <p className="landing-lead">
                 An elder must feel complete freedom when reflecting on her life. When she says “keep this between us,” Evoca instantly excludes that reflection from the family panel and never publishes it. Private moments never leak, and sensitive memories stay strictly in her control.
               </p>
-
-              <button
-                type="button"
-                className="btn-hero-primary"
-                onClick={() => onOpenDemo('panel')}
-              >
-                <span>Explore Privacy Controls in Panel</span>
-                <ArrowRight size={16} />
-              </button>
             </div>
 
             <div className="privacy-right">
@@ -481,26 +461,25 @@ export default function LandingPage({ onOpenDemo }) {
               </span>
               <h2 className="landing-h2">Hear her stories while she is here to tell them</h2>
               <p className="landing-lead">
-                Start capturing the laughter, wisdom, and small daily reflections that define your family. Try the interactive family panel or explore the living room device.
+                Start capturing the laughter, wisdom, and small daily reflections that define your family. Try the demo, or start keeping your own family's stories.
               </p>
 
               <div className="cta-buttons-group">
-                <button
-                  type="button"
-                  className="btn-hero-primary"
-                  onClick={() => onOpenDemo('panel')}
-                >
-                  <BookOpen size={16} />
-                  <span>Open Family Archive</span>
-                </button>
-                <button
-                  type="button"
-                  className="btn-hero-secondary"
-                  onClick={() => onOpenDemo('device')}
-                >
-                  <Tv size={16} />
-                  <span>Living Room Device Screen</span>
-                </button>
+                {isSignedIn ? (
+                  <button type="button" className="btn-hero-primary" onClick={onOpenFamily}>
+                    <BookOpen size={16} />
+                    <span>Open your family</span>
+                  </button>
+                ) : <>
+                  <button type="button" className="btn-hero-primary" onClick={onTryDemo}>
+                    <Play size={16} fill="currentColor" />
+                    <span>Try the demo</span>
+                  </button>
+                  <button type="button" className="btn-hero-secondary" onClick={onCreateFamily}>
+                    <Users size={16} />
+                    <span>Create your family</span>
+                  </button>
+                </>}
               </div>
             </div>
           </div>
@@ -542,13 +521,6 @@ export default function LandingPage({ onOpenDemo }) {
                 style={{ background: 'none', border: 'none', color: '#B8B0A2', cursor: 'pointer' }}
               >
                 Privacy &amp; Trust
-              </button>
-              <button
-                type="button"
-                onClick={() => onOpenDemo('panel')}
-                style={{ background: 'none', border: 'none', color: 'var(--accent-terracotta)', fontWeight: 600, cursor: 'pointer' }}
-              >
-                Try the Demo
               </button>
             </div>
           </div>

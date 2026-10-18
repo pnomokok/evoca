@@ -12,7 +12,9 @@ in `src/styles/`.
 | Family panel | A warm family journal | Story and voice first. One primary element per screen (one terracotta button). Paper backgrounds, serif headings. |
 
 The stage ("Watch the loop", demo only) shows the device and the panel side by side; it adds no style of its own
-beyond the frames (bezel, phone) and the demo bar.
+beyond the frames (bezel, phone). Everything demo-only (person picker, stage, clock, reset, exit) lives in the thin
+honey "Demo" strip above the product (`styles/navigation.css`); the product surfaces never link to the device or
+to another person's view. Pages and URLs: `docs/web-navigation.md`.
 
 ## Colour
 
@@ -54,7 +56,7 @@ buttons), `--radius-md` 14 (small cards), `--radius-lg` 20 (cards, dialogs), `--
 ## Components
 
 - **Buttons** (`.editorial-btn`): `primary` (terracotta, one per screen), `secondary` (paper, bordered), `quiet`
-  (text only, for "Cancel", "Pick a role"), `destructive` (danger text and border; filled only inside its confirm
+  (text only, for "Cancel", "Exit demo"), `destructive` (danger text and border; filled only inside its confirm
   dialog). Every button and link shows the focus ring: `outline: 3px solid var(--focus-ring); outline-offset: 2px`
   on `:focus-visible`.
 - **Inputs**: paper-light background, `--border-paper-dark` border, `--radius-sm`, 15px text; the label above in

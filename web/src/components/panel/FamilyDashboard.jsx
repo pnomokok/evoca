@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/useApp';
 import { apiClient } from '../../api/client';
-import { Play, MessageSquarePlus, Mic, ChevronRight, ChevronLeft, ArrowRight } from 'lucide-react';
+import { Play, ChevronRight, ChevronLeft, ArrowRight } from 'lucide-react';
 import FamilyTreeCard from './FamilyTreeCard';
 import FamilyTreeModal from './FamilyTreeModal';
 import BlobPhoto from './BlobPhoto';
@@ -22,8 +22,9 @@ const PERIOD_PROMPTS = {
   retirement: 'What brings you quiet joy these days?'
 };
 
-export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
-  const { setSelectedStoryId, setPanelSubTab, circleData, currentViewerId, viewerReady, centerPersonId, switchViewer, dataVersion, isSignedIn } = useApp();
+// onOpenAskModal(period, prompt): a chapter's own question (null for the center, who does not ask).
+export default function FamilyDashboard({ onOpenAskModal }) {
+  const { openStory, navigate, circleData, currentViewerId, viewerReady, centerPersonId, dataVersion } = useApp();
   // Loaded data is keyed by viewer; another viewer's feed is never shown.
   const [loaded, setLoaded] = useState({ viewerId: null, feedItems: [], lifeline: null });
   const [isTreeModalOpen, setIsTreeModalOpen] = useState(false);
@@ -73,10 +74,7 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
   (lifeline?.periods || []).forEach(p => (p.stories || []).forEach(s => s?.id && uniqueStoryIds.add(s.id)));
   const storyCount = uniqueStoryIds.size;
 
-  const handleOpenStory = (storyId) => {
-    setSelectedStoryId(storyId);
-    setPanelSubTab('story');
-  };
+  const handleOpenStory = openStory;
 
   const answers = feedItems.filter(i => i.type === 'question_answered' && i.answer);
 
@@ -151,17 +149,6 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
               </button>
             )}
 
-            {onOpenAskModal && (
-              <button
-                type="button"
-                className="editorial-btn secondary"
-                onClick={() => onOpenAskModal(null)}
-              >
-                <MessageSquarePlus size={16} />
-                <span>{centerFirst ? `Ask ${centerFirst} a question` : 'Ask a question'}</span>
-              </button>
-            )}
-
             {featuredStory && (
               <button
                 type="button"
@@ -178,9 +165,7 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
         <FamilyTreeCard
           circleData={circleData}
           currentViewerId={currentViewerId}
-          onSwitchViewer={isSignedIn ? null : switchViewer}
           storyCount={storyCount}
-          onOpenRecordModal={onOpenRecordModal}
           onOpenTreeModal={() => setIsTreeModalOpen(true)}
         />
       </div>
@@ -189,7 +174,7 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
         <FamilyTreeModal
           onClose={() => setIsTreeModalOpen(false)}
           circleData={circleData}
-          onNavigateLifeline={() => setPanelSubTab('lifeline')}
+          onNavigateLifeline={() => navigate({ tab: 'panel', subTab: 'lifeline' })}
           storyCount={storyCount}
         />
       )}
@@ -437,37 +422,6 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
           </div>
         </section>
       )}
-
-      <footer className="dashboard-editorial-footer">
-        <div className="footer-callout">
-          <div className="footer-callout-text">
-            <h3>Every voice belongs in the archive.</h3>
-            <p>Record a memory of your own, or leave a question for the next morning chat.</p>
-          </div>
-          <div className="footer-callout-actions">
-            {onOpenRecordModal && (
-              <button
-                type="button"
-                className="editorial-btn secondary"
-                onClick={() => onOpenRecordModal()}
-              >
-                <Mic size={16} />
-                <span>Record your own memory</span>
-              </button>
-            )}
-            {onOpenAskModal && (
-              <button
-                type="button"
-                className="editorial-btn primary"
-                onClick={() => onOpenAskModal(null)}
-              >
-                <MessageSquarePlus size={16} />
-                <span>Ask a question</span>
-              </button>
-            )}
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
