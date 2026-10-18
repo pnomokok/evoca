@@ -497,7 +497,9 @@ nothing but the companion's turns; a private segment or any speech left out of t
 2. Without a bearer token, `X-Person-Id` and `X-Circle-Id` are accepted **only with `EVOCA_DEMO_MODE=1`**, and then
    behave exactly as in the hackathon build (the person picker of the web client).
 3. Anything else is 401 with one body for every case (no header, a wrong, unknown or revoked token, `X-Person-Id`
-   outside demo mode), so a caller cannot tell which tokens ever existed.
+   outside demo mode), so a caller cannot tell which tokens ever existed. One exception in demo mode: a request with
+   no identity at all (no bearer token and no `X-Person-Id`) gets 403 "X-Person-Id header required"; a wrong,
+   unknown or revoked token is still the same 401.
 
 A session token comes from accepting an invite link (`POST /api/invites/{token}/accept`) or from creating a circle.
 An admin makes a personal link for any member, the center person included; making a new one revokes the old. Revoking
@@ -575,7 +577,8 @@ The web client calls these; all of them filter with `can_see`. Request and respo
 [`docs/api-samples/`](api-samples/).
 
 **Who is calling.** Every panel, admin, audio, photo and device endpoint needs `Authorization: Bearer
-<session_token>`, or in demo mode `X-Person-Id` (Identity in [Access control](#access-control)); otherwise 401.
+<session_token>`, or in demo mode `X-Person-Id` (Identity in [Access control](#access-control)); otherwise 401. In demo
+mode, a request with no identity at all gets 403 "X-Person-Id header required".
 
 **Choosing a circle (`X-Circle-Id`).** With a bearer token the session fixes the circle; an `X-Circle-Id` that differs
 is the same 403 as a non-member. In demo mode without a bearer token, every such endpoint accepts an optional

@@ -46,8 +46,6 @@ from core.enums import (
     LinkSource,
     LinkStatus,
     PeriodSource,
-    QuestionSource,
-    QuestionStatus,
     Role,
     SessionKind,
     SessionStart,
@@ -60,7 +58,6 @@ from core.models import (
     Invitation,
     Membership,
     Person,
-    Question,
     Reaction,
     Segment,
     Session,
@@ -69,6 +66,7 @@ from core.models import (
     StoryLink,
     StorySubject,
 )
+from core.services.invitations import invitation_reason
 
 _CIRCLE_TZ = ZoneInfo("Europe/Istanbul")
 
@@ -359,34 +357,6 @@ def reset_and_seed(force: bool = False) -> None:
         db.flush()
 
         # ------------------------------------------------------------------
-        # Questions  (from Elif to Fatma)
-        # ------------------------------------------------------------------
-        q1 = Question(
-            circle_id=circle.id,
-            target_person_id=fatma.id,
-            asker_id=elif_.id,
-            text="Grandma, what was school like when you were young?",
-            source=QuestionSource.family,
-            period=LifePeriod.childhood,
-            status=QuestionStatus.waiting,
-            answer=None,
-            created_at=(now - timedelta(days=1)).isoformat(),
-        )
-        q2 = Question(
-            circle_id=circle.id,
-            target_person_id=fatma.id,
-            asker_id=elif_.id,
-            text="Did you ever meet anyone famous growing up?",
-            source=QuestionSource.family,
-            period=None,
-            status=QuestionStatus.waiting,
-            answer=None,
-            created_at=(now - timedelta(hours=3)).isoformat(),
-        )
-        db.add_all([q1, q2])
-        db.flush()
-
-        # ------------------------------------------------------------------
         # SensitiveTopic
         # ------------------------------------------------------------------
         sensitive = SensitiveTopic(
@@ -412,13 +382,14 @@ def reset_and_seed(force: bool = False) -> None:
         db.flush()
 
         # ------------------------------------------------------------------
-        # Invitation for today
+        # Invitation for today: its reason comes from the scheduler's own
+        # function, so it matches whatever the seed above leaves waiting.
         # ------------------------------------------------------------------
         invitation = Invitation(
             circle_id=circle.id,
             person_id=fatma.id,
             date=today_str,
-            reason="Elif has a question for you.",
+            reason=invitation_reason(db, circle),
             status=InvitationStatus.sent,
         )
         db.add(invitation)
