@@ -14,6 +14,9 @@ Coverage:
   reset          restores the seed, clears the offset, ends live sessions,
                  deletes the files of non-seed sessions and photos, keeps the
                  seed audio; refuses every database but data/demo.db
+  loop timeline  question, next morning, answer, +1 day publish, reaction,
+                 next morning: that morning's reason is the reaction, ahead of
+                 the archivist's waiting gap question
 """
 
 from __future__ import annotations
@@ -32,8 +35,14 @@ from sqlalchemy.orm import sessionmaker
 import core.db as cdb
 import core.seed as seed
 from core import clock
-from core.enums import InvitationStatus, SessionKind, SessionStart, StoryStatus
-from core.models import Base, DemoClock, Invitation, Person, Session as OrmSession, Story, StoryPhoto
+from core.enums import (
+    InvitationStatus, QuestionSource, QuestionStatus, SessionKind, SessionStart, StoryKind, StoryStatus,
+)
+from core.models import (
+    Base, Circle, DemoClock, Invitation, Person, Question, Reaction, Session as OrmSession, Story, StoryPhoto,
+)
+from core.services.archive_tools import record_answer_data
+from core.services.invitations import REASON_AGENT_QUESTION
 from core.services import demo as demo_svc
 from server.session_store import SessionStore
 
@@ -287,3 +296,76 @@ async def test_reset_refuses_any_database_but_demo_db(demo, monkeypatch, other):
         assert db.get(DemoClock, 1).offset_seconds == 3600
     with pytest.raises(demo_svc.ResetRefused):
         demo_svc.reset()
+
+
+# ---------------------------------------------------------------------------
+# The demo loop, day by day (the stage walkthrough)
+# ---------------------------------------------------------------------------
+
+def _invitation_on(Session, date: str) -> Invitation:
+    with Session() as db:
+        return db.query(Invitation).filter(Invitation.date == date).one()
+
+
+@pytest.mark.anyio
+async def test_reaction_is_the_reason_the_morning_after_it_in_the_demo_loop(demo, monkeypatch):
+    """Question, next morning, answer, +1 day publish, reaction, next morning: the
+    reaction comes first even with the archivist's gap question still waiting."""
+    app, Session, *_ = demo
+    import server.routers.device as dev_r
+    monkeypatch.setattr(dev_r, "SessionLocal", Session)
+    with Session() as db:
+        circle = db.query(Circle).one()
+        fatma_id = circle.center_person_id
+        elif_id = db.query(Person).filter(Person.name.like("Elif%")).one().id
+
+    async with _client(app) as c:
+        # Tuesday 08:00: Elif asks. Next morning: Wednesday 10:00 (the web's "Next morning").
+        r = await c.post("/api/questions", headers={"X-Person-Id": elif_id},
+                         json={"target_person_id": fatma_id, "text": "What games did you play as a child?"})
+        assert r.status_code == 200, r.text
+        question_id = r.json()["question"]["id"]
+        await c.post("/api/demo/advance", json={"hours": 26})
+
+    # Wednesday's chat, as the device and the archivist leave it: the seed reaction was told,
+    # the question answered by a new pending story, and a gap question added.
+    now = clock.now_utc()
+    with Session() as db:
+        for reaction in db.query(Reaction).all():
+            reaction.delivered_to_center = True
+        sess = OrmSession(circle_id=circle.id, kind=SessionKind.solo, started_by=SessionStart.invitation,
+                          participant_ids=[fatma_id], started_at=now.isoformat(),
+                          ended_at=(now + timedelta(minutes=5)).isoformat())
+        db.add(sess); db.flush()
+        story = Story(circle_id=circle.id, teller_id=fatma_id, kind=StoryKind.original,
+                      title="Five Stones Under the Walnut Tree",
+                      sources=[{"session_id": sess.id, "start_ms": 0, "end_ms": 20000}],
+                      status=StoryStatus.pending, publish_at=(now + timedelta(hours=24)).isoformat(),
+                      created_at=now.isoformat())
+        db.add(story); db.flush()
+        db.get(Question, question_id).status = QuestionStatus.asked
+        record_answer_data(db, fatma_id, circle.id, question_id, story.id, 0, 20000)
+        db.add(Question(circle_id=circle.id, target_person_id=fatma_id, asker_id=None,
+                        text="What do you remember about your early married years?",
+                        source=QuestionSource.gap, status=QuestionStatus.waiting))
+        db.commit()
+        story_id = story.id
+
+    async with _client(app) as c:
+        # +1 day: Thursday 10:00, the story is published; nothing new from the family yet.
+        await c.post("/api/demo/advance", json={"hours": 24})
+        assert _invitation_on(Session, "2026-10-22").reason == REASON_AGENT_QUESTION
+
+        # Elif reacts on Thursday; next morning is Friday 10:00.
+        r = await c.post(f"/api/stories/{story_id}/reactions", headers={"X-Person-Id": elif_id},
+                         json={"emoji": "heart", "action": "add"})
+        assert r.status_code == 200, r.text
+        await c.post("/api/demo/advance", json={"hours": 24})
+
+        friday = _invitation_on(Session, "2026-10-23")
+        assert friday.status == InvitationStatus.sent
+        assert friday.reason == "Elif reacted to your story"
+        light = (await c.get("/api/device/invitation", headers={"X-Person-Id": fatma_id})).json()
+        assert light["active"] is True
+        assert light["invitation"]["reason"] == "Elif reacted to your story"
+

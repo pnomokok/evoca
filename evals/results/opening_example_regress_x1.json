@@ -1,0 +1,305 @@
+[
+  {
+    "scenario": "grandmother_basic",
+    "run": 1,
+    "goal": "Delivers the family question naturally, with the relation, and follows up on a concrete detail.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Leyla! Your grandson Ali has a question for you: How did you learn to cook?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, hello there, dear Ali. I learned to cook from my aunt Sabiha. We used to cook in a tiny kitchen with a wood stove, and I remember the smell of wood smoke mixing with the spices. My favorite dish she taught me was stuffed peppers, and I'd watch her careful hands stuff each pepper just right."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds lovely, Leyla. What was your aunt Sabiha like?"
+      },
+      {
+        "speaker": "person",
+        "text": "Aunt Sabiha had a laugh that could light up the whole room, and she was so patient, especially when I kept burning the peppers! She had a way of making cooking feel like magic, turning simple ingredients into something special. I still remember her saying, \"A little love in each bite makes all the difference.\""
+      },
+      {
+        "speaker": "companion",
+        "text": "She sounds wonderful, Leyla. Do you still make stuffed peppers the way she taught you?"
+      },
+      {
+        "speaker": "person",
+        "text": "I do, Ali, though my hands aren't as steady as they used to be. I still follow her recipe, using the same spices and stuffing each pepper just like she showed me. It's a lovely way to keep her memory close, and it tastes just as wonderful as I remember."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s beautiful, Leyla. What other recipes or cooking tips did she share with you that you still use today?"
+      },
+      {
+        "speaker": "person",
+        "text": "Well, Ali, besides stuffed peppers, Aunt Sabiha taught me the importance of using fresh herbs and to always taste as I go. She also showed me how to make the perfect yogurt, saying it needed time and a gentle hand. I still use her methods, and they bring back so many fond memories every time I cook."
+      },
+      {
+        "speaker": "companion",
+        "text": "Those sound like wonderful lessons, Leyla. Is there a particular time of year or special occasion when you especially enjoy making her recipes?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Leyla. It was wonderful talking with you today. Rest well."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Leyla! Your grandson Ali has a question for you: How did you learn to cook?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3593,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Ali": true
+        }
+      },
+      {
+        "reply": "That sounds lovely, Leyla. What was your aunt Sabiha like?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 947,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "She sounds wonderful, Leyla. Do you still make stuffed peppers the way she taught you?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 921,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s beautiful, Leyla. What other recipes or cooking tips did she share with you that you still use today?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1163,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Those sound like wonderful lessons, Leyla. Is there a particular time of year or special occasion when you especially enjoy making her recipes?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1863,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Leyla. It was wonderful talking with you today. Rest well.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3894,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "family_question_attributed": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Excellent conversation; companion could have acknowledged the fatigue earlier to offer a natural stopping point sooner."
+    }
+  },
+  {
+    "scenario": "agent_question_no_asker",
+    "run": 1,
+    "goal": "Asks its own follow-up question in its own voice, without naming or inventing an asker.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Halil! I've been wondering about something: What was Zehra like?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, Zehra, what a bright spirit she had! We played marbles every day during our break, and though she always beat me, I never minded because she had such a joyful laugh. She made every day brighter just by being there."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds lovely, Halil. What was she like to grow up with?"
+      },
+      {
+        "speaker": "person",
+        "text": "Growing up with Zehra was like having a sunshine buddy; she always knew how to make everyone smile, even on the dreariest days. She had a knack for finding fun in everything, whether it was solving a tricky math problem or coming up with wild stories during our walks home. Her optimism was contagious and shaped the way I see the world even now."
+      },
+      {
+        "speaker": "companion",
+        "text": "Her optimism sounds wonderful. What was your life like when your children were small?"
+      },
+      {
+        "speaker": "person",
+        "text": "When my children were small, life was filled with simple joys and busy days. Every evening was a new adventure—one filled with bedtime stories, helping them with their homework, and teaching them the value of hard work and kindness. Those years passed too quickly, but the laughter and lessons stay with me always."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds precious, Halil. Is there a memory on your mind today that you would like to share?"
+      },
+      {
+        "speaker": "person",
+        "text": "Just this morning, I was remembering the first time my granddaughter, Ayla, told me a joke. She’s got such a clever mind, just like her grandma Zehra. We laughed until our sides hurt, and it reminded me of how important it is to keep that sense of wonder alive, no matter how many years pass."
+      },
+      {
+        "speaker": "companion",
+        "text": "Ayla sounds delightful. What was the joke she told you?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Halil. It was wonderful talking with you today. Rest well."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Halil! I've been wondering about something: What was Zehra like?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 2685,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds lovely, Halil. What was she like to grow up with?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2391,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Her optimism sounds wonderful. What was your life like when your children were small?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2518,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds precious, Halil. Is there a memory on your mind today that you would like to share?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2841,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Ayla sounds delightful. What was the joke she told you?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2889,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Halil. It was wonderful talking with you today. Rest well.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2762,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "own_voice_for_agent_question": true,
+      "agent_question_not_attributed": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true,
+      "later_questions_untouched": true
+    },
+    "judge": {
+      "invented_facts": [
+        "The companion referred to Zehra as 'her grandma Zehra' when the person mentioned Ayla, but the facts only identify Murat as Halil's son—Zehra's relationship to Halil is never established in the given facts"
+      ],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Companion made an unsupported assumption about Zehra's relationship to Ayla without clarifying who Zehra was to Halil."
+    }
+  }
+]

@@ -38,6 +38,14 @@ class PastStory:
 
 
 @dataclass
+class PastReaction:
+    """A reaction not yet told to the center, on one of the scenario's stories."""
+    story: int                 # index into Scenario.stories
+    person: str                # first name of a Member
+    emoji: str = "heart"
+
+
+@dataclass
 class Scenario:
     name: str
     goal: str                  # what this scenario tests, in one sentence
@@ -55,6 +63,7 @@ class Scenario:
     first_person_line: str | None = None  # fixed first reply (not simulated), so the scenario
                                         # always starts the same way
     stories: list[PastStory] = field(default_factory=list)  # archive before the session
+    reactions: list[PastReaction] = field(default_factory=list)  # undelivered, told in the opening
     detail_words: list[str] = field(default_factory=list)  # content of the stories asked for; the
                                         # companion must not say them when it introduces the playlist
     unseen_words: list[str] = field(default_factory=list)  # words of a story the center cannot see;
@@ -233,6 +242,59 @@ SCENARIOS: list[Scenario] = [
         persona=(
             "You are Halil, 86. Zehra was your best friend at school in Sivas; you played marbles together "
             "and she always won. Answer warmly in two or three sentences."
+        ),
+    ),
+    Scenario(
+        name="reaction_then_agent_question",
+        goal="Tells her a grandchild's reaction, then asks its own gap question without saying the grandchild "
+             "(or anyone) asked it.",
+        center_name="Nermin Yalcin",
+        center_birth_year=1943,
+        members=[
+            Member("Sevgi Yalcin", 1969, "admin", "daughter"),
+            Member("Defne Yalcin", 2002, "member", "granddaughter"),
+        ],
+        stories=[
+            PastStory(
+                "The Plum Orchard",
+                "Nermin and her brother picked plums in their uncle's orchard in Amasya every August and sold "
+                "them at the market.",
+                "childhood",
+                place="Amasya",
+            ),
+        ],
+        reactions=[PastReaction(story=0, person="Defne", emoji="heart")],
+        questions=[
+            FamilyQuestion(None, "What do you remember about your early married years?", source="gap"),
+        ],
+        persona=(
+            "You are Nermin, 83. You married Hasan in 1964 and lived in a small flat above a bakery in Amasya; "
+            "the smell of bread woke you every morning. Answer warmly in two or three sentences."
+        ),
+    ),
+    Scenario(
+        name="reaction_then_family_question",
+        goal="Tells her a grandchild's reaction, then asks that grandchild's own question and says who asked it.",
+        center_name="Nermin Yalcin",
+        center_birth_year=1943,
+        members=[
+            Member("Sevgi Yalcin", 1969, "admin", "daughter"),
+            Member("Elif Yalcin", 2002, "member", "granddaughter"),
+        ],
+        stories=[
+            PastStory(
+                "The Plum Orchard",
+                "Nermin and her brother picked plums in their uncle's orchard in Amasya every August and sold "
+                "them at the market.",
+                "childhood",
+                place="Amasya",
+            ),
+        ],
+        reactions=[PastReaction(story=0, person="Elif", emoji="heart")],
+        questions=[FamilyQuestion("Elif", "Grandma, how did you and Grandpa meet?")],
+        persona=(
+            "You are Nermin, 83. You met Hasan at a cousin's wedding in Amasya in 1963; he asked you to dance "
+            "and stepped on your foot. Answer warmly in two or three sentences."
         ),
     ),
     Scenario(

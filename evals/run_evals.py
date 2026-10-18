@@ -51,10 +51,10 @@ from core.enums import (
 )
 from core.services.sessions import add_segment, end_session, start_session
 from core.models import (
-    Base, Circle, Membership, Person, Question, SensitiveTopic, Story, StoryLink, StorySubject,
+    Base, Circle, Membership, Person, Question, Reaction, SensitiveTopic, Story, StoryLink, StorySubject,
 )
 from evals.scenarios import SCENARIOS, Scenario
-from evals.text_checks import has_tech_words, parse_judge_json, says_any_phrase
+from evals.text_checks import attributes_question, has_tech_words, parse_judge_json, says_any_phrase
 from server.agents.chat_agent import (
     CHAT_TOOLS, CODE_TOOLS, LOCAL_TOOLS, ChatAgent, chat_llm, privacy_check_llm,
 )
@@ -143,7 +143,10 @@ def build_family(sc: Scenario) -> dict[str, Any]:
         for text in sc.sensitive_topics:
             db.add(SensitiveTopic(circle_id=circle.id, text=text, added_by=center.id))
 
-        add_past_stories(db, sc, circle.id, center.id, people, now)
+        story_ids = add_past_stories(db, sc, circle.id, center.id, people, now)
+        for r in sc.reactions:
+            db.add(Reaction(story_id=story_ids[r.story], person_id=people[r.person]["id"], emoji=r.emoji,
+                            delivered_to_center=False, created_at=(now - timedelta(hours=2)).isoformat()))
 
         db.commit()
         return {
@@ -155,9 +158,9 @@ def build_family(sc: Scenario) -> dict[str, Any]:
 
 
 def add_past_stories(db, sc: Scenario, circle_id: str, center_id: str,
-                     people: dict[str, dict[str, str]], now) -> None:
+                     people: dict[str, dict[str, str]], now) -> list[str]:
     """Published stories from an earlier session of their teller (one segment
-    each, the summary as transcript), with their links."""
+    each, the summary as transcript), with their links. Returns the story ids."""
     ids: list[str] = []
     for i, ps in enumerate(sc.stories):
         teller_id = people[ps.teller]["id"] if ps.teller else center_id
@@ -182,6 +185,7 @@ def add_past_stories(db, sc: Scenario, circle_id: str, center_id: str,
             db.add(StoryLink(from_story_id=ids[i], to_story_id=ids[ps.linked_to],
                              reason=LinkReason.same_place, source=LinkSource.ai,
                              status=LinkStatus.suggested))
+    return ids
 
 
 def question_status(question_id: str) -> str:
@@ -288,8 +292,9 @@ def playlist_checks(sc: Scenario, transcript: list[dict[str, str]],
     """For a scenario where the person asks to hear a story: get_linked_playlist
     was called (never in the opening, before she asked), the reply that
     introduces the playlist says none of the stories' details, and a story the
-    center cannot see is never mentioned."""
-    if not sc.stories:
+    center cannot see is never mentioned. Only for those scenarios (detail_words set):
+    past stories alone, as background for a reaction, ask for no playlist."""
+    if not sc.stories or not sc.detail_words:
         return {}
     called = [i for i, t in enumerate(turns) if "get_linked_playlist" in t["tools"]]
     checks = {
@@ -315,17 +320,39 @@ _INVENTED_ASKER = re.compile(
 
 def asker_checks(sc: Scenario, family: dict[str, Any], turns: list[dict[str, Any]]) -> dict[str, bool]:
     """If the first question is the agent's own (no asker), the opening must ask it
-    in its own voice: no family name, no invented "X would love to know"."""
-    if not sc.questions or sc.questions[0].asker is not None:
+    in its own voice: no family name, no invented "X would love to know". A family
+    name is fine when the opening tells a reaction; agent_question_checks covers that case.
+    If it is a family question, the opening must say its asker asked it."""
+    if not sc.questions:
         return {}
     opening = turns[0]["reply"]
-    names = [n for n in family["people"]]
+    asker = sc.questions[0].asker
+    if asker is not None:
+        # A family question still says who asked it ("Your granddaughter Elif has a question").
+        relation = family["people"][asker]["relation"]
+        return {"family_question_attributed": attributes_question(
+            opening, [asker, relation, f"your {relation}"])}
+    names = [] if sc.reactions else [n for n in family["people"]]
     return {
         "own_voice_for_agent_question": (
             not _INVENTED_ASKER.search(opening)
             and not any(re.search(rf"\b{re.escape(n)}\b", opening) for n in names)
         ),
     }
+
+
+def agent_question_checks(sc: Scenario, family: dict[str, Any],
+                          transcript: list[dict[str, str]]) -> dict[str, bool]:
+    """When every waiting question is the agent's own, no reply may say a family member
+    asked one ("she has a question", "<name> asks", "<name> wants to know")."""
+    if not sc.questions or any(q.asker for q in sc.questions):
+        return {}
+    askers = [n for n in family["people"]]
+    for info in family["people"].values():
+        askers += [info["relation"], f"your {info['relation']}"]
+    return {"agent_question_not_attributed": not any(
+        attributes_question(t["text"], askers) for t in transcript if t["speaker"] == "companion"
+    )}
 
 
 # ---------------------------------------------------------------------------
@@ -444,6 +471,7 @@ async def run_scenario(
         scenario_checks["ended_on_goodbye"] = turns[-1]["session_should_end"]
     scenario_checks.update(privacy_checks(sc, transcript, turns))
     scenario_checks.update(asker_checks(sc, family, turns))
+    scenario_checks.update(agent_question_checks(sc, family, transcript))
     scenario_checks.update(avoid_checks(sc, transcript))
     scenario_checks.update(asker_voice_checks(sc, transcript))
     scenario_checks.update(playlist_checks(sc, transcript, turns))

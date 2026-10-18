@@ -22,7 +22,7 @@ Coverage:
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -55,8 +55,17 @@ def _answer(w, story_id):
     w.db.commit()
 
 
+# Every test starts at one fixed instant and moves from there, never from the wall clock.
+START = datetime(2026, 10, 20, 9, 0, tzinfo=timezone.utc)
+
+
+@pytest.fixture(autouse=True)
+def _start_clock(monkeypatch):
+    monkeypatch.setenv("DEMO_NOW", START.isoformat())
+
+
 def _demo_now(monkeypatch, delta: timedelta):
-    monkeypatch.setenv("DEMO_NOW", (datetime.now().astimezone() + delta).isoformat())
+    monkeypatch.setenv("DEMO_NOW", (START + delta).isoformat())
 
 
 def _types(feed):

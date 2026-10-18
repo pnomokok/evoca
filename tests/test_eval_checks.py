@@ -4,13 +4,15 @@ Tests for evals/text_checks.py (the eval runner's pure text helpers).
   has_tech_words    — "sewing tools" is a memory, "my tools" / "a tool call" is machinery
   parse_judge_json  — valid JSON as is; the judge's unescaped quotes inside
                       invented_facts are repaired; no JSON / unrepairable -> error
+  attributes_question — "she has a question", "<name> asks", "<relation> wants to
+                      know" are caught; the companion's own question is not
 """
 
 from __future__ import annotations
 
 import pytest
 
-from evals.text_checks import has_tech_words, parse_judge_json, says_any_phrase
+from evals.text_checks import attributes_question, has_tech_words, parse_judge_json, says_any_phrase
 
 
 @pytest.mark.parametrize("reply", [
@@ -90,3 +92,28 @@ def test_asker_voice_relation_is_caught(reply):
 ])
 def test_own_relation_or_name_passes(reply):
     assert not says_any_phrase(reply, ASKER_VOICE)
+
+
+ASKERS = ["Defne", "granddaughter", "your granddaughter"]
+
+
+@pytest.mark.parametrize("reply", [
+    "Defne loved your story about the plum orchard. And she has a question for you: what do you remember?",
+    "Defne asks what you remember about your early married years.",
+    "Your granddaughter wants to know about your wedding day.",
+    "Defne would love to know more about it.",
+    "Here is a question from Defne: what was your first home like?",
+])
+def test_attributed_question_is_caught(reply):
+    assert attributes_question(reply, ASKERS)
+
+
+@pytest.mark.parametrize("reply", [
+    "Defne loved your plum story! I have a question for you: what do you remember about your early married years?",
+    "Defne loved your story about the plum orchard. What do you remember about your early married years?",
+    "She is so proud of you. I'd love to know more about the bakery.",
+    "The baker asked for flour every morning, didn't he.",
+])
+def test_own_question_is_not_attributed(reply):
+    assert not attributes_question(reply, ASKERS)
+

@@ -1,0 +1,302 @@
+[
+  {
+    "scenario": "grandmother_basic",
+    "run": 1,
+    "goal": "Delivers the family question naturally, with the relation, and follows up on a concrete detail.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Leyla! Your grandson Ali has a question for you: how did you learn to cook?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, hello there, dear Ali. I learned to cook from my dear Aunt Sabiha. We used to gather in her tiny kitchen with the wood stove that always smelled of smoke and warmth. She’d show me how to stuff the peppers just right, mixing rice with a pinch of salt and a dash of love, and I watched carefully, learning every step by heart."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds so lovely, Leyla. What was Aunt Sabiha like?"
+      },
+      {
+        "speaker": "person",
+        "text": "Aunt Sabiha had a laugh that could light up the darkest day, and her hands, though rough from years of work, were so gentle when she handled the food. She always said cooking was about patience and care, and she taught me to taste the water before adding salt—to make sure it was just right. Her kitchen was always filled with the smell of herbs and the warmth of shared stories."
+      },
+      {
+        "speaker": "companion",
+        "text": "Her kitchen sounds wonderful. Do you still use the same way of tasting the water before adding salt?"
+      },
+      {
+        "speaker": "person",
+        "text": "Yes, I still use that little trick Aunt Sabiha taught me; it's become a habit, really. Every time I make a pot of soup or prepare stuffed peppers, I always taste the water first. It’s amazing how such a small step can make such a difference, ensuring every dish is perfect, just like she used to make. It connects me to her every time I cook."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s beautiful, Leyla. What’s your favorite dish to make using that trick?"
+      },
+      {
+        "speaker": "person",
+        "text": "My favorite dish to make using that trick is definitely stuffed peppers. There's something so satisfying about taking a simple pepper, hollowing it out, and filling it with that perfect mixture of rice, ground meat, onions, and herbs. The taste is just right every time because I always remember to taste the water first, just like Aunt Sabiha taught me. It's a tradition I cherish and one that I love sharing with you, Ali."
+      },
+      {
+        "speaker": "companion",
+        "text": "Stuffed peppers sound delicious. Do you have a special memory of making them with Aunt Sabiha?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Leyla. We can talk more about your memories another time. Goodbye for now."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Leyla! Your grandson Ali has a question for you: how did you learn to cook?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 5247,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Ali": true
+        }
+      },
+      {
+        "reply": "That sounds so lovely, Leyla. What was Aunt Sabiha like?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1220,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Her kitchen sounds wonderful. Do you still use the same way of tasting the water before adding salt?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 920,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s beautiful, Leyla. What’s your favorite dish to make using that trick?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 858,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Stuffed peppers sound delicious. Do you have a special memory of making them with Aunt Sabiha?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 949,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Leyla. We can talk more about your memories another time. Goodbye for now.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1054,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Excellent conversation; companion could have offered to continue another time slightly earlier to avoid fatigue."
+    }
+  },
+  {
+    "scenario": "agent_question_no_asker",
+    "run": 1,
+    "goal": "Asks its own follow-up question in its own voice, without naming or inventing an asker.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Halil! I was wondering, what was Zehra like?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, Zehra, what a bright spirit she had! We were inseparable back in Sivas, always up to some mischief or other. She had a knack for marbles, always beating me, though I tried my best. Her laughter was infectious, and even when I lost, her smile made it all worth while."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s lovely to hear about Zehra’s bright spirit and her love for marbles. Her infectious laughter must have made every day brighter. Do you still remember any of her favorite stories or games she loved to play?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, I remember quite a few of her favorite tales, especially the ones about her cousins and the adventures they had. She loved to weave stories about hidden treasures and secret paths in the old city. And besides marbles, she was fond of playing hide-and-seek in the alleyways; she always found the best hiding spots. Those memories still bring a smile to my face."
+      },
+      {
+        "speaker": "companion",
+        "text": "It sounds like Zehra had such a vivid imagination with her treasure stories and hide-and-seek adventures. Those hidden spots in the old city must have been thrilling to find. What was one of your favorite hide-and-seek games you played together?"
+      },
+      {
+        "speaker": "person",
+        "text": "One of my favorite games was when we hid behind the old watermill near the river. It was a bit of a trek, but the spot was perfect—hidden yet gave us a great view. Zehra always picked the most surprising places, and we’d laugh quietly, trying not to give our position away. Those moments were pure joy, the kind you carry with you forever."
+      },
+      {
+        "speaker": "companion",
+        "text": "What a perfect spot by the river, hidden yet with a great view! It’s wonderful that those quiet moments of laughter became memories you carry forever. Do you still visit the old watermill, or does it hold a special place in your heart for those times with Zehra?"
+      },
+      {
+        "speaker": "person",
+        "text": "I haven't been to the old watermill in many years, but it certainly holds a special place in my heart. Every time I think of it, I remember the joy and freedom of those days with Zehra. It's a cherished spot, a piece of our youth that remains vivid in my mind, even if I can't visit it anymore. Those memories are like old photographs—faded but still dear."
+      },
+      {
+        "speaker": "companion",
+        "text": "It’s beautiful how those memories stay vivid, like old photographs, even without visiting the spot. The joy and freedom you felt with Zehra must make those times feel alive whenever you think of them. Would you like to share another cherished memory from your youth, or perhaps a story Zehra often told?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Halil. It’s been wonderful talking with you today. Rest well!"
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Halil! I was wondering, what was Zehra like?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 1955,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s lovely to hear about Zehra’s bright spirit and her love for marbles. Her infectious laughter must have made every day brighter. Do you still remember any of her favorite stories or games she loved to play?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1237,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "It sounds like Zehra had such a vivid imagination with her treasure stories and hide-and-seek adventures. Those hidden spots in the old city must have been thrilling to find. What was one of your favorite hide-and-seek games you played together?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1201,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "What a perfect spot by the river, hidden yet with a great view! It’s wonderful that those quiet moments of laughter became memories you carry forever. Do you still visit the old watermill, or does it hold a special place in your heart for those times with Zehra?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1390,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "It’s beautiful how those memories stay vivid, like old photographs, even without visiting the spot. The joy and freedom you felt with Zehra must make those times feel alive whenever you think of them. Would you like to share another cherished memory from your youth, or perhaps a story Zehra often told?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1050,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Halil. It’s been wonderful talking with you today. Rest well!",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1092,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "own_voice_for_agent_question": true,
+      "agent_question_not_attributed": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true,
+      "later_questions_untouched": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Excellent conversation; companion could have explored the second family question about life when children were small."
+    }
+  }
+]

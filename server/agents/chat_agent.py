@@ -109,6 +109,24 @@ PREFETCH_TOOLS: tuple[tuple[str, dict[str, Any]], ...] = (
     ("get_pending_questions", {}),
 )
 
+# How the prefetched opening shows a waiting question without an asker (follow_up, gap):
+# a bare null asker next to a reaction was read as that person's question.
+OWN_QUESTION = "you: this is your own question, no family member asked it"
+
+
+def _with_own_questions_marked(tool_name: str, result: Any) -> Any:
+    """get_pending_questions as the model sees it in the prefetched opening: every
+    question without an asker says plainly that it is the companion's own."""
+    if tool_name != "get_pending_questions":
+        return result
+    wrapped = isinstance(result, dict)
+    items = result.get("result") if wrapped else result
+    if not isinstance(items, list):
+        return result
+    shown = [{**q, "asked_by": OWN_QUESTION} if isinstance(q, dict) and not q.get("asker_id") else q
+             for q in items]
+    return {**result, "result": shown} if wrapped else shown
+
 END_CONVERSATION = "end_conversation"
 KEEP_PRIVATE = "keep_private"
 # Tools handled inside ChatAgent itself, offered next to the MCP tools.
@@ -863,7 +881,8 @@ class ChatAgent:
         for name, args, result, ms in calls:
             tool_use_id = f"prefetch_{name}"
             tool_uses.append({"toolUse": {"toolUseId": tool_use_id, "name": name, "input": args}})
-            tool_results.append({"toolResult": {"toolUseId": tool_use_id, "content": [{"json": result}]}})
+            shown = _with_own_questions_marked(name, result)
+            tool_results.append({"toolResult": {"toolUseId": tool_use_id, "content": [{"json": shown}]}})
             if name == "get_session_context":
                 self._remember_reactions(result)
             self._remember_names(name, result)

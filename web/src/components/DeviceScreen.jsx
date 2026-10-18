@@ -5,7 +5,7 @@ import { apiClient } from '../api/client';
 import { announceChange } from '../utils/stageChannel';
 import { playChime, primeChime } from '../utils/chime';
 import Avatar from './Avatar';
-import { Mic, Volume2, Square, Lock } from 'lucide-react';
+import { Mic, Volume2, Square, Lock, Sparkles } from 'lucide-react';
 import '../styles/device.css';
 
 const REACTION_EMOJI = { heart: '❤️', laugh: '😂', sad: '😢', pray: '🙏' };
@@ -33,15 +33,21 @@ function captionSize(text) {
   return 'md';
 }
 
+// A question without an asker (follow-up or gap) is Evoca's own; it never names a family member.
 function DeviceCard({ card, members }) {
-  const person = card.type === 'reaction' ? card.from : card.type === 'question' ? card.asker : null;
+  // The server sends an asker with empty fields for Evoca's own question.
+  const from = card.type === 'reaction' ? card.from : card.type === 'question' ? card.asker : null;
+  const person = from?.id || from?.name ? from : null;
   const member = person && (members.find(m => m.id === person.id) || person);
   const first = person?.name?.split(' ')[0] || 'Someone in your family';
+  const ownQuestion = card.type === 'question' && !person;
   return (
     <span className="device-chip">
-      {member ? <Avatar person={member} size={26} /> : <span aria-hidden="true">🎧</span>}
+      {member ? <Avatar person={member} size={26} />
+        : ownQuestion ? <Sparkles size={18} aria-hidden="true" />
+          : <span aria-hidden="true">🎧</span>}
       {card.type === 'reaction' && <span>{REACTION_EMOJI[card.emoji] || '💛'} {first} reacted</span>}
-      {card.type === 'question' && <span>{first} asked</span>}
+      {card.type === 'question' && <span>{ownQuestion ? "Evoca's question" : `${first} asked`}</span>}
       {card.type === 'playlist' && <span>Playing your stories</span>}
     </span>
   );
@@ -73,12 +79,11 @@ function TracePanel({ turns }) {
   );
 
   return (
-    <section className="trace-panel" data-testid="trace-panel" aria-label="What Evoca did">
+    <section className={`trace-panel ${last ? '' : 'empty'}`} data-testid="trace-panel" aria-label="What Evoca did">
       <div className="trace-head">
         <span>What Evoca did · MCP tools</span>
-        <span>{last ? `turn ${turns.length}` : ''}</span>
+        <span>{last ? `turn ${turns.length}` : 'no tool calls yet'}</span>
       </div>
-      {!last && <div className="trace-empty">Tool calls and timings appear here after each turn.</div>}
       {last && <>{rows(last)}{latency(last)}</>}
       {earlier.length > 0 && (
         <details className="trace-earlier">
