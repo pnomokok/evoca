@@ -15,8 +15,8 @@ export function StoryTextCard({ title, period, teller, className = 'archival-pho
 }
 
 // A story photo fetched with X-Person-Id (a plain <img src> cannot send the header).
-// Without a photo, or while it is not available, the story's text card is shown instead.
-export default function BlobPhoto({ photoUrl, alt, className = 'archival-photo', fallback = {} }) {
+// Without a photo, or while it is not available, the story's text card (or fallbackNode) is shown instead.
+export default function BlobPhoto({ photoUrl, alt, className = 'archival-photo', fallback = {}, fallbackNode = null }) {
   const [loaded, setLoaded] = useState({ path: null, src: null });
 
   useEffect(() => {
@@ -43,6 +43,6 @@ export default function BlobPhoto({ photoUrl, alt, className = 'archival-photo',
   }, [photoUrl]);
 
   const src = photoUrl && loaded.path === photoUrl ? loaded.src : null;
-  if (!src) return <StoryTextCard {...fallback} className={className} />;
+  if (!src) return fallbackNode || <StoryTextCard {...fallback} className={className} />;
   return <img src={src} alt={alt} className={className} />;
 }

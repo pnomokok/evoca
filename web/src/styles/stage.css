@@ -1,0 +1,211 @@
+/* ==========================================================================
+   THE STAGE: "Watch the loop" (demo only). Device, phone and demo bar fit one
+   1366x768 screen: the device width follows the height that is left.
+   ========================================================================== */
+.stage-page {
+  --bar-h: 60px;
+  --pane-h: calc(100vh - var(--bar-h) - 72px);
+  --device-w: min(720px, calc((var(--pane-h) - 270px) * 1.6));
+  --phone-w: 390px;
+  min-height: 100vh;
+  background: var(--bg-ivory);
+}
+
+.stage-bar {
+  height: var(--bar-h);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 0 var(--space-5);
+  border-bottom: 1px solid var(--border-paper);
+  background: rgba(247, 243, 234, 0.85);
+  backdrop-filter: blur(8px);
+}
+
+.stage-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0;
+}
+
+.stage-pill {
+  font-size: var(--text-label);
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: var(--accent-sage-soft);
+  color: var(--accent-sage);
+  white-space: nowrap;
+}
+
+.stage-spacer { flex: 1; }
+
+.demo-controls.inline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.demo-clock-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-helper);
+  color: var(--text-charcoal-muted);
+  margin-right: var(--space-2);
+  white-space: nowrap;
+}
+
+.demo-clock-text b { color: var(--text-charcoal); font-variant-numeric: tabular-nums; }
+
+.stage-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 600 13px var(--font-sans);
+  border-radius: var(--radius-full);
+  padding: 7px 14px;
+  border: 1px solid var(--border-paper-dark);
+  background: var(--bg-white);
+  color: var(--text-charcoal);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.stage-btn:hover:not(:disabled) { background: var(--bg-paper-light); }
+.stage-btn:disabled { opacity: 0.55; cursor: default; }
+.stage-btn.quiet { background: transparent; border-color: transparent; color: var(--text-charcoal-muted); }
+.stage-btn.quiet:hover:not(:disabled) { color: var(--text-charcoal); background: transparent; }
+
+/* A centred block: device on the left, phone on the right. */
+.stage {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: var(--space-6);
+  padding: var(--space-4) var(--space-5);
+}
+
+.stage-pane { flex: none; }
+.device-pane { width: var(--device-w); }
+.phone-pane { width: var(--phone-w); }
+
+.stage-label {
+  height: 24px;
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-label);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-charcoal-faint);
+  font-weight: 600;
+}
+
+.stage-label span {
+  color: var(--text-charcoal);
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: var(--text-helper);
+  margin-left: 8px;
+}
+
+.stage-frame {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+}
+
+.device-frame { height: var(--pane-h); }
+
+.stage-phone {
+  background: var(--text-charcoal);
+  border-radius: 44px;
+  padding: 12px;
+  box-shadow: 0 30px 60px rgba(48, 47, 41, 0.25);
+}
+
+.phone-frame {
+  height: calc(min(var(--pane-h), 844px) - 24px);
+  border-radius: 34px;
+  background: var(--bg-ivory);
+}
+
+.stage-loading {
+  display: grid;
+  place-items: center;
+  color: var(--text-charcoal-faint);
+  font-size: var(--text-helper);
+}
+
+/* Below 1100 px the panes stack; the page scrolls. */
+@media (max-width: 1100px) {
+  .stage-page { --device-w: min(720px, calc(100vw - 32px)); }
+  .stage-bar { height: auto; min-height: var(--bar-h); flex-wrap: wrap; padding: 10px 16px; gap: 10px; }
+  .stage-spacer { display: none; }
+  .demo-controls.inline { flex-wrap: wrap; }
+  .stage { flex-direction: column; align-items: center; padding: var(--space-4); }
+  .phone-pane { width: min(var(--phone-w), 100%); }
+  .device-frame { height: calc((var(--device-w) - 28px) / 1.6 + 28px + 240px); }
+  .phone-frame { height: 760px; }
+}
+
+/* The device pane is narrow enough for its taller screen (styles/device.css). */
+@media (max-width: 572px) {
+  .device-frame { height: calc((var(--device-w) - 24px) * 1.25 + 24px + 220px); }
+}
+
+/* The panes themselves (inside the iframes) */
+[data-embed] body,
+[data-embed] .app-container { background: transparent; min-height: 0; }
+[data-embed="panel"] body,
+[data-embed="panel"] .app-container { background: var(--bg-ivory); }
+
+.embed-device-view { height: 100vh; overflow: hidden; }
+
+.embed-phone-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 18px 6px;
+  font-size: var(--text-helper);
+  color: var(--text-charcoal-muted);
+}
+
+.embed-phone-head strong { color: var(--text-charcoal); font-weight: 600; }
+
+/* The demo entry */
+.demo-entry-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.demo-entry-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  text-align: left;
+  padding: 16px 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-paper-dark);
+  background: var(--bg-white);
+  color: var(--text-charcoal);
+  cursor: pointer;
+  font: inherit;
+  transition: var(--transition-gentle);
+}
+
+.demo-entry-option:hover { background: var(--bg-paper-light); }
+
+.demo-entry-option.primary {
+  border-color: var(--accent-terracotta);
+  background: var(--accent-terracotta-soft);
+}
+
+.demo-entry-option svg { flex: none; margin-top: 2px; color: var(--accent-terracotta); }
+.demo-entry-option strong { display: block; font-family: var(--font-serif); font-size: 19px; font-weight: 500; }
+.demo-entry-option small { display: block; font-size: var(--text-helper); color: var(--text-charcoal-muted); margin-top: 2px; }

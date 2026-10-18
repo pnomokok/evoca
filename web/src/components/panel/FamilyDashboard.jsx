@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/useApp';
-import { useAudioElement } from '../../utils/useAudioElement';
 import { apiClient } from '../../api/client';
-import { Play, Pause, MessageSquarePlus, Mic, ChevronRight, ChevronLeft, ArrowRight } from 'lucide-react';
+import { Play, MessageSquarePlus, Mic, ChevronRight, ChevronLeft, ArrowRight } from 'lucide-react';
 import FamilyTreeCard from './FamilyTreeCard';
 import FamilyTreeModal from './FamilyTreeModal';
 import BlobPhoto from './BlobPhoto';
+import AnswerCard from './AnswerCard';
 import { periodLabel, periodYears } from '../../utils/periods';
 import { formatDuration, formatWhen } from '../../utils/format';
 
@@ -23,16 +23,11 @@ const PERIOD_PROMPTS = {
 };
 
 export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
-  const { setSelectedStoryId, setPanelSubTab, showToast, circleData, currentViewerId, viewerReady, centerPersonId, switchViewer, dataVersion, isSignedIn } = useApp();
+  const { setSelectedStoryId, setPanelSubTab, circleData, currentViewerId, viewerReady, centerPersonId, switchViewer, dataVersion, isSignedIn } = useApp();
   // Loaded data is keyed by viewer; another viewer's feed is never shown.
   const [loaded, setLoaded] = useState({ viewerId: null, feedItems: [], lifeline: null });
-  const [playingKey, setPlayingKey] = useState(null);
   const [isTreeModalOpen, setIsTreeModalOpen] = useState(false);
   const [storiesPageIndex, setStoriesPageIndex] = useState(0);
-  const [answerPosMs, setAnswerPosMs] = useState(0);
-  const getPlayer = useAudioElement();
-  // The answer being played: every piece of its audio list, back to back.
-  const answerRef = useRef({ key: null, urls: [], durations: [], index: 0 });
 
   useEffect(() => {
     if (!viewerReady) return;
@@ -55,14 +50,6 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
     return () => { cancelled = true; };
   }, [viewerReady, centerPersonId, currentViewerId, dataVersion]);
 
-  useEffect(() => {
-    const state = answerRef;
-    return () => {
-      getPlayer().pause();
-      state.current.urls.forEach(u => URL.revokeObjectURL(u));
-    };
-  }, [getPlayer]);
-
   const isCurrent = loaded.viewerId === currentViewerId;
   const feedItems = isCurrent ? loaded.feedItems : [];
   const lifeline = isCurrent ? loaded.lifeline : null;
@@ -76,7 +63,6 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
   const storyItems = feedItems.filter(i => i.type === 'story_published' && i.story).map(i => i.story);
   const recentStories = storyItems.slice(0, RECENT_STORY_LIMIT);
   const featuredStory = storyItems[0] || null;
-  const summaryByStory = Object.fromEntries(storyItems.map(s => [s.id, s.ai_summary]));
 
   const totalStoryPages = Math.max(1, Math.ceil(recentStories.length / STORIES_PER_PAGE));
   const pageIndex = Math.min(storiesPageIndex, totalStoryPages - 1);
@@ -90,68 +76,6 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
   const handleOpenStory = (storyId) => {
     setSelectedStoryId(storyId);
     setPanelSubTab('story');
-  };
-
-  const releaseAnswer = () => {
-    answerRef.current.urls.forEach(u => URL.revokeObjectURL(u));
-    answerRef.current = { key: null, urls: [], durations: [], index: 0 };
-  };
-
-  const playAnswerPiece = (index) => {
-    const state = answerRef.current;
-    const player = getPlayer();
-    state.index = index;
-    player.src = state.urls[index];
-    player.ontimeupdate = () => {
-      const before = state.durations.slice(0, index).reduce((a, b) => a + b, 0);
-      setAnswerPosMs(before + Math.round(player.currentTime * 1000));
-    };
-    player.onended = () => {
-      if (index + 1 < state.urls.length) {
-        playAnswerPiece(index + 1);
-      } else {
-        setPlayingKey(null);
-        setAnswerPosMs(0);
-        releaseAnswer();
-      }
-    };
-    return player.play();
-  };
-
-  // Answer audio: each piece fetched with X-Person-Id as a blob, played as one recording.
-  const toggleAnswerAudio = async (key, pieces) => {
-    const player = getPlayer();
-    const state = answerRef.current;
-    if (state.key === key && state.urls.length) {
-      if (!player.paused) {
-        player.pause();
-        setPlayingKey(null);
-      } else {
-        player.play().then(() => setPlayingKey(key)).catch(err => console.warn(err));
-      }
-      return;
-    }
-    player.pause();
-    releaseAnswer();
-    answerRef.current.key = key;
-    setAnswerPosMs(0);
-    try {
-      const urls = await Promise.all(pieces.map(p => apiClient.fetchBlobUrl(p.url)));
-      if (answerRef.current.key !== key) {
-        urls.forEach(u => u && URL.revokeObjectURL(u));
-        return;
-      }
-      if (urls.length === 0 || urls.some(u => !u)) throw new Error('missing audio');
-      answerRef.current.urls = urls;
-      answerRef.current.durations = pieces.map(p => Math.max(0, (p.end_ms ?? 0) - (p.start_ms ?? 0)));
-      await playAnswerPiece(0);
-      setPlayingKey(key);
-    } catch (err) {
-      console.warn('Answer audio not available:', err);
-      releaseAnswer();
-      setPlayingKey(null);
-      showToast('This recording is not available.', 'error');
-    }
   };
 
   const answers = feedItems.filter(i => i.type === 'question_answered' && i.answer);
@@ -474,62 +398,9 @@ export default function FamilyDashboard({ onOpenAskModal, onOpenRecordModal }) {
           </div>
 
           <div className="activity-cards-list">
-            {answers.map((item) => {
-              const a = item.answer;
-              const key = `${item.question?.id}-${a.story_id}`;
-              // Every piece of the answer (docs/api-samples/GET_feed.json); older cards only have audio_url.
-              const pieces = a.audio?.length ? a.audio
-                : a.audio_url ? [{ url: a.audio_url, start_ms: a.start_ms, end_ms: a.end_ms }] : [];
-              const totalMs = a.duration_ms ?? pieces.reduce((sum, p) => sum + Math.max(0, p.end_ms - p.start_ms), 0);
-              const duration = formatDuration(totalMs);
-              const showPos = playingKey === key && answerPosMs > 0;
-              const summary = summaryByStory[a.story_id];
-              return (
-                <div key={key} className="activity-item-card answer">
-                  <div className="activity-badge-row">
-                    <span className="activity-pill sage">Answer received</span>
-                    <span className="activity-timestamp">{formatWhen(item.created_at)}</span>
-                  </div>
-
-                  <div className="activity-question-quote">
-                    <span className="q-label">You asked:</span>
-                    <p className="q-text">"{item.question?.text}"</p>
-                  </div>
-
-                  <div className="activity-answer-details">
-                    <div className="answer-title-row">
-                      <span className="a-title" onClick={() => handleOpenStory(a.story_id)}>
-                        {a.story_title}
-                      </span>
-                      {a.teller?.name && <span className="a-duration">Told by {a.teller.name}</span>}
-                    </div>
-
-                    {summary && (
-                      <p className="a-excerpt"><span className="card-period-tag">AI summary · </span>{summary}</p>
-                    )}
-
-                    {pieces.length > 0 && (
-                      <button
-                        type="button"
-                        className="mini-audio-btn"
-                        onClick={() => toggleAnswerAudio(key, pieces)}
-                        data-pieces={pieces.length}
-                      >
-                        {playingKey === key ? <Pause size={15} /> : <Play size={15} />}
-                        <span>
-                          {playingKey === key ? 'Pause the answer' : 'Listen to the answer'}
-                          {showPos
-                            ? ` (${formatDuration(answerPosMs) || '0:00'} / ${duration})`
-                            : duration ? ` (${duration})` : ''}
-                        </span>
-                      </button>
-                    )}
-
-                    <p className="a-excerpt">Maybe give her a call.</p>
-                  </div>
-                </div>
-              );
-            })}
+            {answers.map((item) => (
+              <AnswerCard key={`${item.question?.id}-${item.answer.story_id}`} item={item} />
+            ))}
 
             {feedItems.filter(i => i.type === 'story_published' && i.story).map((item) => {
               const duration = formatDuration(item.story.duration_ms);

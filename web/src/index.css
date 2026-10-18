@@ -38,6 +38,44 @@
   --radius-full: 9999px;
 
   --transition-gentle: 0.22s ease-in-out;
+
+  /* Warm light: the invitation light, "now" in a journey, the device's rings */
+  --honey: #E39A4C;
+  --honey-soft: rgba(227, 154, 76, 0.2);
+  --glow: #F0A85E;
+  --accent-gold: var(--honey);
+  --danger: #B4442F;
+  --focus-ring: rgba(169, 95, 70, 0.45);
+
+  /* The device */
+  --device-bezel: #1B1915;
+  --device-screen: #241F19;
+  --device-text: #FBF3E4;
+  --device-dim: #C9B99C;
+
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Type scale: labels are never larger than helper text */
+  --text-label: 11.5px;
+  --text-helper: 13px;
+  --text-body: 14.5px;
+  --text-lead: 18px;
+  --text-title: 24px;
+  --text-display: 32px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 * {
@@ -1266,6 +1304,29 @@ h1, h2, h3, h4, .serif-font {
 
 .editorial-btn.secondary:hover {
   background: var(--bg-paper);
+}
+
+.editorial-btn.quiet {
+  background: transparent;
+  color: var(--text-charcoal-muted);
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.editorial-btn.quiet:hover {
+  color: var(--text-charcoal);
+}
+
+.editorial-btn.destructive {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid currentColor;
+}
+
+.editorial-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+  transform: none;
 }
 
 /* Archival Photograph Matte Framing */
@@ -4131,206 +4192,7 @@ h1, h2, h3, h4, .serif-font {
 /* ==========================================================================
    ALEXA+ DEVICE SCREEN & LIVING ROOM GATHERING MODE
    ========================================================================== */
-.device-wrapper {
-  max-width: 880px;
-  width: 100%;
-  margin: 0 auto;
-  background: var(--bg-white);
-  border: 1px solid var(--border-paper);
-  border-radius: var(--radius-xl);
-  padding: 24px 28px;
-  box-shadow: var(--shadow-dialog);
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  position: relative;
-}
-
-.device-ambient-glow {
-  height: 4px;
-  width: 100%;
-  background: linear-gradient(90deg, var(--accent-terracotta), var(--accent-gold), var(--accent-sage));
-  border-radius: var(--radius-full);
-  box-shadow: 0 0 12px rgba(169, 95, 70, 0.5);
-  animation: ambientLamp 3s infinite ease-in-out;
-}
-
-@keyframes ambientLamp {
-  0%, 100% { opacity: 0.7; }
-  50% { opacity: 1; }
-}
-
-.device-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--border-paper);
-  padding-bottom: 14px;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.device-time {
-  font-family: var(--font-serif);
-  font-size: 26px;
-  font-weight: 600;
-  color: var(--text-charcoal);
-  line-height: 1.1;
-}
-
-.device-date {
-  font-size: 12px;
-  color: var(--text-charcoal-muted);
-  margin-top: 2px;
-}
-
-.device-invitation-banner {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(169, 95, 70, 0.08);
-  border: 1px solid rgba(169, 95, 70, 0.25);
-  padding: 6px 14px;
-  border-radius: var(--radius-full);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--accent-terracotta);
-}
-
-.device-content {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.device-speech-bubble-area {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  min-height: 180px;
-}
-
-.elder-heard-card {
-  background: var(--bg-paper-light);
-  border: 1px solid var(--border-paper);
-  border-radius: var(--radius-lg);
-  padding: 14px 18px;
-  align-self: flex-start;
-  max-width: 82%;
-  box-shadow: var(--shadow-subtle);
-}
-
-.elder-label {
-  font-size: 10.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--accent-sage);
-  margin-bottom: 4px;
-}
-
-.elder-text {
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-size: 15px;
-  color: var(--text-charcoal);
-  line-height: 1.5;
-}
-
-.agent-reply-card {
-  background: #FAF7F2;
-  border: 1px solid var(--border-paper-dark);
-  border-left: 3px solid var(--accent-terracotta);
-  border-radius: var(--radius-lg);
-  padding: 16px 20px;
-  align-self: flex-end;
-  max-width: 85%;
-  box-shadow: var(--shadow-subtle);
-}
-
-.agent-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--accent-terracotta);
-  margin-bottom: 6px;
-}
-
-.agent-text {
-  font-size: 13.5px;
-  color: var(--text-charcoal);
-  line-height: 1.55;
-}
-
-.device-cards-row {
-  display: flex;
-  gap: 10px;
-  margin-top: 12px;
-  flex-wrap: wrap;
-}
-
-.device-subcard {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: var(--bg-white);
-  border: 1px solid var(--border-paper);
-  border-radius: var(--radius-sm);
-  padding: 8px 12px;
-}
-
-.subcard-emoji {
-  font-size: 16px;
-}
-
-.subcard-title {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--text-charcoal);
-}
-
-.subcard-desc {
-  font-size: 11px;
-  color: var(--text-charcoal-muted);
-}
-
-.device-bottom-action {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  border-top: 1px solid var(--border-paper);
-  padding-top: 16px;
-}
-
-.device-quick-prompts {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.quick-prompt-chip {
-  background: var(--bg-paper-light);
-  border: 1px solid var(--border-paper);
-  color: var(--text-charcoal);
-  padding: 6px 12px;
-  border-radius: var(--radius-full);
-  font-size: 11.5px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: var(--transition-gentle);
-}
-
-.quick-prompt-chip:hover {
-  background: var(--bg-paper);
-  border-color: var(--border-paper-dark);
-}
-
+/* The device's own styles are in styles/device.css; this button is also the panel's record button. */
 .push-to-talk-btn {
   display: inline-flex;
   align-items: center;
@@ -4413,3 +4275,19 @@ h1, h2, h3, h4, .serif-font {
   background: var(--accent-sage);
 }
 
+/* Initials avatars (shared) */
+.initials-avatar {
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  flex: none;
+  line-height: 1;
+}
+
+.initials-avatar.ring {
+  box-shadow: 0 0 0 3px rgba(240, 168, 94, 0.6);
+}
