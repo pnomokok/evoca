@@ -18,10 +18,11 @@ same database). Everything else is the real code.
 from __future__ import annotations
 
 import struct
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import pytest
 
+from core.clock import now_utc
 from core.enums import AccessType, QuestionStatus, Role, StoryStatus
 from core.models import Membership, Person, Question, Story
 from core.services.publisher import publish_due_stories
@@ -144,7 +145,7 @@ async def test_core_loop_question_to_answer_in_fatmas_voice(test_app, monkeypatc
         assert (await c.get(url, headers={"x-person-id": elif_.id})).status_code == 403
 
         # 6. The publisher, 24 hours later.
-        monkeypatch.setenv("DEMO_NOW", (datetime.now().astimezone() + timedelta(hours=24, minutes=1)).isoformat())
+        monkeypatch.setenv("DEMO_NOW", (now_utc() + timedelta(hours=24, minutes=1)).isoformat())
         assert publish_due_stories(db) == [story.id]
 
         # 7. Elif sees the answer in her feed ...

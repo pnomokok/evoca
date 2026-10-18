@@ -9,6 +9,10 @@ parse_judge_json(text)  — the judge's JSON verdict, tolerant of the judge
 says_any_phrase(text, phrases) — the text contains one of the phrases as whole
                           words, any spacing or case ("your grandfather", but
                           not "your grandfathers'").
+attributes_question(text, askers) — the text says someone asked a question
+                          ("she has a question", "Defne asks", "your
+                          granddaughter wants to know"); askers are the family's
+                          first names and relations.
 """
 
 from __future__ import annotations
@@ -84,3 +88,18 @@ def says_any_phrase(text: str, phrases: list[str]) -> bool:
         return False
     alternatives = (r"\s+".join(map(re.escape, p.split())) for p in phrases)
     return bool(re.search(r"\b(?:" + "|".join(alternatives) + r")\b", text, re.IGNORECASE))
+
+
+_ASKING = (r"(?:also\s+)?(?:has|had|have)\s+(?:a|another|one)\s+(?:little\s+)?question"
+           r"|asks|asked|(?:would|'d)\s+(?:love|like)\s+to\s+know|wants\s+to\s+know|wanted\s+to\s+know"
+           r"|is\s+wondering|was\s+wondering|is\s+curious|was\s+curious")
+
+
+def attributes_question(text: str, askers: list[str]) -> bool:
+    named = [r"\s+".join(map(re.escape, a.split())) for a in askers if a.strip()]
+    subject = r"\b(?:" + "|".join(["she", "he", "they", *named]) + r")\s+(?:" + _ASKING + r")\b"
+    if re.search(subject, text, re.IGNORECASE):
+        return True
+    if not named:
+        return False
+    return bool(re.search(r"\bquestion\s+from\s+(?:" + "|".join(named) + r")\b", text, re.IGNORECASE))

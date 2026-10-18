@@ -385,11 +385,14 @@
   color: var(--text-charcoal-muted);
 }
 
+/* As tall as its rows, never more than the space left; empty, it is one line. */
 .embedded .trace-panel {
-  flex: 1;
+  flex: 0 1 auto;
   min-height: 0;
   overflow-y: auto;
 }
+
+.trace-panel.empty .trace-head { margin-bottom: 0; }
 
 .trace-head {
   display: flex;

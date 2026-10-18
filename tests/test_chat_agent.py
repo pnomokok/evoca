@@ -27,7 +27,8 @@ Coverage
   get_pending_questions run in code before the first LLM call, as the model's
   toolUse and toolResult in the history; one LLM call fewer, results equal to
   the tools' own, trace entries marked prefetched; a failed prefetch adds
-  nothing and the model calls the tools itself.
+  nothing and the model calls the tools itself. A waiting question without an
+  asker is shown to the model as its own (asked_by); the trace keeps the tool's result.
 """
 
 from __future__ import annotations
@@ -1474,6 +1475,29 @@ async def test_prefetched_results_equal_what_the_tools_return(world):
     assert [t.result for t in result.trace] == [sent["prefetch_get_session_context"],
                                                 sent["prefetch_get_pending_questions"]]
     assert "Elif" in agent._full_names     # names remembered from the prefetched questions
+
+
+@pytest.mark.anyio
+async def test_prefetched_question_without_an_asker_is_shown_as_the_companions_own(world):
+    from server.agents.chat_agent import OWN_QUESTION
+    gap = Question(circle_id=world.circle.id, target_person_id=world.fatma.id, asker_id=None,
+                   text="What do you remember about your early married years?",
+                   source=QuestionSource.gap, status=QuestionStatus.waiting,
+                   created_at=now_utc().isoformat())
+    world.db.add(gap); world.db.commit()
+    llm = SnapshotLLM(["Hello, Fatma!"])
+    agent = _make_agent(world, llm)
+    result = await agent.turn("(Session started.)", store_user=False, prefetch_context=True)
+
+    sent = _tool_results(llm, 0)["prefetch_get_pending_questions"]
+    items = sent["result"] if isinstance(sent, dict) else sent
+    by_id = {q["question_id"]: q for q in items}
+    assert by_id[gap.id]["asked_by"] == OWN_QUESTION
+    assert by_id[gap.id]["asker_name"] is None
+    assert "asked_by" not in by_id[world.q.id]          # a family question keeps its asker only
+    traced = result.trace[1].result
+    traced_items = traced["result"] if isinstance(traced, dict) else traced
+    assert all("asked_by" not in q for q in traced_items)   # the trace shows what the tool returned
 
 
 @pytest.mark.anyio

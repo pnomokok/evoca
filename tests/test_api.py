@@ -52,6 +52,7 @@ import struct
 import uuid
 import wave
 from datetime import timedelta
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from typing import Any
 
@@ -174,7 +175,8 @@ def test_app(tmp_path, monkeypatch):
     )
     db.add(q)
 
-    today_str = now.strftime("%Y-%m-%d")
+    # The circle's local day, as GET /api/device/invitation counts it (not the UTC date).
+    today_str = now.astimezone(ZoneInfo(circle.timezone)).strftime("%Y-%m-%d")
     inv = Invitation(
         circle_id=circle.id, person_id=fatma.id,
         date=today_str, reason="Elif has a question.",
