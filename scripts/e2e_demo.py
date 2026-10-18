@@ -63,10 +63,9 @@ SENSITIVE_TOPIC = "Uncle Rasim's bankruptcy"
 FILTERED_QUESTION = "Grandma, what happened with Uncle Rasim's bankruptcy?"
 NORMAL_QUESTION = "Grandma, what was your favourite song when you were young?"
 
-SCHOOL_ANSWER = (
-    "School was a small stone building at the edge of our village. Our teacher, Mister Kaya, "
-    "made us recite poems every morning, and in winter each child carried a piece of firewood "
-    "for the stove."
+SONG_ANSWER = (
+    "My favourite song was an old folk song from our village. My mother sang it every morning "
+    "while she baked bread, and at weddings everyone danced to it in a long line."
 )
 SECRET_TURN = (
     "I will tell you something, but keep this between us. I once hid my cousin Nuri's silver "
@@ -405,8 +404,10 @@ class Demo:
         kinds = {c["type"] for c in start["cards"]}
         self.check("reaction" in kinds, f"opening has no reaction card: {start['cards']}")
         self.check("question" in kinds, f"opening has no question card: {start['cards']}")
+        asked = [c.get("text") for c in start["cards"] if c["type"] == "question"]
+        self.check(asked[:1] == [NORMAL_QUESTION], f"opening asks another question: {asked}")
 
-        t1 = self.turn(SCHOOL_ANSWER)
+        t1 = self.turn(SONG_ANSWER)
         self.check_turn_shape(t1, "answer")
         self.check(bool(t1.get("heard_text")), "answer: nothing heard")
 

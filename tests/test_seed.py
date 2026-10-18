@@ -27,7 +27,8 @@ from sqlalchemy.orm import sessionmaker
 
 import core.seed as seed
 from core.enums import SessionKind, SessionStart
-from core.models import Base, Person, Segment, Session as OrmSession, Story
+from core.models import Base, Circle, Invitation, Person, Question, Segment, Session as OrmSession, Story
+from core.services.invitations import invitation_reason
 
 
 @pytest.fixture
@@ -68,6 +69,18 @@ def test_seed_empty_database_and_reseed(seed_db):
     assert seed.main([]) == 0  # only the seed's own session exists
     with seed_db() as db:
         assert db.query(OrmSession).count() == 1
+
+
+def test_seeded_invitation_reason_is_the_schedulers(seed_db):
+    """The seeded light's reason is what the scheduler would say for the seed
+    state, so the device never mentions a question that does not exist."""
+    assert seed.main([]) == 0
+    with seed_db() as db:
+        circle = db.query(Circle).one()
+        invitation = db.query(Invitation).one()
+        assert invitation.reason == invitation_reason(db, circle)
+        assert db.query(Question).count() == 0
+        assert "question" not in invitation.reason
 
 
 def test_seed_refuses_when_recorded_session_exists(seed_db, capsys):
