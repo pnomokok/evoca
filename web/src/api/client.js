@@ -267,65 +267,16 @@ class EvocaApiClient {
       }
       return { ...this.story };
     }
-
-    // Resolve mock IDs to real backend story UUIDs
-    let resolvedId = storyId;
-    if (storyId === 'story_mulberry' || (storyId && !storyId.includes('-'))) {
-      try {
-        const feed = await this.getFeed();
-        const found = feed?.items?.find(it => 
-          it?.story?.title?.toLowerCase().includes('mulberry')
-        );
-        if (found?.story?.id) {
-          resolvedId = found.story.id;
-        } else if (feed?.items?.[0]?.story?.id) {
-          resolvedId = feed.items[0].story.id;
-        }
-      } catch {
-        // continue with original storyId
-      }
-    }
-
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/stories/${resolvedId}`, { headers: this.getHeaders() });
-      return await handleResponse(res);
-    } catch (err) {
-      if (STORIES_DATABASE[storyId]) {
-        return JSON.parse(JSON.stringify(STORIES_DATABASE[storyId]));
-      }
-      throw err;
-    }
+    const res = await fetch(`${API_BASE_URL}/api/stories/${storyId}`, { headers: this.getHeaders() });
+    return handleResponse(res);
   }
 
   async getStoryPlaylist(storyId) {
     if (this.useMock) {
       return { ...this.playlist };
     }
-
-    let resolvedId = storyId;
-    if (storyId === 'story_mulberry' || (storyId && !storyId.includes('-'))) {
-      try {
-        const feed = await this.getFeed();
-        const found = feed?.items?.find(it => 
-          it?.story?.title?.toLowerCase().includes('mulberry')
-        );
-        if (found?.story?.id) {
-          resolvedId = found.story.id;
-        } else if (feed?.items?.[0]?.story?.id) {
-          resolvedId = feed.items[0].story.id;
-        }
-      } catch {
-        // continue
-      }
-    }
-
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/stories/${resolvedId}/playlist`, { headers: this.getHeaders() });
-      return await handleResponse(res);
-    } catch (err) {
-      if (this.playlist) return { ...this.playlist };
-      throw err;
-    }
+    const res = await fetch(`${API_BASE_URL}/api/stories/${storyId}/playlist`, { headers: this.getHeaders() });
+    return handleResponse(res);
   }
 
   // --- Reactions ({ present, mine }, NO counts) ---

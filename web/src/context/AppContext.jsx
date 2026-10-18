@@ -113,6 +113,9 @@ export function AppProvider({ children }) {
 
   const toggleMock = (flag) => {
     apiClient.setUseMock(flag);
+    // Sample and live story ids never mix: an open sample story would reach the backend.
+    setSelectedStoryId(null);
+    setPanelSubTab(tab => (tab === 'story' ? 'feed' : tab));
     setViewerReady(false);
     setUseMock(apiClient.useMock);
     showToast(apiClient.useMock ? "Showing sample data" : "Showing live data", "info");
