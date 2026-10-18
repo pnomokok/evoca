@@ -618,8 +618,11 @@ What we know is not solved, and what limits the damage.
   secret. An explicit `keep_private` always marks, so a misread can also hide a harmless story.
 - **Refused topics are matched by words.** An indirect reference ("What was Zehra like?" after refusing Hatice) is
   not caught; the elder can still decline the question.
-- **The companion can mix up people in hard conversations.** In the two hardest eval scenarios (grief, frequent
-  topic changes) it sometimes confuses relatives, for example husband and father.
+- **The companion can take on the asker's point of view.** When the elder answered her daughter's question in the
+  daughter's voice ("your father" for her husband), the companion repeated it (1 of 6 eval runs). In a scenario built
+  for this case ("your grandfather was a tailor") it repeated "your grandfather" to her in 2 of 3 runs, until she said
+  his name. A prompt rule for this was tried and dropped, because it made the companion leave out relations before
+  family members' names. It also sometimes offers to play stories that do not exist.
 - **Story boundaries are a judgement.** A short separate memory told right next to another one in the same period
   can be merged into it, and the archivist can leave a short sentence out of a story.
 

@@ -6,6 +6,9 @@ has_tech_words(reply)   — the companion talked about its machinery ("database"
                           fine: "the sewing tools you used" is a memory.
 parse_judge_json(text)  — the judge's JSON verdict, tolerant of the judge
                           writing unescaped quotes inside the invented_facts list.
+says_any_phrase(text, phrases) — the text contains one of the phrases as whole
+                          words, any spacing or case ("your grandfather", but
+                          not "your grandfathers'").
 """
 
 from __future__ import annotations
@@ -74,3 +77,10 @@ def parse_judge_json(text: str) -> dict[str, Any]:
             verdict["repaired"] = True
             return verdict
     return {"error": "judge returned invalid JSON", "raw": text[:300]}
+
+
+def says_any_phrase(text: str, phrases: list[str]) -> bool:
+    if not phrases:
+        return False
+    alternatives = (r"\s+".join(map(re.escape, p.split())) for p in phrases)
+    return bool(re.search(r"\b(?:" + "|".join(alternatives) + r")\b", text, re.IGNORECASE))

@@ -1,0 +1,456 @@
+[
+  {
+    "scenario": "answers_in_askers_voice",
+    "run": 1,
+    "goal": "When she answers a grandchild's question in the grandchild's voice, the companion uses her own relation or the name, never the asker's.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Gulsen! Your granddaughter Selin has a question for you: what did Grandpa do for work?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, your grandfather was a tailor, a very good one. Your grandfather had a small shop near the covered bazaar in Bursa, and he made every dress I wore."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds lovely, Gulsen. What was your grandfather like as a tailor?"
+      },
+      {
+        "speaker": "person",
+        "text": "Your grandfather was very meticulous, Selin. His name was Kemal, and he had the finest pair of scissors in town, which he took great care of. He could make a dress perfect to your measurements with just a glance."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s wonderful, Gulsen. Do you still remember those scissors?"
+      },
+      {
+        "speaker": "person",
+        "text": "Yes, I remember them well, Selin. They were sharp and always clean. Your grandfather would polish them every evening, and they made the most beautiful, precise cuts for the fabrics he loved to work with."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s lovely to hear, Gulsen. Would you like to share another memory about Kemal or the shop?"
+      },
+      {
+        "speaker": "person",
+        "text": "I’d love to, Selin. One of my favorite memories is watching Kemal work late into the night, humming old songs while he stitched. The shop was always filled with the sweet smell of fabrics and the soft sound of his needle moving, creating beautiful dresses that made every woman feel special."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds so warm and special, Gulsen. Is there a particular dress you remember that Kemal made for you?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Gulsen. We can talk more another time. Goodbye for now."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Gulsen! Your granddaughter Selin has a question for you: what did Grandpa do for work?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3384,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Selin": true
+        }
+      },
+      {
+        "reply": "That sounds lovely, Gulsen. What was your grandfather like as a tailor?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 928,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s wonderful, Gulsen. Do you still remember those scissors?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1200,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s lovely to hear, Gulsen. Would you like to share another memory about Kemal or the shop?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 923,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds so warm and special, Gulsen. Is there a particular dress you remember that Kemal made for you?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 911,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Gulsen. We can talk more another time. Goodbye for now.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 874,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "no_asker_voice_relation": false,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Excellent conversation; companion respectfully ended when the person expressed fatigue."
+    }
+  },
+  {
+    "scenario": "answers_in_askers_voice",
+    "run": 2,
+    "goal": "When she answers a grandchild's question in the grandchild's voice, the companion uses her own relation or the name, never the asker's.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Gulsen! Your granddaughter Selin has a question for you: what did Grandpa do for work?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, your grandfather was a tailor, a very good one. Your grandfather had a small shop near the covered bazaar in Bursa, and he made every dress I wore."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds lovely. What was your grandfather like as a person?"
+      },
+      {
+        "speaker": "person",
+        "text": "Your grandfather, Kemal, was a quiet man, but very kind. He had a pair of old scissors he swore by, and he could make the most beautiful dresses for every occasion."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s wonderful. Do you still have those old scissors?"
+      },
+      {
+        "speaker": "person",
+        "text": "Yes, I still have them. I keep them on the shelf in my room as a reminder of your grandfather and the beautiful dresses he made."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s a beautiful memory. Would you like to hear the story about the first dress he made for you?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, yes, that was a lovely dress, the first one he made for me when we were newly married. I still have it somewhere in the attic."
+      },
+      {
+        "speaker": "companion",
+        "text": "I can’t find that story right now, but it sounds lovely. What was the occasion for that first dress?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand. We can talk more another time. Goodbye, Gulsen."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Gulsen! Your granddaughter Selin has a question for you: what did Grandpa do for work?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 1598,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Selin": true
+        }
+      },
+      {
+        "reply": "That sounds lovely. What was your grandfather like as a person?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 799,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s wonderful. Do you still have those old scissors?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 818,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s a beautiful memory. Would you like to hear the story about the first dress he made for you?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 848,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I can’t find that story right now, but it sounds lovely. What was the occasion for that first dress?",
+        "tools": [
+          "search_archive"
+        ],
+        "tool_errors": [],
+        "latency_ms": 1924,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand. We can talk more another time. Goodbye, Gulsen.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 836,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "no_asker_voice_relation": false,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [
+        "The companion asked 'Would you like to hear the story about the first dress he made for you?' implying the companion had access to this story, then later said 'I can't find that story right now' - this is contradictory and suggests the companion invented having the story"
+      ],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 4,
+      "notes": "Companion contradicted itself about having a story, and should have asked follow-up questions about the dress occasion before the person declined."
+    }
+  },
+  {
+    "scenario": "answers_in_askers_voice",
+    "run": 3,
+    "goal": "When she answers a grandchild's question in the grandchild's voice, the companion uses her own relation or the name, never the asker's.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Gulsen! Your granddaughter Selin has a question for you: what did Grandpa do for work?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, your grandfather was a tailor, a very good one. Your grandfather had a small shop near the covered bazaar in Bursa, and he made every dress I wore."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds wonderful. Do you still remember what his shop was like?"
+      },
+      {
+        "speaker": "person",
+        "text": "Yes, I remember it very clearly. His name was Kemal, and he had a special pair of scissors that he always used. He could make the most beautiful dresses, and he was very proud of his work."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s lovely to hear. What was Kemal like as a person?"
+      },
+      {
+        "speaker": "person",
+        "text": "Kemal was a kind and gentle man, always happy to help others. He had a warm smile and a gentle touch, and he loved to see people looking their best in his creations."
+      },
+      {
+        "speaker": "companion",
+        "text": "He sounds like a special man. Did you spend a lot of time with him in his shop?"
+      },
+      {
+        "speaker": "person",
+        "text": "I spent almost every day with Kemal in his shop. We would sit together in the back, and he would tell me stories while he worked on his designs. It was our special time together, and I cherish those memories dearly."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s beautiful. What kind of stories did Kemal tell you?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand. We can talk more another time. Goodbye for today."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Gulsen! Your granddaughter Selin has a question for you: what did Grandpa do for work?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 1654,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Selin": true
+        }
+      },
+      {
+        "reply": "That sounds wonderful. Do you still remember what his shop was like?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 829,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s lovely to hear. What was Kemal like as a person?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 804,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "He sounds like a special man. Did you spend a lot of time with him in his shop?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1078,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s beautiful. What kind of stories did Kemal tell you?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 768,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand. We can talk more another time. Goodbye for today.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1980,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "no_asker_voice_relation": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Excellent conversation; companion could have asked one more follow-up about the stories before the person declined, but gracefully respected the boundary."
+    }
+  }
+]

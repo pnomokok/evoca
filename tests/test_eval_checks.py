@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import pytest
 
-from evals.text_checks import has_tech_words, parse_judge_json
+from evals.text_checks import has_tech_words, parse_judge_json, says_any_phrase
 
 
 @pytest.mark.parametrize("reply", [
@@ -69,3 +69,24 @@ def test_unescaped_quotes_in_invented_facts_are_repaired():
 ])
 def test_unusable_judge_output_is_an_error(text, error):
     assert parse_judge_json(text)["error"] == error
+
+
+ASKER_VOICE = ["your grandfather", "your grandpa"]
+
+
+@pytest.mark.parametrize("reply", [
+    "What was your grandfather like at work?",
+    "Your  Grandpa made every dress?",
+])
+def test_asker_voice_relation_is_caught(reply):
+    assert says_any_phrase(reply, ASKER_VOICE)
+
+
+@pytest.mark.parametrize("reply", [
+    "What was your husband like at work?",
+    "What did Kemal make in his shop?",
+    "Selin's grandfather was a tailor.",
+    "Your grandfathers' tools",          # whole words only
+])
+def test_own_relation_or_name_passes(reply):
+    assert not says_any_phrase(reply, ASKER_VOICE)
