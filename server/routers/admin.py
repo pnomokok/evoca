@@ -8,9 +8,11 @@ PATCH  /api/admin/circle
 POST   /api/admin/members
 PATCH  /api/admin/members/{person_id}
 DELETE /api/admin/members/{person_id}
+POST   /api/admin/invites
+DELETE /api/admin/invites/{person_id}
 
-The viewer comes from X-Person-Id; every endpoint needs role admin in the
-viewer's circle (the X-Circle-Id header picks it, as on the panel), and
+The viewer comes from server.auth, as on the panel; every endpoint needs role
+admin in the viewer's circle, and
 anyone else gets the same 403. Logic lives in
 core.services.admin: only family topics are ever listed, and a speaker topic's
 id gets the same 404 as a missing one.
@@ -20,11 +22,13 @@ from __future__ import annotations
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from core.db import SessionLocal
 from core.services import admin as admin_svc
+from core.services import auth as auth_svc
+from server.auth import Viewer, panel_viewer
 from server.routers.panel import _resolve_panel_viewer
 
 router = APIRouter()
@@ -46,11 +50,10 @@ def _admin_call(x_circle_id: str, fn, x_person_id: str, *args):
 
 @router.get("/api/admin/sensitive-topics")
 async def get_sensitive_topics(
-    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
-    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
+    viewer: Viewer = Depends(panel_viewer),
 ):
     """The family's sensitive topics. Matches GET_admin_sensitive_topics.json."""
-    return _admin_call(x_circle_id, admin_svc.list_family_topics, x_person_id)
+    return _admin_call(viewer.circle_id, admin_svc.list_family_topics, viewer.person_id)
 
 
 class TopicRequest(BaseModel):
@@ -60,21 +63,19 @@ class TopicRequest(BaseModel):
 @router.post("/api/admin/sensitive-topics")
 async def post_sensitive_topic(
     body: TopicRequest,
-    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
-    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
+    viewer: Viewer = Depends(panel_viewer),
 ):
     """Add a family topic; the same text again returns the existing topic."""
-    return _admin_call(x_circle_id, admin_svc.add_family_topic, x_person_id, body.text)
+    return _admin_call(viewer.circle_id, admin_svc.add_family_topic, viewer.person_id, body.text)
 
 
 @router.delete("/api/admin/sensitive-topics/{topic_id}")
 async def delete_sensitive_topic(
     topic_id: str,
-    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
-    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
+    viewer: Viewer = Depends(panel_viewer),
 ):
     """Delete a family topic. Questions it already filtered stay filtered."""
-    return _admin_call(x_circle_id, admin_svc.delete_family_topic, x_person_id, topic_id)
+    return _admin_call(viewer.circle_id, admin_svc.delete_family_topic, viewer.person_id, topic_id)
 
 
 class CirclePatchRequest(BaseModel):
@@ -85,11 +86,10 @@ class CirclePatchRequest(BaseModel):
 @router.patch("/api/admin/circle")
 async def patch_circle(
     body: CirclePatchRequest,
-    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
-    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
+    viewer: Viewer = Depends(panel_viewer),
 ):
     """Change chat_time and/or timezone; the scheduler uses them on its next pass."""
-    return _admin_call(x_circle_id, admin_svc.update_circle_settings, x_person_id, body.chat_time, body.timezone)
+    return _admin_call(viewer.circle_id, admin_svc.update_circle_settings, viewer.person_id, body.chat_time, body.timezone)
 
 
 class MemberRequest(BaseModel):
@@ -102,11 +102,10 @@ class MemberRequest(BaseModel):
 @router.post("/api/admin/members")
 async def post_member(
     body: MemberRequest,
-    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
-    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
+    viewer: Viewer = Depends(panel_viewer),
 ):
     """Add a new person to the circle (role member or admin); returns the member."""
-    return _admin_call(x_circle_id, admin_svc.add_member, x_person_id,
+    return _admin_call(viewer.circle_id, admin_svc.add_member, viewer.person_id,
                        body.name, body.birth_year, body.relation_to_center, body.role)
 
 
@@ -119,19 +118,40 @@ class MemberPatchRequest(BaseModel):
 async def patch_member(
     person_id: str,
     body: MemberPatchRequest,
-    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
-    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
+    viewer: Viewer = Depends(panel_viewer),
 ):
     """Change relation_to_center and/or role. The center and the last admin are protected."""
-    return _admin_call(x_circle_id, admin_svc.update_member, x_person_id,
+    return _admin_call(viewer.circle_id, admin_svc.update_member, viewer.person_id,
                        person_id, body.relation_to_center, body.role)
 
 
 @router.delete("/api/admin/members/{person_id}")
 async def delete_member(
     person_id: str,
-    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
-    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
+    viewer: Viewer = Depends(panel_viewer),
 ):
     """Remove the membership only; the person's stories stay."""
-    return _admin_call(x_circle_id, admin_svc.remove_member, x_person_id, person_id)
+    return _admin_call(viewer.circle_id, admin_svc.remove_member, viewer.person_id, person_id)
+
+
+class InviteRequest(BaseModel):
+    person_id: Any = None
+
+
+@router.post("/api/admin/invites")
+async def post_invite(
+    body: InviteRequest,
+    viewer: Viewer = Depends(panel_viewer),
+):
+    """A member's personal invite link (the center included); revokes their old one.
+    Matches POST_admin_invites.json. The token is returned only here."""
+    return _admin_call(viewer.circle_id, auth_svc.create_invite, viewer.person_id, body.person_id)
+
+
+@router.delete("/api/admin/invites/{person_id}")
+async def delete_invite(
+    person_id: str,
+    viewer: Viewer = Depends(panel_viewer),
+):
+    """Revoke the person's link and every session made from it."""
+    return _admin_call(viewer.circle_id, auth_svc.revoke_invite, viewer.person_id, person_id)

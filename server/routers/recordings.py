@@ -4,7 +4,7 @@ Panel recordings (docs/ARCHITECTURE.md A4, "A family member's own memory").
 POST /api/recordings
     Multipart: audio (webm/wav, like a device turn) + optional access
     ("circle" | "private", default "circle"). Any circle member may record,
-    the center included; identity is the X-Person-Id header.
+    the center included; the viewer comes from server.auth (bearer session, or demo headers).
 
 The request decodes the audio, checks its length, creates a single-person
 panel_recording Session owned by the recorder, saves the audio to the session
@@ -27,7 +27,7 @@ import logging
 from typing import Annotated, Any
 
 import anyio
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Header, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
 
 from core.db import SessionLocal
 from core.enums import SessionStart, StoryStatus
@@ -37,6 +37,7 @@ from core.services.sessions import add_segment, end_session, start_session
 from server.agents.archivist_agent import ArchivistAgent, answer_check_llm, archivist_llm
 from server.mcp_bridge import MCPBridge
 from server.routers.device import _get_stt, _whisper_prompt
+from server.auth import Viewer, panel_viewer
 from server.routers.panel import _resolve_panel_viewer
 from server.speech import STT, decode_audio
 from server.wav_writer import append_pcm, pcm_duration_ms, session_wav_path
@@ -58,12 +59,11 @@ async def post_recording(
     background_tasks: BackgroundTasks,
     audio: Annotated[UploadFile, File()],
     access: Annotated[str, Form()] = "circle",
-    x_person_id: Annotated[str, Header(alias="x-person-id")] = "",
-    x_circle_id: Annotated[str, Header(alias="x-circle-id")] = "",
+    viewer: Viewer = Depends(panel_viewer),
     stt: STT = Depends(_get_stt),
 ):
     with SessionLocal() as db:
-        person_id, circle_id = _resolve_panel_viewer(x_person_id, db, x_circle_id)
+        person_id, circle_id = _resolve_panel_viewer(viewer.person_id, db, viewer.circle_id)
     if access not in _ACCESS_TYPES:
         raise HTTPException(status_code=400, detail="access must be 'circle' or 'private'.")
 
