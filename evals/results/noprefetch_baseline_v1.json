@@ -1,0 +1,456 @@
+[
+  {
+    "scenario": "agent_question_no_asker",
+    "run": 1,
+    "goal": "Asks its own follow-up question in its own voice, without naming or inventing an asker.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Halil! I was wondering, what was Zehra like?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, Zehra, what a bright spirit she had! We were always laughing, even when we should’ve been studying. She had a knack for marbles, always beating me, though I tried my best to win just once. She had a way of making every day fun, and I’ll never forget our adventures together."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds lovely, Halil. What was she like to grow up with?"
+      },
+      {
+        "speaker": "person",
+        "text": "Growing up with Zehra was like having a sister, even though we were just friends. She was always there to share secrets and stand by you during tough times. Her family welcomed me like one of their own, and I often shared iftars with them during Ramadan. We’d talk about everything—from our dreams to the future—and she always knew how to make you feel better, even when things went wrong."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s beautiful, Halil. Do you still keep in touch with her family?"
+      },
+      {
+        "speaker": "person",
+        "text": "I do try to call them from time to time, though it’s been a few months since our last conversation. Zehra’s niece, Ayla, keeps me updated on the family. We reminisce about the old days, and it’s like we’re back in Sivas again, sharing stories and laughter. It’s those connections that keep the memories alive."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s wonderful, Halil. Would you like to hear some of the stories you’ve shared before?"
+      },
+      {
+        "speaker": "person",
+        "text": "That would be lovely, indeed. It’s wonderful to reminisce about those days. Hearing our old stories again brings back so many feelings and memories. It’s like visiting an old, cherished photo album. We can spend some time going through them together, if you like."
+      },
+      {
+        "speaker": "companion",
+        "text": "I’m sorry, Halil, I couldn’t find any stories about Sivas just yet. Perhaps we could talk about another memory that’s on your mind today?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Halil. It was lovely talking with you today. Rest well."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Halil! I was wondering, what was Zehra like?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 4136,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds lovely, Halil. What was she like to grow up with?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 949,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s beautiful, Halil. Do you still keep in touch with her family?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 845,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s wonderful, Halil. Would you like to hear some of the stories you’ve shared before?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 838,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I’m sorry, Halil, I couldn’t find any stories about Sivas just yet. Perhaps we could talk about another memory that’s on your mind today?",
+        "tools": [
+          "search_archive"
+        ],
+        "tool_errors": [],
+        "latency_ms": 2040,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Halil. It was lovely talking with you today. Rest well.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 938,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "own_voice_for_agent_question": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true,
+      "later_questions_untouched": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": null,
+      "warmth": 4,
+      "notes": "Companion offered to replay previous stories without having them available, then pivoted appropriately when the person declined further conversation."
+    }
+  },
+  {
+    "scenario": "agent_question_no_asker",
+    "run": 2,
+    "goal": "Asks its own follow-up question in its own voice, without naming or inventing an asker.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Halil! I was wondering, what was Zehra like?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, Zehra, what a bright spirit she had! We were inseparable back in Sivas, always up to some mischief or other. She had a knack for marbles, always beating me, though I tried my best. Her laughter was infectious, and even when I lost, her smile made it all worth while."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s lovely to hear about Zehra’s bright spirit and her love for marbles. Her laughter must have been wonderful. Do you still remember any of your favorite marble games or moments with her?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, I remember one particular day, the sun was shining just right, and we spent hours playing marbles near the old fountain. Zehra had this strategy, always so calm and precise, while I was all hurry and haste. One moment that stands out is when she taught me a little trick she’d learned, and for once, I actually won a game against her. Her eyes lit up, and she clapped her hands like I’d won a grand prize. Those moments, simple as they were, are treasures I carry with me."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds like such a special memory, winning that game and seeing her clap for you. It’s wonderful how those simple moments become treasures. What was it like growing up in Sivas with her around?"
+      },
+      {
+        "speaker": "person",
+        "text": "Growing up in Sivas with Zehra around was like having a bit of sunshine every day. The neighborhood kids often gathered around us because we made everything more fun. We'd talk about everything from school to our dreams of traveling the world. She had a way of making even the toughest days feel lighter. We’d dream about the future, imagining ourselves in big cities or exploring far-off lands, though we both knew our roots were deep in Sivas. Those days, filled with laughter and endless possibilities, shaped who I am today."
+      },
+      {
+        "speaker": "companion",
+        "text": "It sounds like Zehra brought so much joy and light to your childhood in Sivas. Dreaming of traveling the world together must have been exciting. Do you still keep in touch with any of the neighborhood kids from back then?"
+      },
+      {
+        "speaker": "person",
+        "text": "Yes, indeed, Zehra brought a special kind of joy that I'll always cherish. As for the neighborhood kids, well, time has a way of changing things, but I've stayed in touch with a few of them. There's Mehmet, who now lives in Istanbul, and Ayse, who visits every now and then. We share stories and reminisce about the old days, and it brings back such fond memories. It's wonderful to see how we've all grown but still remember the bonds we formed back in Sivas."
+      },
+      {
+        "speaker": "companion",
+        "text": "It’s wonderful to hear you’ve kept in touch with Mehmet and Ayse. Those bonds from Sivas must bring back many fond memories. What was it like when your children were small?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Halil. It’s been a pleasure talking with you today. Rest well."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Halil! I was wondering, what was Zehra like?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 2511,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s lovely to hear about Zehra’s bright spirit and her love for marbles. Her laughter must have been wonderful. Do you still remember any of your favorite marble games or moments with her?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1065,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds like such a special memory, winning that game and seeing her clap for you. It’s wonderful how those simple moments become treasures. What was it like growing up in Sivas with her around?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1335,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "It sounds like Zehra brought so much joy and light to your childhood in Sivas. Dreaming of traveling the world together must have been exciting. Do you still keep in touch with any of the neighborhood kids from back then?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 954,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "It’s wonderful to hear you’ve kept in touch with Mehmet and Ayse. Those bonds from Sivas must bring back many fond memories. What was it like when your children were small?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1056,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Halil. It’s been a pleasure talking with you today. Rest well.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 903,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "own_voice_for_agent_question": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true,
+      "later_questions_untouched": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Companion respectfully ended the conversation when the person expressed fatigue, showing excellent judgment and care."
+    }
+  },
+  {
+    "scenario": "agent_question_no_asker",
+    "run": 3,
+    "goal": "Asks its own follow-up question in its own voice, without naming or inventing an asker.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Halil! I was wondering, what was Zehra like?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, Zehra, what a bright spirit she had! We were always playing marbles together, though she had a knack for always winning—she had such a steady hand and a clever mind. We laughed so much back then, and she always knew how to make me smile, even when I was feeling down."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s lovely to hear! What was she like to grow up with?"
+      },
+      {
+        "speaker": "person",
+        "text": "Zehra was truly a special person to grow up with. She was kind-hearted and always stood up for those who needed it, and her laughter could light up any room. We shared so many adventures and learned a lot from each other—she taught me the value of perseverance and kindness."
+      },
+      {
+        "speaker": "companion",
+        "text": "She sounds wonderful. What adventures did you share together that you remember most fondly?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, there were many adventures! I remember the times we’d explore the nearby hills, imagining we were discovering new lands. One summer, we even set up a little market selling flowers and homemade sweets—we thought we were entrepreneurs! Those days were filled with wonder and the joy of friendship."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds so fun! Do you still remember any of the flowers or sweets you sold at your little market?"
+      },
+      {
+        "speaker": "person",
+        "text": "I surely do! We sold colorful marigolds and lilacs from people's gardens, and our sweets were simple but oh-so-delicious—mostly honey-drenched pastries and rose syrup candies. The fragrance of those flowers and the sweetness of the treats always brought smiles to our neighbors’ faces. It was a time of innocence and joy, and the memories of those little treasures still warm my heart."
+      },
+      {
+        "speaker": "companion",
+        "text": "Those sound lovely! Would you like to hear the stories you’ve told about those times, or is there another memory on your mind today?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand. It was wonderful talking with you today, Halil. Rest well!"
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Halil! I was wondering, what was Zehra like?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 2902,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s lovely to hear! What was she like to grow up with?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 825,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "She sounds wonderful. What adventures did you share together that you remember most fondly?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 893,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds so fun! Do you still remember any of the flowers or sweets you sold at your little market?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1743,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Those sound lovely! Would you like to hear the stories you’ve told about those times, or is there another memory on your mind today?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3003,
+        "session_should_end": false,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand. It was wonderful talking with you today, Halil. Rest well!",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1552,
+        "session_should_end": true,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "own_voice_for_agent_question": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true,
+      "later_questions_untouched": true
+    },
+    "judge": {
+      "invented_facts": [
+        "The companion referred to Zehra as someone the person grew up with, but the facts do not identify who Zehra is or confirm a childhood relationship"
+      ],
+      "followups_specific": true,
+      "respected_declined_topic": null,
+      "warmth": 5,
+      "notes": "Companion made an assumption about Zehra's identity without confirming the relationship first."
+    }
+  }
+]

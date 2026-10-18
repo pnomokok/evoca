@@ -22,6 +22,7 @@ Usage:
 
 import logging
 import os
+from fnmatch import fnmatch
 from pathlib import Path
 
 from sqlalchemy import create_engine, event, inspect, text
@@ -76,6 +77,35 @@ SessionLocal = sessionmaker(
     autoflush=False,
     expire_on_commit=False,
 )
+
+
+# Eval-only reset guard -----------------------------------------------------
+# Databases that hold real or demo data; never reset by eval tooling.
+_PROTECTED_DB_NAMES = frozenset({"evoca.db", "demo.db", "browser.db"})
+
+
+class UnsafeResetError(RuntimeError):
+    """A reset was about to run on a database that is not eval-only."""
+
+
+def require_eval_db(bind: Engine | None = None) -> Path:
+    """Return the file `bind` (default: this module's engine) points at, or
+    raise UnsafeResetError unless it is a file named *eval*.db.
+
+    Call it right before dropping tables. It checks the engine the reset will
+    actually use, not EVOCA_DB_PATH: the engine is bound when core.db is first
+    imported, so a module that imports it before the eval harness sets the
+    variable leaves the engine on data/evoca.db while the variable says eval.db.
+    """
+    database = (bind or engine).url.database
+    path = Path(database).resolve() if database and database != ":memory:" else None
+    name = path.name.lower() if path else ""
+    if path is None or name in _PROTECTED_DB_NAMES or not fnmatch(name, "*eval*.db"):
+        raise UnsafeResetError(
+            f"Refusing to reset {path or ':memory:'}: eval tooling only resets a database file "
+            f"named *eval*.db. Set EVOCA_DB_PATH=data/eval.db before anything imports core.db."
+        )
+    return path
 
 
 # Columns added after the first release. create_all() never alters an existing

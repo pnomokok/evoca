@@ -44,7 +44,7 @@ from typing import Any
 import anyio
 
 from core.clock import now_utc
-from core.db import SessionLocal, engine, init_db
+from core.db import SessionLocal, engine, init_db, require_eval_db
 from core.enums import (
     CircleStatus, LinkReason, LinkSource, LinkStatus, PeriodSource, QuestionSource, QuestionStatus,
     Role, SessionStart, StoryKind, StoryStatus,
@@ -96,6 +96,7 @@ def start_mcp_server() -> subprocess.Popen:
 
 def build_family(sc: Scenario) -> dict[str, Any]:
     """Reset the eval database and create the scenario's family. Returns ids and names."""
+    require_eval_db(engine)          # never data/evoca.db, whatever was imported first
     Base.metadata.drop_all(bind=engine)
     init_db()
     now = now_utc()
@@ -384,7 +385,7 @@ async def run_scenario(
             )
             total_turns = sc.turns + 1  # the person's replies, plus the goodbye
             ended_early = False
-            result = await agent.turn("(Session started.)", store_user=False)
+            result = await agent.turn("(Session started.)", store_user=False, prefetch_context=True)
             for i in range(total_turns + 1):
                 is_last = i == total_turns
                 transcript.append({"speaker": "companion", "text": result.reply_text})

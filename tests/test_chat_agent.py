@@ -23,6 +23,11 @@ Coverage
   the session even without end_conversation; "I'm tired of ..." does not.
 - chat_llm / archivist_llm read model and temperature from the environment;
   BedrockLLM sends temperature only when set.
+- Opening prefetch (turn(prefetch_context=True)): get_session_context and
+  get_pending_questions run in code before the first LLM call, as the model's
+  toolUse and toolResult in the history; one LLM call fewer, results equal to
+  the tools' own, trace entries marked prefetched; a failed prefetch adds
+  nothing and the model calls the tools itself.
 """
 
 from __future__ import annotations
@@ -1413,3 +1418,86 @@ def test_next_sentence_naming_a_different_person_is_not_a_continuation():
     assert not _continues_subject("Leyla loved the roses.", "My brother Selim borrowed money.",
                                   {"selim", "leyla"})
     assert _continues_subject("The debt ruined us.", "My brother Selim borrowed money.", {"selim"})
+
+
+# ---------------------------------------------------------------------------
+# Opening prefetch
+# ---------------------------------------------------------------------------
+
+def _tool_results(llm: SnapshotLLM, i: int) -> dict[str, Any]:
+    """toolUseId -> toolResult json of every tool result in LLM request i, as sent."""
+    request = json.loads(llm.sent[i])
+    return {
+        block["toolResult"]["toolUseId"]: block["toolResult"]["content"][0]["json"]
+        for msg in request["messages"] if msg["role"] == "user"
+        for block in msg["content"] if "toolResult" in block
+    }
+
+
+@pytest.mark.anyio
+async def test_opening_prefetch_saves_one_llm_call(world):
+    """The old opening took three LLM calls (context + questions, mark asked,
+    reply); with the prefetch the model starts at mark_question_asked."""
+    llm = SnapshotLLM([
+        [_tool_use("mark_question_asked", {"question_id": world.q.id})],
+        "Hello, Fatma! Elif has a question for you: what was school like?",
+    ])
+    agent = _make_agent(world, llm)
+    result = await agent.turn("(Session started.)", store_user=False, prefetch_context=True)
+
+    assert len(llm.calls) == 2
+    first = json.loads(llm.sent[0])["messages"]
+    assert [b["toolUse"]["name"] for b in first[1]["content"]] == [
+        "get_session_context", "get_pending_questions"]
+    assert set(_tool_results(llm, 0)) == {
+        "prefetch_get_session_context", "prefetch_get_pending_questions"}
+    assert [(t.tool, t.prefetched) for t in result.trace] == [
+        ("get_session_context", True), ("get_pending_questions", True),
+        ("mark_question_asked", False)]
+    world.db.refresh(world.q)
+    assert world.q.status == QuestionStatus.asked
+
+
+@pytest.mark.anyio
+async def test_prefetched_results_equal_what_the_tools_return(world):
+    llm = SnapshotLLM(["Hello, Fatma!"])
+    agent = _make_agent(world, llm)
+    result = await agent.turn("(Session started.)", store_user=False, prefetch_context=True)
+
+    bridge = FakeMCPBridge(world.db, world.fatma.id, world.circle.id)
+    sent = _tool_results(llm, 0)
+    assert sent["prefetch_get_session_context"] == await bridge.call_tool("get_session_context", {})
+    assert sent["prefetch_get_pending_questions"] == await bridge.call_tool("get_pending_questions", {})
+    assert [t.result for t in result.trace] == [sent["prefetch_get_session_context"],
+                                                sent["prefetch_get_pending_questions"]]
+    assert "Elif" in agent._full_names     # names remembered from the prefetched questions
+
+
+@pytest.mark.anyio
+async def test_failed_prefetch_falls_back_to_the_models_own_calls(world):
+    class FlakyBridge(FakeMCPBridge):
+        """get_pending_questions fails once (the prefetch), then works."""
+        failed = False
+
+        async def call_tool(self, name, arguments):
+            if name == "get_pending_questions" and not self.failed:
+                self.failed = True
+                raise RuntimeError("MCP tool 'get_pending_questions' returned error: down")
+            return await super().call_tool(name, arguments)
+
+    llm = SnapshotLLM([
+        [_tool_use("get_session_context", {}), _tool_use("get_pending_questions", {"limit": 5})],
+        [_tool_use("mark_question_asked", {"question_id": world.q.id})],
+        "Hello, Fatma! Elif has a question for you: what was school like?",
+    ])
+    agent = ChatAgent(llm=llm, person_id=world.fatma.id, circle_id=world.circle.id,
+                      db_session=world.db,
+                      bridge=FlakyBridge(world.db, world.fatma.id, world.circle.id))
+    result = await agent.turn("(Session started.)", store_user=False, prefetch_context=True)
+
+    assert len(llm.calls) == 3
+    assert _tool_results(llm, 0) == {}             # nothing half-prefetched
+    assert [(t.tool, t.prefetched, t.is_error) for t in result.trace] == [
+        ("get_session_context", False, False), ("get_pending_questions", False, False),
+        ("mark_question_asked", False, False)]
+    assert result.reply_text.startswith("Hello, Fatma!")

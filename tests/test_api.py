@@ -274,10 +274,9 @@ def _set_llm_script(test_app_fixture, script):
 async def test_full_device_flow(test_app):
     app, db, fatma, elif_, circle, q, store, llm_h, _ = test_app
 
-    uid1, uid2, uid3 = str(uuid.uuid4()), str(uuid.uuid4()), str(uuid.uuid4())
+    uid3 = str(uuid.uuid4())
     _set_llm_script(test_app, [
-        [_tool_use("get_session_context", {}, uid1),
-         _tool_use("get_pending_questions", {"limit": 5}, uid2)],
+        # get_session_context and get_pending_questions are prefetched by the code.
         [_tool_use("mark_question_asked", {"question_id": q.id}, uid3)],
         "Good morning! What was school like for you?",
         "What a wonderful memory!",
@@ -294,6 +293,9 @@ async def test_full_device_flow(test_app):
         assert data["reply_text"]
         assert "stt_ms" in data["latency"]
         assert "tts_ms" in data["latency"]
+        assert [(t["tool"], t["prefetched"]) for t in data["trace"]][:3] == [
+            ("get_session_context", True), ("get_pending_questions", True),
+            ("mark_question_asked", False)]
         session_id = data["session_id"]
 
         r2 = await c.post(
@@ -1347,12 +1349,12 @@ async def test_reaction_announced_once_across_sessions(test_app):
     db.commit()
 
     async with _client(app) as c:
-        _set_llm_script(test_app, [[_tool_use("get_session_context", {})],
-                                   "Your granddaughter Elif laughed at your story."])
+        # The context (with the reaction) is prefetched; the model only speaks.
+        _set_llm_script(test_app, ["Your granddaughter Elif laughed at your story."])
         first = (await c.post("/api/device/session/start", headers={"x-person-id": fatma.id})).json()
         await c.post("/api/device/session/end", headers={"x-person-id": fatma.id},
                      json={"session_id": first["session_id"]})
-        _set_llm_script(test_app, [[_tool_use("get_session_context", {})], "Good morning, Fatma!"])
+        _set_llm_script(test_app, ["Good morning, Fatma!"])
         second = (await c.post("/api/device/session/start", headers={"x-person-id": fatma.id})).json()
 
     assert [card["type"] for card in first["cards"]] == ["reaction"]
