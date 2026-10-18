@@ -1,7 +1,6 @@
 """
-End-to-end run of the demo story through the real REST API (docs/PROJECT.md
-"Demo videosu senaryosu"): server.app on 8080 and the MCP server on 8000, real
-Bedrock, Whisper and Polly.
+End-to-end run of the demo story through the real REST API: server.app on
+8080 and the MCP server on 8000, real Bedrock, Whisper and Polly.
 
     python scripts/e2e_demo.py              # temp folder is deleted afterwards
     python scripts/e2e_demo.py --keep       # keep it (database, audio, server logs)

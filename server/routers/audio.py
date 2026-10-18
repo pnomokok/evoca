@@ -6,7 +6,7 @@ GET /api/audio/{session_id}?start=<ms>&end=<ms>
 GET /api/tts/{file}
     A generated reply audio file, for the participants of its session.
 
-Privacy rules for /api/audio (docs/PROJECT.md "Erişim kuralları"):
+Privacy rules for /api/audio (docs/ARCHITECTURE.md "Access control"):
   1. The viewer must be entitled to the range, checked FIRST:
      a. the recorder of a panel_recording session, or the circle's center
         person for a session the center took part in, may hear any range of

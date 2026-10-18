@@ -1,5 +1,5 @@
 """
-SQLAlchemy 2.0 ORM models — exact field names from docs/PROJECT.md "Veri modeli > Varlıklar".
+SQLAlchemy 2.0 ORM models — exact field names from docs/ARCHITECTURE.md "Data model".
 
 Rules applied:
 - All IDs are UUID strings.
@@ -281,7 +281,7 @@ class SensitiveTopic(Base):
     id = Column(String, primary_key=True, default=_uuid)
     circle_id = Column(String, ForeignKey("circle.id"), nullable=False)
     text = Column(Text, nullable=False)
-    # "speaker" topics are never returned by a panel endpoint (docs/PROJECT.md).
+    # "speaker" topics are never returned by a panel endpoint (docs/ARCHITECTURE.md "Design principles and rules").
     source = Column(String, nullable=False, default=TopicSource.family,
                     server_default=TopicSource.family.value)
     added_by = Column(String, ForeignKey("person.id"), nullable=False)

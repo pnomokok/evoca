@@ -2,7 +2,7 @@
 Archivist agent for Evoca.
 
 ArchivistAgent.run(session_id) processes one finished session in the
-background, following the archivist steps in docs/PROJECT.md:
+background, following docs/ARCHITECTURE.md "The archivist, step by step":
 
 1. get_session_transcript   — read the non-private segments
 2. save_story               — one story per distinct memory
@@ -44,7 +44,7 @@ Architecture
   checker LLM (temperature 0) gets the question and the speaker's own words in
   the answer range, and must say "yes" that they answer it. Anything else
   rejects the call and the question stays unanswered. A wrong answer would let
-  a grandchild hear the wrong part (docs/PROJECT.md, risks); unanswered is fine.
+  a grandchild hear the wrong part; unanswered is fine.
   The words come from the non-private transcript the archivist already read.
 - Declines work the same way: mark_question_declined goes through only when the
   checker confirms the speaker clearly declined that question in that range

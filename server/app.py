@@ -48,7 +48,7 @@ def _publish_once() -> int:
 
 
 async def _publisher_loop() -> None:
-    """Publish due stories once at startup, then every minute (PROJECT.md "Arka plan işleri")."""
+    """Publish due stories once at startup, then every minute (ARCHITECTURE.md "Background jobs and the demo clock")."""
     while True:
         try:
             count = await anyio.to_thread.run_sync(_publish_once)
@@ -65,7 +65,7 @@ def _invite_once() -> int:
 
 
 async def _invitation_loop() -> None:
-    """Run the invitation scheduler at startup, then every minute (PROJECT.md "Arka plan işleri")."""
+    """Run the invitation scheduler at startup, then every minute (ARCHITECTURE.md "Background jobs and the demo clock")."""
     while True:
         try:
             count = await anyio.to_thread.run_sync(_invite_once)

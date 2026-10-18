@@ -5,7 +5,7 @@ All functions are pure (no MCP imports) and receive an open SQLAlchemy session
 plus explicit viewer_id / circle_id so they can be called from tests without
 an MCP context.
 
-Tool table from docs/PROJECT.md:
+Tool table from docs/ARCHITECTURE.md "MCP tools":
   get_session_transcript   — non-private segments + asked questions
   save_story               — new pending story with subjects and sources
   record_answer            — flip an asked (or never-asked family) question to "answered"

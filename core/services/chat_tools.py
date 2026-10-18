@@ -1,5 +1,5 @@
 """
-Business logic for the remaining chat-agent MCP tools (docs/PROJECT.md tool table).
+Business logic for the remaining chat-agent MCP tools (docs/ARCHITECTURE.md "MCP tools").
 
   mark_private              — "don't let anyone hear that": the segments of a
                               session range become is_private (called by the

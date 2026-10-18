@@ -1,5 +1,5 @@
 """
-Demo controls (docs/PROJECT.md "REST uçları"; Bilinen sınırlar: open to anyone
+Demo controls (docs/ARCHITECTURE.md "REST API"; "Known limits": open to anyone
 on the page in demo mode).
 
 GET  /api/demo/clock     {now, offset_hours}

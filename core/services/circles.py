@@ -1,13 +1,13 @@
 """
 Circles: picking the viewer's circle, the people of one circle, and creating a
-new circle (docs/PROJECT.md "REST uçları").
+new circle (docs/ARCHITECTURE.md "REST API").
 
   viewer_membership  every panel and device endpoint (optional X-Circle-Id)
   people_in_circle   GET  /api/people?circle_id=
   demo_circle        GET  /api/circles/demo
   create_circle      POST /api/circles
 
-There is no authentication in the preview (Bilinen sınırlar): a circle id acts
+There is no authentication in the preview ("Known limits"): a circle id acts
 as an unlisted link. people_in_circle returns names, roles and birth years of
 that one circle only, never story data, and never anyone from another circle.
 

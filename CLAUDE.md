@@ -3,7 +3,9 @@
 Follow every rule in .kiro/steering/evoca-rules.md. It is the shared rule file for all coding agents in this project
 (Kiro reads it automatically; Claude Code reads this file).
 
-Before writing code, read docs/PROJECT.md (the single source of truth) and the rule file above.
+Before writing code, read docs/ARCHITECTURE.md (the single source of truth) and the rule file above.
+If something in the code needs to differ from docs/ARCHITECTURE.md, stop and ask first. Changes to rules are made
+in docs/ARCHITECTURE.md first.
 Pay special attention to the "MCP Python SDK v2" section: do not use v1 APIs.
 
 Working style:
@@ -13,7 +15,7 @@ Working style:
 ## Working efficiently
 - If the task message already gives the decisions and acceptance criteria, do not wait for an OK; stop only if
   something contradicts them or a decision is genuinely missing.
-- Read only the PROJECT.md sections relevant to the task, not the whole file.
+- Read only the ARCHITECTURE.md sections relevant to the task, not the whole file.
 - Evals: run only the scenarios the change affects, at most 3 runs. The full suite only when asked.
 - Run the privacy-reviewer subagent once per branch, before the final report, not after every change.
 

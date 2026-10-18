@@ -5,7 +5,7 @@ Demo seed data — run with:
     python -m core.seed --force    # wipe anyway
 
 Resets the database and creates the Yilmaz family demo fixtures described in
-docs/PROJECT.md.  All text is English.
+docs/ARCHITECTURE.md.  All text is English.
 
 Safety: the seed deletes the whole database. It refuses to run when the
 database contains any Session the seed did not create (recognised by the

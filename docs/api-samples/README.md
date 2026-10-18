@@ -1,12 +1,12 @@
 # API samples
 
-Example JSON responses for the REST endpoints in `docs/PROJECT.md` ("REST uçları").
+Example JSON responses for the REST endpoints in [`docs/ARCHITECTURE.md`](../ARCHITECTURE.md#rest-api) ("REST API").
 The web client can be built against these files before the backend exists.
 They are a **draft contract**: when the real API differs, update the sample and the doc in the same pull request.
 
 ## Conventions
 
-- Field names and enum values are exactly those in the "Veri modeli" section (snake_case).
+- Field names and enum values are exactly those in the "Data model" section (snake_case).
 - IDs are opaque strings. The samples use readable IDs (`person_elif`); the real API returns UUIDs. Never parse them.
 - Times are UTC ISO 8601 strings. Audio positions are integer milliseconds.
 - Audio is never embedded. Play it from `/api/audio/{session_id}?start=<ms>&end=<ms>`.
@@ -25,9 +25,9 @@ They are a **draft contract**: when the real API differs, update the sample and 
 
 All panel samples are from **Elif's** point of view (granddaughter, `member`).
 For the hackathon the panel opens with a password-less person picker (`GET /api/circles/demo`, then
-`GET /api/people?circle_id=<id>`), and every request carries the chosen person in an `X-Person-Id` header
-(PROJECT.md, decision log 17 October). There is no authentication in the preview: a circle id acts as an unlisted
-link (PROJECT.md "Bilinen sınırlar").
+`GET /api/people?circle_id=<id>`), and every request carries the chosen person in an `X-Person-Id` header.
+There is no authentication in the preview: a circle id acts as an unlisted
+link (ARCHITECTURE.md "Known limits").
 
 ## Which circle? (`X-Circle-Id`)
 
@@ -100,7 +100,7 @@ Because Elif is a plain member, these samples also show what access control hide
   A blocked question returns HTTP 200 with `status: "filtered"`; the message never reveals the sensitive topic itself.
   A question blocked only by a topic the center refused herself returns the normal accepted response (`status: "waiting"`); it is never asked, like an unanswered question.
 - `POST /api/stories/{id}/reactions`: JSON `{"emoji": "heart", "action": "add"}` or `"remove"`. Idempotent.
-  Returns which emojis are `present` on the story and which are `mine`, never counts (PROJECT.md: "Sayaç gösterilmez").
+  Returns which emojis are `present` on the story and which are `mine`, never counts (ARCHITECTURE.md "Access control").
 - `PATCH /api/stories/{id}/subjects/{person_id}`: JSON `{"period": "youth"}`. Anyone who can see the story.
   Returns the updated subject (`period_source: "family"`, `estimated: false`, `corrected_by`).
 - `PATCH /api/stories/{id}`: JSON `{"access": "circle" | "private"}` and/or `{"hidden": true | false}`.
@@ -146,7 +146,7 @@ Because Elif is a plain member, these samples also show what access control hide
 
 Judges cannot restart the servers, so the demo moves time at runtime. These endpoints exist only when both servers
 run with `EVOCA_DEMO_MODE=1` (both, or new stories may publish early); otherwise they return 404 and nothing changes. They take no `X-Person-Id` header:
-anyone on the page can use them (PROJECT.md "Bilinen sınırlar").
+anyone on the page can use them (ARCHITECTURE.md "Known limits").
 
 - `GET /api/demo/clock`: `{now, offset_hours}`. `now` is the demo time (UTC ISO 8601), the same as `now` in `GET /api/device/invitation`.
 - `POST /api/demo/advance`: JSON `{"hours": 24}`, between 1 and 72 (otherwise 400). Moves the clock forward, then at once
