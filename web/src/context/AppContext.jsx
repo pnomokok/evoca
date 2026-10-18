@@ -38,7 +38,7 @@ async function fetchInitialData() {
 }
 
 export function AppProvider({ children }) {
-  const [activeTab, setActiveTab] = useState('panel'); // 'device' | 'panel'
+  const [activeTab, setActiveTab] = useState('landing'); // 'landing' | 'device' | 'panel'
   const [panelSubTab, setPanelSubTab] = useState('feed'); // 'feed' | 'lifeline' | 'story'
   const [selectedStoryId, setSelectedStoryId] = useState(null);
   const [currentViewerId, setCurrentViewerId] = useState(apiClient.currentViewerId);
@@ -113,6 +113,9 @@ export function AppProvider({ children }) {
 
   const toggleMock = (flag) => {
     apiClient.setUseMock(flag);
+    // Sample and live story ids never mix: an open sample story would reach the backend.
+    setSelectedStoryId(null);
+    setPanelSubTab(tab => (tab === 'story' ? 'feed' : tab));
     setViewerReady(false);
     setUseMock(apiClient.useMock);
     showToast(apiClient.useMock ? "Showing sample data" : "Showing live data", "info");
