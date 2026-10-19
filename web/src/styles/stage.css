@@ -1,11 +1,12 @@
 /* ==========================================================================
    THE STAGE: "Watch the loop" (demo only). Device, phone and the demo strip
-   (styles/navigation.css) fit one 1366x768 screen: the device width follows the height that is left.
+   (styles/navigation.css) fit one screen without page scroll, from 1280x720 up: the device width follows
+   the height that is left after about 150 px for the trace below it (the trace scrolls inside itself).
    ========================================================================== */
 .stage-page {
   --bar-h: 44px;
   --pane-h: calc(100vh - var(--bar-h) - 72px);
-  --device-w: min(720px, calc((var(--pane-h) - 270px) * 1.6));
+  --device-w: min(960px, calc((var(--pane-h) - 150px) * 1.6), calc(100vw - 520px));
   --phone-w: 390px;
   background: var(--bg-ivory);
 }
@@ -87,17 +88,196 @@
 
 .device-frame { height: var(--pane-h); }
 
+/* The phone, drawn in CSS: a rounded bezel with a side button, a notch over the status bar
+   (demo clock, signal, battery), the panel's screen and a home indicator. */
 .stage-phone {
-  background: var(--text-charcoal);
-  border-radius: 44px;
-  padding: 12px;
-  box-shadow: 0 30px 60px rgba(48, 47, 41, 0.25);
+  --status-h: 30px;
+  --home-h: 22px;
+  position: relative;
+  background: #1f1d1a;
+  border-radius: 48px;
+  padding: 11px;
+  box-shadow:
+    0 0 0 2px #3a3631,
+    0 30px 60px rgba(48, 47, 41, 0.28);
 }
 
-.phone-frame {
-  height: calc(min(var(--pane-h), 844px) - 24px);
-  border-radius: 34px;
+.stage-phone::after {        /* the side button */
+  content: '';
+  position: absolute;
+  right: -4px;
+  top: 120px;
+  width: 4px;
+  height: 64px;
+  border-radius: 0 3px 3px 0;
+  background: #3a3631;
+}
+
+.phone-screen {
+  position: relative;
+  border-radius: 38px;
+  overflow: hidden;           /* rounds the screen's corners; the frame inside is sized to fit */
   background: var(--bg-ivory);
+}
+
+.phone-status {
+  height: var(--status-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 26px 0 30px;
+  font: 600 13px var(--font-sans);
+  color: var(--text-charcoal);
+  font-variant-numeric: tabular-nums;
+  position: relative;
+}
+
+.phone-notch {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  width: 118px;
+  height: 24px;
+  background: #1f1d1a;
+  border-radius: 0 0 16px 16px;
+}
+
+.phone-icons { display: inline-flex; align-items: center; gap: 6px; }
+
+.phone-signal { display: inline-flex; align-items: flex-end; gap: 2px; height: 11px; }
+.phone-signal i { display: block; width: 3px; background: currentColor; border-radius: 1px; }
+.phone-signal i:nth-child(1) { height: 4px; }
+.phone-signal i:nth-child(2) { height: 6px; }
+.phone-signal i:nth-child(3) { height: 8px; }
+.phone-signal i:nth-child(4) { height: 11px; }
+
+.phone-battery {
+  position: relative;
+  width: 22px;
+  height: 11px;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+  padding: 1px;
+  box-sizing: border-box;
+}
+.phone-battery::after {
+  content: '';
+  position: absolute;
+  right: -4px;
+  top: 3px;
+  width: 2px;
+  height: 4px;
+  border-radius: 0 1px 1px 0;
+  background: currentColor;
+}
+.phone-battery i { display: block; width: 75%; height: 100%; background: currentColor; border-radius: 1px; }
+
+.phone-frame {
+  height: calc(min(var(--pane-h), 844px) - 22px - var(--status-h) - var(--home-h));
+  background: var(--bg-ivory);
+}
+
+.phone-home {
+  height: var(--home-h);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.phone-home::before {
+  content: '';
+  width: 120px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--text-charcoal);
+  opacity: 0.85;
+}
+
+/* An answer to the phone's person: a notification banner over the top of the phone screen,
+   or (outside the stage) a toast at the top of the archive. Tapping it opens the answer. */
+.answer-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  background: rgba(255, 253, 248, 0.97);
+  border: 1px solid var(--border-paper-dark);
+  border-radius: 18px;
+  box-shadow: 0 12px 30px rgba(48, 47, 41, 0.25);
+  backdrop-filter: blur(10px);
+  animation: noticeIn 0.35s ease both;
+  z-index: 50;
+}
+
+.answer-notice.banner {
+  position: absolute;
+  top: calc(var(--status-h) + 6px);
+  left: 10px;
+  right: 10px;
+}
+
+.answer-notice.toast {
+  position: fixed;
+  top: 112px;               /* below the demo strip and the archive header */
+  z-index: 1200;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(420px, calc(100vw - 32px));
+}
+
+.answer-notice-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 12px 4px 12px 14px;
+  cursor: pointer;
+  color: var(--text-charcoal);
+  font: inherit;
+}
+
+.answer-notice-icon {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: var(--accent-terracotta);
+  color: #fff;
+}
+
+.answer-notice-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.answer-notice-text strong { font: 600 14px var(--font-sans); }
+.answer-notice-text span {
+  font-size: 13px;
+  color: var(--text-charcoal-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.answer-notice-close {
+  flex: none;
+  background: none;
+  border: 0;
+  padding: 10px;
+  color: var(--text-charcoal-faint);
+  cursor: pointer;
+}
+
+@keyframes noticeIn {
+  from { opacity: 0; translate: 0 -12px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .answer-notice { animation: none; }
 }
 
 .stage-loading {
@@ -113,13 +293,15 @@
   .demo-controls.inline { flex-wrap: wrap; }
   .stage { flex-direction: column; align-items: center; padding: var(--space-4); }
   .phone-pane { width: min(var(--phone-w), 100%); }
-  .device-frame { height: calc((var(--device-w) - 28px) / 1.6 + 28px + 240px); }
-  .phone-frame { height: 760px; }
+  .stage { gap: var(--space-3); }
+  /* The device, its one-line trace and a little room: no empty band before the phone. */
+  .device-frame { height: calc((var(--device-w) - 28px) / 1.6 + 28px + 72px); }
+  .phone-frame { height: 708px; }
 }
 
-/* The device pane is narrow enough for its taller screen (styles/device.css). */
+/* The device pane is narrow (and tall) enough for its taller screen (styles/device.css). */
 @media (max-width: 572px) {
-  .device-frame { height: calc((var(--device-w) - 24px) * 1.25 + 24px + 220px); }
+  .device-frame { height: calc((var(--device-w) - 24px) * 1.25 + 24px + 72px); }
 }
 
 /* The panes themselves (inside the iframes) */
@@ -128,7 +310,8 @@
 [data-embed="panel"] body,
 [data-embed="panel"] .app-container { background: var(--bg-ivory); }
 
-.embed-device-view { height: 100vh; overflow: hidden; }
+/* Sized to fit its frame; if a very low window still makes it taller, the pane scrolls, never clips. */
+.embed-device-view { height: 100vh; overflow-y: auto; }
 
 /* The demo entry */
 .demo-entry-options {

@@ -310,8 +310,9 @@ class EvocaApiClient {
   }
 
   // The viewer's own questions: status is only "waiting" or "answered" (with answer_story_id).
-  async getMyQuestions() {
-    const res = await fetch(`${API_BASE_URL}/api/questions/mine`, { headers: this.getHeaders() });
+  // personId: as someone else in the demo (the stage watches the phone's person); ignored signed in.
+  async getMyQuestions(personId = null) {
+    const res = await fetch(`${API_BASE_URL}/api/questions/mine`, { headers: this.getHeaders({}, personId) });
     return handleResponse(res);
   }
 

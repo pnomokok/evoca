@@ -151,22 +151,20 @@ export default function LandingPage({ isSignedIn, onTryDemo, onCreateFamily, onO
                 <BookOpen size={16} />
                 <span>Open your family</span>
               </button>
-            ) : (
-              <button type="button" className="btn-hero-primary" onClick={onTryDemo}>
-                <Play size={16} fill="currentColor" />
-                <span>Try the demo</span>
+            ) : <>
+              {/* The page's one large button; nothing else in the hero opens the demo. */}
+              <div className="hero-cta-main">
+                <button type="button" className="btn-hero-primary btn-hero-demo" onClick={onTryDemo}>
+                  <Play size={18} fill="currentColor" />
+                  <span>Try the demo</span>
+                </button>
+                <span className="hero-cta-note">No sign-up · about 3 minutes</span>
+              </div>
+              <button type="button" className="btn-hero-quiet" onClick={onCreateFamily}>
+                <Users size={16} />
+                <span>Create your family</span>
               </button>
-            )}
-
-            <a
-              href="https://github.com/pnomokok/evoca"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-hero-secondary"
-            >
-              <GithubIcon size={16} />
-              <span>View on GitHub</span>
-            </a>
+            </>}
           </div>
         </div>
       </section>
@@ -526,7 +524,13 @@ export default function LandingPage({ isSignedIn, onTryDemo, onCreateFamily, onO
           </div>
 
           <div className="footer-bottom">
-            <div>Released under the <strong style={{ color: '#FAF6ED' }}>MIT License</strong>.</div>
+            <div>
+              Released under the <strong style={{ color: '#FAF6ED' }}>MIT License</strong>.{' '}
+              <a href="https://github.com/pnomokok/evoca" target="_blank" rel="noopener noreferrer" className="footer-github">
+                <GithubIcon size={14} />
+                <span>View on GitHub</span>
+              </a>
+            </div>
             <div>© 2026 Evoca. All rights reserved.</div>
           </div>
         </div>

@@ -26,7 +26,7 @@ import BlobPhoto from './BlobPhoto';
 import AddPhotoModal from './AddPhotoModal';
 import Modal from '../Modal';
 import { announceChange } from '../../utils/stageChannel';
-import { BACK_LABELS, JOURNAL } from '../../utils/routes';
+import { BACK_LABELS, BACK_SHORT, JOURNAL } from '../../utils/routes';
 
 const REACTIONS = [
   { key: 'heart', emoji: '❤️', label: 'Love it' },
@@ -455,7 +455,8 @@ export default function StoryView() {
         <div className="breadcrumb-left">
           <button type="button" className="btn-story-back" onClick={closeStory}>
             <ArrowLeft size={16} />
-            <span>{BACK_LABELS[storyBack] || BACK_LABELS.feed}</span>
+            <span className="back-long">{BACK_LABELS[storyBack] || BACK_LABELS.feed}</span>
+            <span className="back-short" aria-hidden="true">{BACK_SHORT[storyBack] || BACK_SHORT.feed}</span>
           </button>
           <span className="breadcrumb-separator">/</span>
           <span className="breadcrumb-active-period">{periodDisplay}</span>

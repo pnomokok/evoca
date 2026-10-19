@@ -19,6 +19,13 @@ export const BACK_LABELS = {
   questions: 'Back to my questions'
 };
 
+// The same, on a phone: just the destination, so the button stays on one line.
+export const BACK_SHORT = {
+  feed: 'Journal',
+  lifeline: 'Life chapters',
+  questions: 'My questions'
+};
+
 export function pathFor(route) {
   if (route.tab === 'stage') return '/demo/loop';
   if (route.tab === 'device') return '/device';

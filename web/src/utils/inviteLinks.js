@@ -36,3 +36,24 @@ export function forgetLinked(circleId, personId) {
 export function fullInviteUrl(path) {
   return `${window.location.origin}${path}`;
 }
+
+// The journal's "Getting started" card, once dismissed, stays away for that circle in this browser.
+const dismissedKey = circleId => `evoca_getting_started_dismissed_${circleId}`;
+
+export function gettingStartedDismissed(circleId) {
+  if (!circleId) return false;
+  try {
+    return localStorage.getItem(dismissedKey(circleId)) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function dismissGettingStarted(circleId) {
+  if (!circleId) return;
+  try {
+    localStorage.setItem(dismissedKey(circleId), '1');
+  } catch {
+    // Storage may be blocked; the card is then hidden until the page loads again.
+  }
+}

@@ -34,19 +34,30 @@ export default function MembersSection() {
 
   const makeLink = (member) => run(async () => {
     setConfirm(null);
+    let invite;
     try {
-      const invite = await apiClient.createInvite(member.id);
+      invite = await apiClient.createInvite(member.id);
+      // Shown first: if signing in again below fails, the new link is still on screen.
       markLinked(circleId, member.id);
       setLinked(linkedPersonIds(circleId));
       setLinks(l => ({ ...l, [member.id]: fullInviteUrl(invite.invite_url_path) }));
+      // My own new link revokes the one this browser signed in with: sign in again with the new one.
+      if (isSignedIn && member.id === currentViewerId) apiClient.setSession(await apiClient.acceptInvite(invite.token));
+      await refreshData();   // has_invite, for Getting started on the journal
     } catch (err) {
+      if (invite) {
+        console.error('Could not sign in with the new link:', err);
+        showToast('Your new link is below. Copy it and open it to sign in again.', 'error');
+        return;
+      }
       console.error('Could not make the link:', err);
       showToast("Couldn't make the link. Please try again.", 'error');
     }
   });
 
   const askLink = (member) => {
-    if (linked.includes(member.id)) setConfirm({ kind: 'relink', member });
+    const isMine = isSignedIn && member.id === currentViewerId;
+    if (isMine || member.has_invite || linked.includes(member.id)) setConfirm({ kind: 'relink', member });
     else makeLink(member);
   };
 
@@ -114,11 +125,12 @@ export default function MembersSection() {
         {members.map(m => {
           const isCenter = m.role === 'center';
           const isMe = m.id === currentViewerId;
-          const hasLink = linked.includes(m.id);
+          // has_invite comes from the API (any device); the local list covers links made just now.
+          const hasLink = Boolean(m.has_invite) || linked.includes(m.id);
           const isEditing = editing?.id === m.id;
-          const linkLabel = isCenter ? 'Connect her device' : hasLink ? 'New link' : 'Invite link';
+          const linkLabel = isCenter ? 'Connect her device' : (isSignedIn && isMe) ? 'Make my link' : hasLink ? 'New link' : 'Invite link';
           return (
-            <li key={m.id} className="member-row" data-testid={`member-${m.name}`}>
+            <li key={m.id} id={`member-${m.id}`} className="member-row" data-testid={`member-${m.name}`}>
               <div className="member-main">
                 <div className="member-text">
                   <strong>{m.name}{isMe ? ' (you)' : ''}</strong>
@@ -128,13 +140,10 @@ export default function MembersSection() {
                   </div>
                 </div>
                 <div className="member-actions">
-                  {/* Your own new link would sign this browser out at once, so it is made by another admin. */}
-                  {!(isSignedIn && isMe) && (
-                    <button type="button" className="editorial-btn secondary" onClick={() => askLink(m)} disabled={busy}>
-                      {isCenter ? <Tv size={14} /> : <Link2 size={14} />}
-                      <span>{linkLabel}</span>
-                    </button>
-                  )}
+                  <button type="button" className="editorial-btn secondary" onClick={() => askLink(m)} disabled={busy}>
+                    {isCenter ? <Tv size={14} /> : <Link2 size={14} />}
+                    <span>{linkLabel}</span>
+                  </button>
                   {!isCenter && !isEditing && (
                     <button
                       type="button"
@@ -194,7 +203,9 @@ export default function MembersSection() {
                   <p className="section-desc" style={{ margin: '6px 0 0' }}>
                     {isCenter
                       ? 'Open this link once on the device in her home.'
-                      : `Send it to ${m.name.split(' ')[0]} only. It opens the family as them.`}
+                      : (isSignedIn && isMe)
+                        ? 'Your new personal link. This browser is already signed in with it; save it for your other devices.'
+                        : `Send it to ${m.name.split(' ')[0]} only. It opens the family as them.`}
                   </p>
                 </div>
               )}
@@ -258,14 +269,17 @@ export default function MembersSection() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-terracotta)' }}>
               <AlertTriangle size={20} />
               <h3 id="member-confirm-title" className="archival-dialog-title" style={{ margin: 0 }}>
-                {confirm.kind === 'remove' ? `Remove ${confirm.member.name}?` : `A new link for ${confirm.member.name}?`}
+                {confirm.kind === 'remove' ? `Remove ${confirm.member.name}?`
+                  : (isSignedIn && confirm.member.id === currentViewerId) ? 'A new link for you?' : `A new link for ${confirm.member.name}?`}
               </h3>
             </div>
           </div>
           <p style={{ fontSize: '14px', lineHeight: '1.6', margin: '16px 0', color: 'var(--text-charcoal-muted)' }}>
             {confirm.kind === 'remove'
               ? 'They leave the family; their stories stay. Their link and every device that used it stop working.'
-              : 'The old link and every device that used it stop working. They will need the new link.'}
+              : (isSignedIn && confirm.member.id === currentViewerId)
+                ? 'Your old link and every other device that used it stop working. This browser stays signed in.'
+                : 'The old link and every device that used it stop working. They will need the new link.'}
           </p>
           <div className="dialog-action-bar">
             <button type="button" className="editorial-btn secondary" onClick={() => setConfirm(null)}>Cancel</button>
