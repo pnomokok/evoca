@@ -112,7 +112,8 @@ def get_session_context(ctx: Context) -> dict[str, Any]:
     """Return the context the chat agent needs at the start of a session.
 
     Includes: center person, today's invitation reason (if any), undelivered
-    reactions on the center's stories, summaries of the last 3 finished
+    reactions on the center's stories with reaction_lines (the exact sentence
+    to say per story), summaries of the last 3 finished
     sessions built from the stories the viewer can see, and avoid_topics:
     topics never to raise in the conversation.
 
@@ -130,8 +131,8 @@ def get_pending_questions(ctx: Context, limit: int = 5) -> list[dict[str, Any]]:
 
     Ordered by source (family first, then follow_up, then gap), then oldest
     first within each source. Questions that match a sensitive topic are
-    silently excluded. Each item includes the asker's name and their
-    relation_to_center.
+    silently excluded. Each item includes the asker's name, their
+    relation_to_center, and lead_in: the exact words to say before the question.
     """
     with SessionLocal() as db, tool_errors():
         viewer_id, circle_id = get_viewer(ctx, db)

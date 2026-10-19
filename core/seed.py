@@ -369,13 +369,14 @@ def reset_and_seed(force: bool = False) -> None:
         db.flush()
 
         # ------------------------------------------------------------------
-        # Reaction  (Elif reacts to mulberry story)
+        # Reaction  (Elif laughed at the mulberry story earlier; already told to
+        # Fatma, so the demo's first undelivered reaction is the one given live)
         # ------------------------------------------------------------------
         reaction = Reaction(
             story_id=story_mulberry.id,
             person_id=elif_.id,
             emoji=Emoji.laugh,
-            delivered_to_center=False,
+            delivered_to_center=True,
             created_at=(now - timedelta(minutes=10)).isoformat(),
         )
         db.add(reaction)

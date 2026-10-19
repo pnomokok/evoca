@@ -353,12 +353,13 @@ async def test_multiple_tool_rounds(world):
          _tool_use("get_pending_questions", {"limit": 5}, uid2)],
         [_tool_use("mark_question_asked",
                    {"question_id": world.q.id}, uid3)],
-        "What was school like for you?",
+        "Your granddaughter Elif has a question for you: What was school like for you?",
     ])
     agent = _make_agent(world, llm)
     result = await agent.turn("(session start)")
 
-    assert result.reply_text == "What was school like for you?"
+    assert result.reply_text == "Your granddaughter Elif has a question for you: What was school like for you?"
+    assert result.opening_guard is None
     tool_names = [t.tool for t in result.trace]
     assert "get_session_context" in tool_names
     assert "get_pending_questions" in tool_names
@@ -1528,3 +1529,67 @@ async def test_failed_prefetch_falls_back_to_the_models_own_calls(world):
         ("get_session_context", False, False), ("get_pending_questions", False, False),
         ("mark_question_asked", False, False)]
     assert result.reply_text.startswith("Hello, Fatma!")
+
+
+# ---------------------------------------------------------------------------
+# Opening guard: attribution and reaction wording composed in code
+# ---------------------------------------------------------------------------
+
+LIVE_TEMPLATE = ("Hello, Fatma! Your granddaughter Elif laughed at your story about The Mulberry Tree. "
+                 "Your granddaughter Elif has a question for you: How was your house kept warm in winter?")
+
+
+def _live_bug_world(world):
+    world.q.text = "Grandma, how was your house kept warm in winter?"
+    return _story_with_reaction(world)
+
+
+@pytest.mark.anyio
+async def test_opening_context_carries_reaction_line_and_lead_in(world):
+    _live_bug_world(world)
+    llm = SnapshotLLM([[_tool_use("mark_question_asked", {"question_id": world.q.id})],
+                       "Hello, Fatma! Your granddaughter Elif laughed at your story about The Mulberry Tree. "
+                       "Your granddaughter Elif has a question for you: how did you keep your house warm in winter?"])
+    agent, _ = _private_agent(world, llm)
+    result = await agent.turn("(Session started.)", store_user=False, prefetch_context=True)
+
+    context, pending = result.trace[0].result, result.trace[1].result
+    assert context["reaction_lines"] == [{
+        "story_id": context["undelivered_reactions"][0]["story_id"], "story_title": "The Mulberry Tree",
+        "reaction_line": "Your granddaughter Elif laughed at your story about The Mulberry Tree.",
+    }]
+    assert pending[0]["lead_in"] == "Your granddaughter Elif has a question for you:"
+    assert result.opening_guard is None
+    assert result.reply_text.endswith("how did you keep your house warm in winter?")
+
+
+@pytest.mark.anyio
+async def test_opening_guard_replaces_the_live_bug_with_the_template(world):
+    story = _live_bug_world(world)
+    llm = SnapshotLLM([[_tool_use("mark_question_asked", {"question_id": world.q.id})],
+                       "Hello, Fatma! Your granddaughter Elif loved your story about The Mulberry Tree. "
+                       "I've been wondering about something: How was your house kept warm in winter?"])
+    agent, _ = _private_agent(world, llm)
+    result = await agent.turn("(Session started.)", store_user=False, prefetch_context=True)
+
+    assert result.opening_guard == "family_lead_in_missing"
+    assert result.reply_text == LIVE_TEMPLATE
+    # What was spoken is what is stored and remembered; the reaction counts as told.
+    assert _segments(world, agent)[-1].transcript == LIVE_TEMPLATE
+    assert agent._history[-1]["content"][-1]["text"] == LIVE_TEMPLATE
+    world.db.expire_all()
+    assert world.db.get(Reaction, (story.id, world.elif_.id, Emoji.laugh.value)).delivered_to_center
+
+
+@pytest.mark.anyio
+async def test_opening_guard_only_checks_the_opening(world):
+    _live_bug_world(world)
+    llm = SnapshotLLM([[_tool_use("mark_question_asked", {"question_id": world.q.id})],
+                       "Hello, Fatma! Your granddaughter Elif laughed at your story about The Mulberry Tree. "
+                       "Your granddaughter Elif has a question for you: how did you keep warm?",
+                       "I've been wondering what the stove looked like. Was it iron?"])
+    agent, _ = _private_agent(world, llm)
+    await agent.turn("(Session started.)", store_user=False, prefetch_context=True)
+    later = await agent.turn("We had a big stove in the main room.")
+    assert later.opening_guard is None
+    assert later.reply_text.startswith("I've been wondering")

@@ -211,7 +211,7 @@ async def test_private_segment_from_prior_session_never_reaches_llm(
         # Round 2: mark_question_asked
         [_tool_use("mark_question_asked", {"question_id": w.q.id}, uid3)],
         # Final text reply
-        "What was your first job, Fatma?",
+        "Hello, Fatma! Your granddaughter Elif has a question for you: What was your first job?",
     ]
 
     inner_llm = ScriptedLLM(script)
@@ -227,7 +227,8 @@ async def test_private_segment_from_prior_session_never_reaches_llm(
     )
 
     result = await agent.turn("(session start)")
-    assert result.reply_text == "What was your first job, Fatma?"
+    assert result.reply_text == (
+        "Hello, Fatma! Your granddaughter Elif has a question for you: What was your first job?")
 
     # Assert: the unique private transcript text must not appear in ANY request.
     for i, req in enumerate(recording_llm.requests):

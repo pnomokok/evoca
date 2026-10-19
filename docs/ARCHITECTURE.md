@@ -116,6 +116,7 @@ sequenceDiagram
 | **Filter before the LLM, not after.** | A model cannot leak what it never saw. `can_see()` runs inside every tool; private segments never enter any prompt. |
 | **Identity from connection headers, never from tool arguments.** | A model cannot be talked into acting as someone else. |
 | **The model names intent; the code does the precise work.** | For "keep this between us" the model only picks a scope; the code computes exact segment boundaries. Millisecond ranges are never left to a model. |
+| **The opening's attribution and reaction wording are composed in code and checked after the reply.** | `get_session_context` carries a ready `reaction_line` per story (❤️ loved, 😂 laughed at, 😢 was moved by, 🙏 was grateful for) and each waiting question a `lead_in` ("Your granddaughter Elif has a question for you:" or "I've been wondering about something:"). If the opening reply drops the family lead-in, gives a family question in its own voice (or its own to family), or uses a reaction verb that does not match the emoji, a template from the same data replaces it before TTS. |
 | **Every risky model decision is checked by a second, temperature-0 call.** | Recording an answer, a decline, a refused topic, a privacy promise and "is this story really a refusal?" each get a one-word check; when unsure, the safe side wins. |
 | **Three-layer record: audio, word-timed transcript, summary.** | The family hears her real voice, cut to exactly the part that answers them. The audio is never changed. |
 | **24-hour pending window.** | The elder's family can hide a story before it reaches everyone, without an approval queue that would stop the loop. |
@@ -519,8 +520,8 @@ that both channels call.
 
 | Tool | Called by | Input | Output | Notes |
 | --- | --- | --- | --- | --- |
-| `get_session_context` | Companion (prefetched by its code at the opening) | – | center person, invitation reason, undelivered reactions, summaries of the last 3 sessions, `avoid_topics` | At session start, called by the code before the first LLM call; this is the memory between sessions. `avoid_topics` is filled only when the viewer is the center person. |
-| `get_pending_questions` | Companion (prefetched by its code at the opening), archivist's code | `limit?` (default 5) | ordered questions | Filtered for sensitive topics and access; family → follow-up → gap. |
+| `get_session_context` | Companion (prefetched by its code at the opening) | – | center person, invitation reason, undelivered reactions with `reaction_lines` (one ready sentence or two per story), summaries of the last 3 sessions, `avoid_topics` | At session start, called by the code before the first LLM call; this is the memory between sessions. `avoid_topics` is filled only when the viewer is the center person. |
+| `get_pending_questions` | Companion (prefetched by its code at the opening), archivist's code | `limit?` (default 5) | ordered questions, each with its `lead_in` | Filtered for sensitive topics and access; family → follow-up → gap. |
 | `mark_question_asked` | Companion | `question_id` | ok | When the companion asks it. |
 | `add_question` | Archivist | `text, source: follow_up\|gap, period?` | `question_id` | Sensitive-topic check here too. A `gap` question needs a `period`; refused if one is already waiting for that period. |
 | `search_archive` | Companion, archivist | `query, person_id?, period?` | stories (title, summary, audio range) | Keyword search, `can_see` filtered, at most 5, no transcripts. For the archivist, the code narrows it further: only published `circle` stories (or the teller's own pending ones) reach the model, without audio ranges, teller, access or status. |

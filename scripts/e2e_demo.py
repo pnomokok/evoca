@@ -394,7 +394,8 @@ class Demo:
         self.check(datetime.fromisoformat(body.get("now", "")) == self.t1, f"device clock: {body.get('now')}")
         self.check(body.get("active") is True, f"light is off: {body}")
         reason = (body.get("invitation") or {}).get("reason", "")
-        self.check("Elif" in reason, f"reason does not mention Elif: {reason!r}")
+        # The seed's reaction was told before; Elif's waiting question gives the reason.
+        self.check("Elif" in reason and "react" not in reason, f"reason does not name Elif's question: {reason!r}")
         self.note(f"reason: {reason!r}")
 
     def step4_device_session(self) -> None:
@@ -402,7 +403,10 @@ class Demo:
         self.session_id = start["session_id"]
         self.check_turn_shape(start, "opening")
         kinds = {c["type"] for c in start["cards"]}
-        self.check("reaction" in kinds, f"opening has no reaction card: {start['cards']}")
+        # The seed's reaction is history: the first undelivered one is Elif's live reaction (step 6).
+        self.check("reaction" not in kinds, f"opening tells an old reaction: {start['cards']}")
+        self.check("Elif has a question for you" in start["reply_text"],
+                   f"opening does not attribute Elif's question: {start['reply_text']!r}")
         self.check("question" in kinds, f"opening has no question card: {start['cards']}")
         asked = [c.get("text") for c in start["cards"] if c["type"] == "question"]
         self.check(asked[:1] == [NORMAL_QUESTION], f"opening asks another question: {asked}")
@@ -536,8 +540,8 @@ class Demo:
                 for name, fn in [
                     ("1. People: Elif, Ayse (admin), Fatma (center)", self.step1_people),
                     ("2. Admin chat time + topic; filtered and waiting questions", self.step2_admin_and_questions),
-                    ("3. Invitation after chat time mentions Elif", self.step3_invitation),
-                    ("4. Device session: answer, secret, playlist", self.step4_device_session),
+                    ("3. Invitation after chat time names Elif's question", self.step3_invitation),
+                    ("4. Device session: no old reaction, answer, secret, playlist", self.step4_device_session),
                     ("5. Archivist; answer held back while pending; no secret", self.step5_archivist),
                     ("6. +25 h: published, answer audio, reaction, correction", self.step6_published),
                     ("7. Elif's recording reaches the lifelines", self.step7_recording),

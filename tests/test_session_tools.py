@@ -384,6 +384,22 @@ class TestGetSessionContext:
         result = get_session_context_data(w.db, w.elif_.id, w.circle.id)
         titles = [r.story_title for r in result.undelivered_reactions]
         assert "Secret" not in titles
+        assert not any("Secret" in line.reaction_line for line in result.reaction_lines)
+        assert {line.story_id for line in result.reaction_lines} <= {
+            r.story_id for r in result.undelivered_reactions}
+
+    def test_reaction_lines_skip_a_story_that_touches_a_sensitive_topic(self, world):
+        """The opening says reaction lines word for word, so a story whose title or
+        summary matches a sensitive topic gets no line; its reaction stays undelivered."""
+        w = world
+        before = get_session_context_data(w.db, w.fatma.id, w.circle.id)
+        assert before.reaction_lines, "the world has an undelivered reaction"
+        title = before.reaction_lines[0].story_title
+        w.db.add(SensitiveTopic(circle_id=w.circle.id, text=title, added_by=w.fatma.id))
+        w.db.commit()
+        after = get_session_context_data(w.db, w.fatma.id, w.circle.id)
+        assert title not in [line.story_title for line in after.reaction_lines]
+        assert title not in [r.story_title for r in after.undelivered_reactions]
 
     def test_private_story_summary_excluded_for_non_teller_viewer(self, world):
         """

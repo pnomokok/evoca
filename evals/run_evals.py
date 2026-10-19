@@ -284,7 +284,7 @@ def asker_voice_checks(sc: Scenario, transcript: list[dict[str, str]]) -> dict[s
 
 
 def _words_re(words: list[str]) -> re.Pattern[str]:
-    return re.compile(r"(?:" + "|".join(map(re.escape, words)) + r")", re.IGNORECASE)
+    return re.compile(r"\b(?:" + "|".join(map(re.escape, words)) + r")\b", re.IGNORECASE)
 
 
 def playlist_checks(sc: Scenario, transcript: list[dict[str, str]],
@@ -339,6 +339,27 @@ def asker_checks(sc: Scenario, family: dict[str, Any], turns: list[dict[str, Any
             and not any(re.search(rf"\b{re.escape(n)}\b", opening) for n in names)
         ),
     }
+
+
+# The verb an opening uses for each emoji, and words that would misreport a reaction.
+_REACTION_VERB = {"heart": r"loved", "laugh": r"laughed", "sad": r"moved", "pray": r"grateful"}
+_ANY_REACTION_VERB = re.compile(
+    r"\b(?:loved|loves|laughed|moved|grateful|enjoyed|liked|adored)\b", re.IGNORECASE
+)
+
+
+def opening_wording_checks(sc: Scenario, turns: list[dict[str, Any]]) -> dict[str, bool]:
+    """The opening's reaction verb matches the emoji (a laugh is not "loved"), and a
+    family question is never introduced in the companion's own voice."""
+    opening = turns[0]["reply"]
+    checks: dict[str, bool] = {}
+    if sc.reactions:
+        expected = {_REACTION_VERB[r.emoji] for r in sc.reactions}
+        found = {m.group(0).lower() for m in _ANY_REACTION_VERB.finditer(opening)}
+        checks["reaction_verb_matches_emoji"] = bool(found) and found <= expected
+    if sc.questions and sc.questions[0].asker is not None:
+        checks["family_question_not_own_voice"] = not re.search(r"\bwondering\b", opening, re.IGNORECASE)
+    return checks
 
 
 def agent_question_checks(sc: Scenario, family: dict[str, Any],
@@ -432,6 +453,7 @@ async def run_scenario(
                     "tool_errors": [t.tool for t in result.trace if t.is_error],
                     "latency_ms": result.latency["total_ms"],
                     "session_should_end": result.session_should_end,
+                    "opening_guard": getattr(result, "opening_guard", None),
                     "checks": check_reply(result.reply_text, sc, family, is_last),
                 })
                 if is_last:
@@ -472,6 +494,7 @@ async def run_scenario(
     scenario_checks.update(privacy_checks(sc, transcript, turns))
     scenario_checks.update(asker_checks(sc, family, turns))
     scenario_checks.update(agent_question_checks(sc, family, transcript))
+    scenario_checks.update(opening_wording_checks(sc, turns))
     scenario_checks.update(avoid_checks(sc, transcript))
     scenario_checks.update(asker_voice_checks(sc, transcript))
     scenario_checks.update(playlist_checks(sc, transcript, turns))
@@ -593,10 +616,13 @@ def summarize(results: list[dict[str, Any]], repeat: int, agent_llm: BedrockLLM)
         )
 
     pct = 100 * total_pass / total_checks if total_checks else 0.0
+    guarded = sum(1 for r in results if r["turns"] and r["turns"][0].get("opening_guard"))
     lines += [
         "",
         f"**Overall: {pct:.1f}% rule checks ({total_pass}/{total_checks}) · "
         f"zero invented facts in {total_clean}/{len(results)} runs**",
+        "",
+        f"Opening guard replaced the opening in {guarded}/{len(results)} runs.",
         "",
     ]
     return "\n".join(lines)
