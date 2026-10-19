@@ -55,7 +55,7 @@ companion ever asks it, Evoca recognises the answer and sends it to the person w
 ## Who it is for, and why it matters
 
 - **Elders who will never install an app**, but will talk to a voice at the kitchen table. Evoca asks nothing
-  of them except conversation: no app, no login, no typing: she talks, and presses one button when she wants to.
+  of them but conversation: no app, no login, no typing. She talks, and presses one button when she wants to.
 - **Families spread across cities and countries**, who want to know the stories while there is still time to
   ask, and to hear them in her voice, not read a summary.
 - **A reason to come back every day.** Each answer brings a reaction, each reaction brings the next conversation.
@@ -239,7 +239,7 @@ Every turn also returns a **tool-call trace** (tool, input, short result, durati
 | | Used for |
 |---|---|
 | **Amazon Bedrock** (Nova 2 Lite, Converse API) | Both agents, privacy, answer and refusal checkers |
-| **Amazon Polly** | The companion's voice |
+| **Amazon Polly** | The companion's voice, and Fatma's voice in the demo's sample answers |
 | **Model Context Protocol** (Python SDK v2) | Evoca MCP server and the agents' MCP client |
 | **Kiro** | Development environment and agent for the backend foundation; steering rules shared by every coding agent |
 | **Claude Code** | Implementation and the `privacy-reviewer` subagent |
@@ -320,7 +320,7 @@ for real. The clips are Amazon Polly in Fatma's voice (`scripts/make_demo_audio.
 answering yourself always works too.
 
 **On your own:** "Explore as a family member" (person picker) opens the archive as anyone in the family. As **Ayşe**
-(admin), add a sensitive topic and see a question about it filtered. As **Fatma** on the device, try "keep this
+(admin), add a sensitive topic and see a question about it filtered. As **Fatma** on the device (with a microphone), try "keep this
 between us" and "play me the story about the mulberry tree".
 
 No account is needed: the demo entry is for judging only (see Known limits).
@@ -330,10 +330,10 @@ No account is needed: the demo entry is for judging only (see Known limits).
 What we chose not to build for the hackathon, and what we know is not solved yet. Each line: the limit, then what
 we do about it or would do next.
 
-- **The demo trusts who you say you are.** In demo mode the person picker can open the archive as anyone, by design,
-  for judging. Outside demo mode only a personal link signs you in. Whoever has the link is that person, so it
-  should be shared privately. Real families sign in with personal invite links: only token hashes are stored, and a
-  new link revokes the old one. The `X-Person-Id`/`X-Circle-Id` headers are trusted only in demo mode.
+- **Personal links are the only sign-in, and the demo has none.** Real families sign in with personal invite links:
+  only token hashes are stored, and a new link revokes the old one. Whoever has a link is that person, so it should be
+  shared privately. In demo mode the person picker can open the archive as anyone, by design, for judging; the
+  `X-Person-Id`/`X-Circle-Id` headers are trusted only in demo mode.
 - **Demo controls are open to everyone in demo mode.** Anyone on the page can move the clock or reset the demo, and
   moving past 24 hours shortens the time to hide a story; `EVOCA_DEMO_MODE` stays off outside the demo.
 - **Refused topics are matched by words.** An indirect reference (asking about a sister after she refused to talk
@@ -358,8 +358,8 @@ we do about it or would do next.
 
 ## Team
 
-- Zeynep Sude Kilecioğlu: backend, agents, MCP server
-- Aleyna Karaağaç: web client and design
+- Zeynep Sude Kilecioğlu: backend, agents, MCP server and web integration
+- Aleyna Karaağaç: web client, design and web integration
 
 ## License
 
