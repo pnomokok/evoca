@@ -98,6 +98,7 @@ export default function AskQuestionModal({ onClose, defaultPeriod = null, initia
             </button>
             <button
               type="submit"
+              data-tour="ask"
               className="editorial-btn primary"
               disabled={isSubmitting || !questionText.trim()}
             >

@@ -30,7 +30,7 @@ export default function DemoStrip() {
 
   const go = (route) => { setPanelOpen(false); navigate(route); };
   const openPicker = () => { setPanelOpen(false); setPickerOpen(true); };
-  // The guided tour lives on the stage: open it there and start from step 1.
+  // The guided tour lives on the stage: open it there; it starts the demo over first.
   const openGuide = () => { go({ tab: 'stage' }); startTour(); };
 
   const controls = <>

@@ -25,7 +25,7 @@ export default function FirstQuestionComposer({ onSent }) {
   };
 
   return (
-    <form className="first-question-composer" onSubmit={submit} aria-labelledby="first-question-title" data-tour="ask">
+    <form className="first-question-composer" onSubmit={submit} aria-labelledby="first-question-title">
       <h2 id="first-question-title" className="first-question-title">
         {centerFirst ? `Ask ${centerFirst} your first question` : 'Ask your first question'}
       </h2>
@@ -51,7 +51,7 @@ export default function FirstQuestionComposer({ onSent }) {
         </div>
       )}
       <div className="first-question-actions">
-        <button type="submit" className="editorial-btn primary" disabled={isSubmitting || !text.trim()}>
+        <button type="submit" className="editorial-btn primary" disabled={isSubmitting || !text.trim()} data-tour="ask">
           <Send size={15} />
           <span>{isSubmitting ? 'Sending...' : 'Send'}</span>
         </button>

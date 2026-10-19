@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/useApp';
 import { useAudioElement } from '../utils/useAudioElement';
 import { apiClient } from '../api/client';
-import { announceChange, sendTour } from '../utils/stageChannel';
-import { SAMPLE_ANSWERS, isSuggestedQuestion } from '../utils/tour';
+import { announceChange, listenForTour, sendTour } from '../utils/stageChannel';
+import { SAMPLE_ANSWERS, isSuggestedQuestion, usePaneTourTargets } from '../utils/tour';
 import { playChime, primeChime } from '../utils/chime';
 import Avatar from './Avatar';
 import { Mic, Volume2, Square, Lock, Sparkles } from 'lucide-react';
@@ -55,7 +55,7 @@ function DeviceCard({ card, members }) {
 }
 
 // The trace and latency of each turn, in the technical style: for the judges, outside the device.
-function TracePanel({ turns, tourMark }) {
+function TracePanel({ turns }) {
   const last = turns[turns.length - 1];
   const earlier = turns.slice(0, -1);
   const rows = (turn) => (turn.trace || []).length === 0
@@ -80,7 +80,7 @@ function TracePanel({ turns, tourMark }) {
   );
 
   return (
-    <section className={`trace-panel ${last ? '' : 'empty'}`} data-testid="trace-panel" aria-label="What Evoca did" data-tour={tourMark}>
+    <section className={`trace-panel ${last ? '' : 'empty'}`} data-testid="trace-panel" aria-label="What Evoca did" data-tour="trace">
       <div className="trace-head">
         <span>What Evoca did · MCP tools</span>
         <span>{last ? `turn ${turns.length}` : 'no tool calls yet'}</span>
@@ -122,6 +122,8 @@ export default function DeviceScreen() {
   const [photo, setPhoto] = useState({ path: null, src: null });
   const [photoTick, setPhotoTick] = useState(0);
   const getPlayer = useAudioElement();
+  // The guided tour's answer step (step 4) is showing on this stage: only then the sample answers.
+  const tourAnswerStep = usePaneTourTargets().includes('answer');
 
   // The open session lives in a ref so a double tap (or StrictMode) can never start two,
   // and so unload/unmount handlers can still read it.
@@ -233,8 +235,20 @@ export default function DeviceScreen() {
 
   useEffect(() => () => clearTimeout(privacyTimerRef.current), []);
 
+  // The guided tour asks before it resets the demo: is a conversation running here?
+  useEffect(() => listenForTour(m => {
+    if (m.kind === 'ask-session') {
+      const open = Boolean(sessionRef.current.id || sessionRef.current.starting);
+      sendTour({ kind: 'event', name: open ? 'session_open' : 'session_closed' });
+    }
+  }), []);
+
   const addTurn = (turn) => {
     setTurns(prev => [...prev, { ...turn, key: `${prev.length}-${Date.now()}` }]);
+    // For the guided tour: a family member's question was just raised (no text or id is sent).
+    if ((turn.cards || []).some(c => c.type === 'question' && (c.asker?.id || c.asker?.name))) {
+      sendTour({ kind: 'event', name: 'question_asked' });
+    }
     if (keptPrivate(turn)) {
       setPrivacyMoment(true);
       clearTimeout(privacyTimerRef.current);
@@ -357,6 +371,7 @@ export default function DeviceScreen() {
       return;
     }
     setBusy(true);
+    sendTour({ kind: 'event', name: 'turn_sent' });
     try {
       const turn = await apiClient.postDeviceTurn(audioBlob, session.id, centerPersonId);
       if (beforeReply) await beforeReply;
@@ -480,10 +495,13 @@ export default function DeviceScreen() {
   const showPhoto = Boolean(photoSrc) && screenState === 'idle';
   const showTrace = turns.length > 0 || Boolean(apiClient.embed);
 
-  // The sample answers belong to the tour's question: offered only when it was asked in this session.
+  // The sample answers belong to the tour's question: offered only on the tour's answer step, and only
+  // when that question was asked in this session; otherwise a note there says why.
   const tourQuestionAsked = turns.some(t => (t.cards || []).some(c => c.type === 'question' && isSuggestedQuestion(c.text)));
   const canSample = tourQuestionAsked && sampleIndex < SAMPLE_ANSWERS.length;
-  const showSample = canSample && !busy && !isRecording && !isPlayingAudio && !sampling;
+  const showSample = tourAnswerStep && canSample && !busy && !isRecording && !isPlayingAudio && !sampling;
+  const showSampleNote = tourAnswerStep && !tourQuestionAsked && !isRecording && !sampling
+    && turns.some(t => (t.cards || []).some(c => c.type === 'question'));
   // The tour rings Goodbye too once the next sample is the goodbye, or after two spoken answers.
   const ringGoodbye = canSample ? sampleIndex >= SAMPLE_ANSWERS.length - 1 : turns.length > 2;
 
@@ -565,6 +583,9 @@ export default function DeviceScreen() {
                     Use a sample answer
                   </button>
                 )}
+                {showSampleNote && (
+                  <p className="device-sample-note">Sample answers fit the suggested question. Answer with your voice.</p>
+                )}
                 <div className="device-side right">
                   {!isRecording && !sampling && (
                     <button type="button" className="device-quiet-btn" onClick={handleGoodbye} data-tour={ringGoodbye ? 'answer' : undefined}>
@@ -597,8 +618,7 @@ export default function DeviceScreen() {
         </div>
       </div>
 
-      {/* While the session starts, the tour's "Talk" step points at the tool trace. */}
-      {showTrace && <TracePanel turns={turns} tourMark={phase === 'idle' ? undefined : 'talk'} />}
+      {showTrace && <TracePanel turns={turns} />}
     </div>
   );
 }

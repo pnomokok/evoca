@@ -339,6 +339,17 @@
 
 .device-quiet-btn:hover { background: rgba(251, 243, 228, 0.16); }
 
+/* Why there is no sample answer: the question asked is not the tour's (stage only). */
+.device-sample-note {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  justify-self: center;
+  margin: 0;
+  font-size: 13px;
+  text-align: center;
+  color: rgba(251, 243, 228, 0.7);
+}
+
 /* The guided tour's sample answer: quieter than the device's own buttons, on a row under Hold. */
 .device-quiet-btn.sample {
   grid-column: 1 / -1;

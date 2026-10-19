@@ -2,15 +2,39 @@
    THE GUIDED TOUR on "Watch the loop" (components/GuidedTour.jsx): a card on the stage,
    and the soft pulsing ring each pane puts on the element a step is about (utils/tour.js).
    ========================================================================== */
-[data-tour].tour-ring {
-  outline: 3px solid var(--tour-ring, #d9825f) !important;
-  outline-offset: 4px;
-  animation: tourRing 1.6s ease-in-out infinite !important;
+/* The spotlight: a soft scrim over the stage with a rounded cut-out around the target (a huge
+   shadow), a warm edge and a slow glow. It moves smoothly between steps and never takes a click. */
+.tour-spotlight {
+  position: fixed;
+  z-index: 1250;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 16px;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: 0 0 0 200vmax rgba(24, 21, 17, 0.5);
+  transition: left 0.45s cubic-bezier(0.22, 1, 0.36, 1), top 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.45s cubic-bezier(0.22, 1, 0.36, 1), height 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease;
 }
 
-@keyframes tourRing {
-  0%, 100% { outline-color: rgba(217, 130, 95, 0.95); outline-offset: 3px; }
-  50% { outline-color: rgba(217, 130, 95, 0.35); outline-offset: 8px; }
+.tour-spotlight.on { opacity: 1; }
+
+.tour-spotlight::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  border: 2px solid rgba(240, 178, 140, 0.95);
+  box-shadow: 0 0 0 0 rgba(240, 178, 140, 0.55), 0 0 24px rgba(240, 178, 140, 0.45);
+  animation: tourGlow 2s ease-out infinite;
+}
+
+@keyframes tourGlow {
+  0% { box-shadow: 0 0 0 0 rgba(240, 178, 140, 0.55), 0 0 24px rgba(240, 178, 140, 0.45); }
+  70% { box-shadow: 0 0 0 12px rgba(240, 178, 140, 0), 0 0 24px rgba(240, 178, 140, 0.45); }
+  100% { box-shadow: 0 0 0 0 rgba(240, 178, 140, 0), 0 0 24px rgba(240, 178, 140, 0.45); }
 }
 
 .tour-card {
@@ -117,6 +141,19 @@
 .tour-btn.primary { background: var(--accent-terracotta); border-color: var(--accent-terracotta); color: #fff; }
 .tour-btn.primary:hover { filter: brightness(1.06); }
 .tour-btn.quiet { background: transparent; border-color: transparent; color: var(--text-charcoal-muted); }
+/* "Skip step": quiet text; the step's own action is the way forward. */
+.tour-skip {
+  border: 0;
+  background: none;
+  padding: 4px 2px;
+  font: 500 13px var(--font-sans);
+  color: var(--text-charcoal-faint);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.tour-skip:hover { color: var(--text-charcoal-muted); }
+.tour-skip:focus-visible,
 .tour-btn:focus-visible { outline: 2px solid var(--accent-terracotta); outline-offset: 2px; }
 
 /* Docked: room below the stage so its last pane can scroll above the card. */
@@ -125,7 +162,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  [data-tour].tour-ring { animation: none !important; }
+  .tour-spotlight { transition: opacity 0.2s ease; }
+  .tour-spotlight::after { animation: none; }
 }
 
 /* The reset dialog's "Then start the guided tour" */
