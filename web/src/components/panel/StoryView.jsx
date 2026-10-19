@@ -450,11 +450,13 @@ export default function StoryView() {
   const tellerFirst = story.teller?.name?.split(' ')[0] || '';
   const playlistItems = data.playlist?.items || [];
   const storyMode = mode === 'story';
-  const canAddPhoto = Boolean(currentViewerId) && (
+  // Anyone who sees the story may add a photo; replacing one is for the teller, a subject or an admin.
+  const canReplacePhoto = Boolean(currentViewerId) && (
     story.teller?.id === currentViewerId
     || (story.subjects || []).some(s => s.person_id === currentViewerId)
     || circleData?.me?.role === 'admin'
   );
+  const canAddPhoto = Boolean(currentViewerId) && (!story.photo_url || canReplacePhoto);
 
   return (
     <div className="story-archive-page">

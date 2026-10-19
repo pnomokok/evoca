@@ -4,8 +4,8 @@ Story photos (core/services/photos.py, server/routers/photos.py) and lifeline ye
 Uses the world fixture from tests/test_panel_stories.py: Fatma (center) told
 "The Mulberry Tree"; Elif, Ali, Bora are members, Ayse is the admin.
 
-Coverage: the teller, a subject and an admin can upload, a plain member who is
-not a subject cannot; an invisible story gives the same 404 as a missing one;
+Coverage: anyone who can see a story can add its first photo; replacing it is for
+the teller, a subject or an admin (a plain member gets 403 and the photo stays); an invisible story gives the same 404 as a missing one;
 wrong type, too big, broken image and a long caption are 400; EXIF and GPS are
 gone from the stored file, which is a re-encoded JPEG of at most 1600 px under
 a server-chosen name; a replacement deletes the old file; delete permissions;
@@ -76,7 +76,7 @@ def _stored(db, story_id) -> StoryPhoto:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.anyio
-async def test_teller_subject_and_admin_can_upload_plain_member_cannot(photos):
+async def test_teller_subject_and_admin_can_upload(photos):
     w = photos
     ali_story = _story(w["db"], w["circle"], w["ali"], [(w["bora"], "youth")], title="Bora's Bike")
     for story, who in [(w["mulberry"], w["fatma"]), (ali_story, w["bora"]), (ali_story, w["ayse"])]:
@@ -85,12 +85,45 @@ async def test_teller_subject_and_admin_can_upload_plain_member_cannot(photos):
         body = r.json()
         assert body["photo_url"] == f"/api/photos/{_stored(w['db'], story.id).id}"
         assert body["photo_caption"] == "Summer 1956"
-    # Elif can see the mulberry story but is neither teller, subject nor admin.
-    r = await _upload(w["app"], w["mulberry"].id, w["elif_"])
-    assert r.status_code == 403
     # One photo per story: Ayse's upload replaced Bora's.
     w["db"].expire_all()
     assert w["db"].query(StoryPhoto).filter(StoryPhoto.story_id == ali_story.id).count() == 1
+
+
+@pytest.mark.anyio
+async def test_plain_member_can_add_the_first_photo(photos):
+    w = photos
+    # Elif can see the mulberry story but is neither teller, subject nor admin.
+    r = await _upload(w["app"], w["mulberry"].id, w["elif_"], caption="The tree")
+    assert r.status_code == 200, r.text
+    stored = _stored(w["db"], w["mulberry"].id)
+    assert stored.uploaded_by == w["elif_"].id and r.json()["photo_added_by"] == "Elif"
+
+
+@pytest.mark.anyio
+async def test_plain_member_cannot_replace_a_photo(photos):
+    w = photos
+    assert (await _upload(w["app"], w["mulberry"].id, w["fatma"], caption="Summer 1956")).status_code == 200
+    before = _stored(w["db"], w["mulberry"].id)
+    r = await _upload(w["app"], w["mulberry"].id, w["elif_"], caption="Mine")
+    assert r.status_code == 403
+    assert r.json()["detail"] == photo_svc.NOT_ALLOWED_REPLACE
+    after = _stored(w["db"], w["mulberry"].id)
+    assert (after.id, after.caption) == (before.id, "Summer 1956") and Path(after.path).exists()
+    # The refused upload left no file behind.
+    assert sorted(p.name for p in photo_svc.PHOTO_DIR.iterdir()) == [Path(after.path).name]
+
+
+@pytest.mark.anyio
+async def test_admin_can_replace_a_members_photo(photos):
+    w = photos
+    assert (await _upload(w["app"], w["mulberry"].id, w["elif_"])).status_code == 200
+    first = Path(_stored(w["db"], w["mulberry"].id).path)
+    r = await _upload(w["app"], w["mulberry"].id, w["ayse"], caption="A better one")
+    assert r.status_code == 200, r.text
+    after = _stored(w["db"], w["mulberry"].id)
+    assert after.uploaded_by == w["ayse"].id and after.caption == "A better one"
+    assert not first.exists()
 
 
 @pytest.mark.anyio
@@ -105,6 +138,46 @@ async def test_invisible_story_is_the_same_404_as_missing(photos):
     hidden_r = await _upload(w["app"], hidden.id, w["ali"])          # even the teller
     assert missing.status_code == private.status_code == hidden_r.status_code == 404
     assert missing.json() == private.json() == hidden_r.json()
+
+
+@pytest.mark.anyio
+async def test_invisible_story_with_a_photo_is_still_404_not_403(photos):
+    w = photos
+    db = w["db"]
+    secret = _story(db, w["circle"], w["ali"], [(w["ali"], "youth")], access=AccessType.private, title="Secret")
+    later_hidden = _story(db, w["circle"], w["ali"], [(w["ali"], "youth")], title="Hidden later")
+    for story in (secret, later_hidden):
+        assert (await _upload(w["app"], story.id, w["ali"])).status_code == 200
+    later_hidden.status = StoryStatus.hidden
+    db.commit()
+    missing = await _upload(w["app"], "no-such-story", w["bora"])
+    # Bora may not replace either photo, but must not learn that the stories or photos exist.
+    for story in (secret, later_hidden):
+        r = await _upload(w["app"], story.id, w["bora"])
+        assert r.status_code == 404 and r.json() == missing.json()
+
+
+@pytest.mark.anyio
+async def test_a_photo_arriving_meanwhile_is_not_replaced_by_a_member(photos, monkeypatch):
+    w = photos
+    db = w["db"]
+    # Elif's check sees no photo; Fatma's photo lands before Elif's write.
+    real = photo_svc.current_photo
+    calls = {"n": 0}
+
+    def racing(session, story_id):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return None
+        return real(session, story_id)
+
+    assert (await _upload(w["app"], w["mulberry"].id, w["fatma"])).status_code == 200
+    kept = _stored(db, w["mulberry"].id)
+    monkeypatch.setattr(photo_svc, "current_photo", racing)
+    r = await _upload(w["app"], w["mulberry"].id, w["elif_"])
+    assert r.status_code == 403
+    assert _stored(db, w["mulberry"].id).id == kept.id
+    assert sorted(p.name for p in photo_svc.PHOTO_DIR.iterdir()) == [Path(kept.path).name]
 
 
 @pytest.mark.parametrize("data,name,ctype", [

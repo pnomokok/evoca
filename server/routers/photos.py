@@ -51,7 +51,8 @@ async def post_story_photo(
     caption: Annotated[str | None, Form()] = None,
     viewer: Viewer = Depends(panel_viewer),
 ):
-    """Add or replace the photo: the teller, a subject person or an admin. Matches POST_story_photo.json."""
+    """Add a photo (anyone who can see the story) or replace it (the teller, a subject person or an admin;
+    anyone else gets 403). Matches POST_story_photo.json."""
     raw = await image.read(photo_svc.MAX_BYTES + 1)   # one byte more is enough to refuse it
     return await anyio.to_thread.run_sync(
         lambda: _story_call(viewer.circle_id, photo_svc.set_photo, viewer.person_id, story_id, raw, caption)

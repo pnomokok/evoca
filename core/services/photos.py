@@ -11,7 +11,9 @@ Rules:
   uploads, deletes and reads get the same NotFound as a missing story, and
   photo_fields returns nulls. (Hidden counts as invisible here even for the
   teller, so a hidden story never exposes its photo.)
-- Upload: the teller, any subject person, or an admin of the story's circle.
+- Add (the story has no photo): anyone in the circle who can see the story.
+  Replace (it has one): the teller, any subject person, or an admin of the
+  story's circle; anyone else gets Forbidden(NOT_ALLOWED_REPLACE).
   Delete: the uploader, the teller, or an admin.
 - Every upload is decoded and re-encoded (JPEG, at most 1600 px on the long
   side) into a new image, so no metadata of the original (EXIF, GPS, ICC,
@@ -62,6 +64,7 @@ ACCEPTED_FORMATS = {"JPEG", "MPO", "PNG", "WEBP"}
 
 PHOTO_NOT_FOUND = "Photo not found."
 NOT_ALLOWED = "You cannot change the photo of this story."
+NOT_ALLOWED_REPLACE = "This story already has a photo. Only its teller, a person it is about or an admin can replace it."
 
 
 # ---------------------------------------------------------------------------
@@ -100,6 +103,15 @@ def _photo_story(db: DbSession, viewer_id: str, story_id: str) -> Story:
 
 def _is_admin(db: DbSession, viewer_id: str, story: Story) -> bool:
     return role(db, viewer_id, story.circle_id) == Role.admin
+
+
+def may_replace_photo(db: DbSession, viewer_id: str, story: Story) -> bool:
+    """The teller, a subject or an admin may replace an existing photo (anyone who sees the story may add one)."""
+    return (
+        viewer_id == story.teller_id
+        or db.get(StorySubject, (story.id, viewer_id)) is not None
+        or _is_admin(db, viewer_id, story)
+    )
 
 
 def _remove_file(path: str) -> None:
@@ -177,13 +189,8 @@ def set_photo(
 ) -> dict[str, Any]:
     """Add or replace the story's photo. Returns {story_id, photo_url, photo_caption}."""
     story = _photo_story(db, viewer_id, story_id)
-    allowed = (
-        viewer_id == story.teller_id
-        or db.get(StorySubject, (story.id, viewer_id)) is not None
-        or _is_admin(db, viewer_id, story)
-    )
-    if not allowed:
-        raise Forbidden(NOT_ALLOWED)
+    if current_photo(db, story.id) is not None and not may_replace_photo(db, viewer_id, story):
+        raise Forbidden(NOT_ALLOWED_REPLACE)
     caption = (caption or "").strip() or None
     if caption is not None and len(caption) > MAX_CAPTION:
         raise ValueError(f"A caption can be at most {MAX_CAPTION} characters.")
@@ -198,6 +205,9 @@ def set_photo(
     old = current_photo(db, story.id)
     old_path = old.path if old else None
     try:
+        # Checked again here: another first photo may have arrived meanwhile.
+        if old is not None and not may_replace_photo(db, viewer_id, story):
+            raise Forbidden(NOT_ALLOWED_REPLACE)
         if old is not None:
             db.delete(old)
             db.flush()

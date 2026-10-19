@@ -603,7 +603,7 @@ session's circle), otherwise the same 403 as a non-member. Without it, the viewe
 | `PATCH /api/stories/{id}/subjects/{person_id}` | Panel | Period correction (`period_source = family`); anyone who can see the story. |
 | `PATCH /api/stories/{id}` | Teller, subject, center, admin | Only the teller changes access (`circle` / `private`). The teller, a subject, the center person or an admin can hide; hiding is final (`hidden: false` is refused for everyone). |
 | `DELETE /api/links/{id}` | Panel | Removes a wrong link (`status = removed`); the viewer must see both stories. |
-| `POST /api/stories/{id}/photo` | Teller, subject, admin | JPEG/PNG/WebP up to 5 MB, optional caption; re-encoded to a JPEG of at most 1600 px with all metadata (EXIF, GPS) removed. One per story. |
+| `POST /api/stories/{id}/photo` | Add: anyone who can see the story; replace: teller, subject, admin | A member who may not replace the existing photo gets 403 with a clear message. JPEG/PNG/WebP up to 5 MB, optional caption; re-encoded to a JPEG of at most 1600 px with all metadata (EXIF, GPS) removed. One per story. |
 | `DELETE /api/stories/{id}/photo` | Uploader, teller, admin | Deletes the photo and its file. |
 | `GET /api/photos/{photo_id}` | Anyone who can see the story | The JPEG, `Cache-Control: private, no-store`. A hidden story's photo is the same 404 for everyone, the teller included. |
 | `GET`, `POST /api/admin/sensitive-topics`, `DELETE /api/admin/sensitive-topics/{id}` | Admin | Family topics only; topics the elder refused are never listed, counted or deletable (same 404 as a missing id). |
