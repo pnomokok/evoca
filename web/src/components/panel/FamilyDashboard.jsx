@@ -28,7 +28,7 @@ const PERIOD_PROMPTS = {
 export default function FamilyDashboard({ onOpenAskModal }) {
   const { openStory, navigate, circleData, currentViewerId, viewerReady, centerPersonId, dataVersion, isSignedIn } = useApp();
   // Loaded data is keyed by viewer; another viewer's feed is never shown.
-  const [loaded, setLoaded] = useState({ viewerId: null, feedItems: [], lifeline: null });
+  const [loaded, setLoaded] = useState({ viewerId: null, feedItems: [], lifeline: null, myQuestionCount: 0 });
   const [isTreeModalOpen, setIsTreeModalOpen] = useState(false);
   const [storiesPageIndex, setStoriesPageIndex] = useState(0);
 
@@ -37,16 +37,17 @@ export default function FamilyDashboard({ onOpenAskModal }) {
     let cancelled = false;
     async function loadData() {
       try {
-        const [feed, life] = await Promise.all([
+        const [feed, life, myQuestions] = await Promise.all([
           apiClient.getFeed(),
-          centerPersonId ? apiClient.getLifeline(centerPersonId).catch(() => null) : Promise.resolve(null)
+          centerPersonId ? apiClient.getLifeline(centerPersonId).catch(() => null) : Promise.resolve(null),
+          apiClient.getMyQuestions().catch(() => [])
         ]);
         if (cancelled) return;
-        setLoaded({ viewerId: currentViewerId, feedItems: feed?.items || [], lifeline: life });
+        setLoaded({ viewerId: currentViewerId, feedItems: feed?.items || [], lifeline: life, myQuestionCount: (myQuestions || []).length });
         setStoriesPageIndex(0);
       } catch (err) {
         console.error("Error loading dashboard data", err);
-        if (!cancelled) setLoaded({ viewerId: currentViewerId, feedItems: [], lifeline: null });
+        if (!cancelled) setLoaded({ viewerId: currentViewerId, feedItems: [], lifeline: null, myQuestionCount: 0 });
       }
     }
     loadData();
@@ -75,6 +76,11 @@ export default function FamilyDashboard({ onOpenAskModal }) {
   const uniqueStoryIds = new Set(storyItems.map(s => s.id));
   (lifeline?.periods || []).forEach(p => (p.stories || []).forEach(s => s?.id && uniqueStoryIds.add(s.id)));
   const storyCount = uniqueStoryIds.size;
+  // The tree's per-person lines: published stories only, from the feed and the lifeline.
+  const treeStories = [...storyItems];
+  (lifeline?.periods || []).forEach(p => (p.stories || []).forEach(s => {
+    if (s?.id && s.status === 'published' && !treeStories.some(t => t.id === s.id)) treeStories.push(s);
+  }));
 
   const handleOpenStory = openStory;
 
@@ -170,6 +176,9 @@ export default function FamilyDashboard({ onOpenAskModal }) {
           circleData={circleData}
           currentViewerId={currentViewerId}
           storyCount={storyCount}
+          stories={treeStories}
+          feedItems={feedItems}
+          myQuestionCount={isCurrent ? loaded.myQuestionCount : 0}
           onOpenTreeModal={() => setIsTreeModalOpen(true)}
         />
       </div>

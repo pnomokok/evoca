@@ -124,8 +124,9 @@ Because Elif is a plain member, these samples also show what access control hide
 - `DELETE /api/links/{id}`: marks the link `removed`; the viewer must see both stories. Returns `{id, status}`.
 - `POST /api/recordings`: `multipart/form-data` with `audio`. Processing runs in the background, like a device session.
 - `POST /api/stories/{id}/photo`: `multipart/form-data` with `image` (JPEG, PNG or WebP, at most 5 MB) and an optional
-  `caption` (at most 120 characters). Allowed for the story's teller, any person the story is about (a subject) or an
-  admin; anyone else who can see the story gets 403. One photo per story: a new upload replaces the old one.
+  `caption` (at most 120 characters). When the story has no photo, anyone who can see
+  it may add one. One photo per story: a new upload replaces the old one, and replacing is allowed only for the
+  story's teller, any person the story is about (a subject) or an admin; anyone else gets 403 with a message.
   The server re-encodes it to a JPEG of at most 1600 px and removes all metadata (EXIF, GPS), so the client does not
   need to. Wrong type, too big or unreadable: 400. Returns `{story_id, photo_url, photo_caption, photo_added_by}`.
 - `DELETE /api/stories/{id}/photo`: the uploader, the teller or an admin. Returns the same shape with nulls.

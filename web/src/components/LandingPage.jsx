@@ -42,7 +42,7 @@ export default function LandingPage({ isSignedIn, onTryDemo, onCreateFamily, onO
       <nav className="landing-subnav" aria-label="Page navigation">
         <div className="landing-subnav-inner">
           <button type="button" className="landing-brand" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Evoca, back to the top">
-            <span className="brand-monogram">E</span>
+            <img className="brand-mark" src="/evoca-mark.svg" alt="" />
             <span className="brand-name">Evoca</span>
           </button>
           <div className="landing-nav-links">
@@ -491,7 +491,7 @@ export default function LandingPage({ isSignedIn, onTryDemo, onCreateFamily, onO
         <div className="landing-max-width">
           <div className="footer-top">
             <div className="footer-brand">
-              <div className="footer-monogram">E</div>
+              <span className="footer-monogram"><img src="/evoca-mark.svg" alt="" /></span>
               <div>
                 <div className="footer-brand-name">Evoca</div>
                 <div className="footer-tagline">A voice-first family companion for generations of shared memory.</div>

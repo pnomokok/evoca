@@ -516,6 +516,7 @@ export default function DeviceScreen() {
         <div className={`device-screen state-${screenState} ${privacyMoment ? 'privacy' : ''}`} data-state={screenState}>
           {showPhoto && <img className="device-photo" src={photoSrc} alt="" />}
           <div className="device-light" aria-hidden="true" />
+          {screenState === 'idle' && <img className="device-mark" src="/evoca-mark-light.svg" alt="" />}
 
           <div className="device-main" aria-live="polite">
             {(screenState === 'idle' || screenState === 'invitation') && (

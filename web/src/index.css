@@ -135,24 +135,29 @@ h1, h2, h3, h4, .serif-font {
   flex-wrap: wrap;
 }
 
+/* The lockup: the mark beside "Evoca", centred on the wordmark (not on the tagline below it). */
 .topbar-brand {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto auto;
   align-items: center;
-  gap: 12px;
+  column-gap: 9px;
 }
 
-.brand-monogram {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-xs);
-  background: var(--text-charcoal);
-  color: var(--bg-ivory);
-  font-family: var(--font-serif);
-  font-size: 20px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.topbar-brand .brand-text-group { display: contents; }
+.topbar-brand .brand-mark { grid-row: 1; }
+.topbar-brand .brand-name { grid-row: 1; grid-column: 2; }
+.topbar-brand .brand-tagline { grid-row: 2; grid-column: 2; }
+
+/* The Evoca mark (three ovals), no box behind it; about 1.4x the wordmark's cap height. */
+.brand-mark {
+  display: block;
+  height: 30px;
+  width: auto;
+  flex: none;
+}
+
+@media (max-width: 768px) {
+  .brand-mark { height: 26px; }
 }
 
 .brand-text-group {
@@ -681,8 +686,9 @@ h1, h2, h3, h4, .serif-font {
   box-shadow: var(--shadow-subtle);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 13px;
+  gap: 14px;
+  /* Laid out from the top at its own height, not stretched to the left card's. */
+  align-self: start;
 }
 
 @media (max-width: 600px) {
@@ -695,7 +701,7 @@ h1, h2, h3, h4, .serif-font {
 /* Header Row matching Reference */
 .minimal-tree-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
 }
@@ -739,53 +745,11 @@ h1, h2, h3, h4, .serif-font {
   transform: translateY(-1px);
 }
 
-/* Minimalist Story Counter Bar */
-.minimal-tree-counter-bar {
-  padding: 6px 10px;
-  background: var(--bg-paper-light);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-paper);
-  font-size: 11.5px;
-}
-
-.counter-inline-row {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-wrap: wrap;
-  color: var(--text-charcoal);
-}
-
-.counter-dot-active {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent-terracotta);
-  flex-shrink: 0;
-}
-
-.counter-count-bold {
-  font-weight: 700;
-  color: var(--text-charcoal);
-}
-
-.counter-sep {
-  color: var(--border-paper-dark);
-  margin: 0 1px;
-}
-
-.counter-quote-italic {
-  font-style: italic;
+/* The story count: one quiet line under the title */
+.minimal-tree-count {
+  margin: 3px 0 0;
+  font-size: 12px;
   color: var(--text-charcoal-muted);
-}
-
-.counter-inline-row.empty {
-  color: var(--text-charcoal-muted);
-}
-
-.sparkle-mini {
-  color: var(--accent-terracotta);
-  flex-shrink: 0;
 }
 
 /* Minimalist Visual Family Tree Diagram */
@@ -890,6 +854,78 @@ h1, h2, h3, h4, .serif-font {
   font-size: 10px;
   color: var(--text-charcoal-muted);
   line-height: 1.2;
+}
+
+/* A person's part in the archive, under the relation */
+.node-archive-part {
+  margin-top: 1px;
+  font-size: 10px;
+  font-style: italic;
+  color: var(--accent-terracotta);
+  line-height: 1.2;
+}
+
+/* Latest in the family: up to three recent moments, one line each */
+.tree-latest {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tree-latest-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-charcoal-muted);
+}
+
+.tree-latest-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tree-latest-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.tree-latest-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  font-family: var(--font-serif);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.tree-latest-text {
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--text-charcoal);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tree-latest-story {
+  font-family: var(--font-serif);
+  font-style: italic;
 }
 
 /* Stems & Connecting Lines */

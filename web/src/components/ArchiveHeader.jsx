@@ -54,7 +54,7 @@ export default function ArchiveHeader() {
             onClick={() => navigate(isSignedIn ? JOURNAL : LANDING)}
             title={isSignedIn ? 'Family journal' : 'Evoca'}
           >
-            <span className="brand-monogram">E</span>
+            <img className="brand-mark" src="/evoca-mark.svg" alt="" />
             <span className="brand-text-group">
               <span className="brand-name">Evoca</span>
               <span className="brand-tagline" data-testid="family-name">{familyName || 'A Living Family Archive'}</span>
