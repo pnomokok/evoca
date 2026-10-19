@@ -1,0 +1,140 @@
+/* ==========================================================================
+   THE GUIDED TOUR on "Watch the loop" (components/GuidedTour.jsx): a card on the stage,
+   and the soft pulsing ring each pane puts on the element a step is about (utils/tour.js).
+   ========================================================================== */
+[data-tour].tour-ring {
+  outline: 3px solid var(--tour-ring, #d9825f) !important;
+  outline-offset: 4px;
+  animation: tourRing 1.6s ease-in-out infinite !important;
+}
+
+@keyframes tourRing {
+  0%, 100% { outline-color: rgba(217, 130, 95, 0.95); outline-offset: 3px; }
+  50% { outline-color: rgba(217, 130, 95, 0.35); outline-offset: 8px; }
+}
+
+.tour-card {
+  position: fixed;
+  z-index: 1300;
+  width: 340px;
+  box-sizing: border-box;
+  padding: 14px 16px 14px 18px;
+  background: var(--bg-white, #fff);
+  color: var(--text-charcoal);
+  border: 1px solid var(--border-paper-dark);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-dialog);
+  font-family: var(--font-sans);
+}
+
+.tour-card:focus { outline: none; }
+.tour-card:focus-visible { outline: 2px solid var(--accent-terracotta); outline-offset: 2px; }
+
+.tour-card.end { width: 380px; }
+
+.tour-card.docked {
+  left: 16px;
+  right: 16px;
+  width: auto;
+}
+
+/* The arrow: a small rotated square on the edge facing what the step is about. */
+.tour-card[class*='arrow-']::before {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: inherit;
+  border: 1px solid var(--border-paper-dark);
+  transform: rotate(45deg);
+}
+.tour-card.arrow-up::before { top: -8px; left: calc(var(--arrow-offset, 50%) - 7px); border-right: 0; border-bottom: 0; }
+.tour-card.arrow-down::before { bottom: -8px; left: calc(var(--arrow-offset, 50%) - 7px); border-left: 0; border-top: 0; }
+.tour-card.arrow-left::before { left: -8px; top: calc(var(--arrow-offset, 50%) - 7px); border-right: 0; border-top: 0; }
+.tour-card.arrow-right::before { right: -8px; top: calc(var(--arrow-offset, 50%) - 7px); border-left: 0; border-bottom: 0; }
+
+.tour-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.tour-card-step {
+  font-size: var(--text-label, 11px);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-terracotta);
+}
+
+.tour-card-close {
+  display: grid;
+  place-items: center;
+  margin: -6px -8px -6px 0;
+  padding: 6px;
+  border: 0;
+  background: none;
+  color: var(--text-charcoal-faint);
+  cursor: pointer;
+  border-radius: var(--radius-full);
+}
+.tour-card-close:hover { color: var(--text-charcoal); }
+
+.tour-card-text {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+.tour-card-hint {
+  margin: 6px 0 0;
+  font-size: var(--text-helper, 13px);
+  color: var(--text-charcoal-muted);
+}
+
+.tour-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.tour-card.end .tour-card-actions { justify-content: flex-start; }
+
+.tour-btn {
+  font: 600 13px var(--font-sans);
+  border-radius: var(--radius-full);
+  padding: 7px 16px;
+  border: 1px solid var(--border-paper-dark);
+  background: var(--bg-white, #fff);
+  color: var(--text-charcoal);
+  cursor: pointer;
+}
+.tour-btn:hover { background: var(--bg-paper-light); }
+.tour-btn.primary { background: var(--accent-terracotta); border-color: var(--accent-terracotta); color: #fff; }
+.tour-btn.primary:hover { filter: brightness(1.06); }
+.tour-btn.quiet { background: transparent; border-color: transparent; color: var(--text-charcoal-muted); }
+.tour-btn:focus-visible { outline: 2px solid var(--accent-terracotta); outline-offset: 2px; }
+
+/* Docked: room below the stage so its last pane can scroll above the card. */
+@media (max-width: 1100px) {
+  .stage-page.tour-open { padding-bottom: 240px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-tour].tour-ring { animation: none !important; }
+}
+
+/* The reset dialog's "Then start the guided tour" */
+.reset-tour-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: var(--text-charcoal);
+  cursor: pointer;
+}

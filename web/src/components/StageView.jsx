@@ -4,6 +4,8 @@ import { apiClient } from '../api/client';
 import { listenForChanges } from '../utils/stageChannel';
 import AnswerNotice from './panel/AnswerNotice';
 import { useNewAnswers } from './panel/useNewAnswers';
+import GuidedTour from './GuidedTour';
+import PersonPicker from './PersonPicker';
 import '../styles/stage.css';
 
 const CLOCK_REFRESH_MS = 30_000;
@@ -22,10 +24,18 @@ function phoneTime(iso, timeZone) {
 // (?embed=device|panel&person=<id>); the panes tell each other about changes (utils/stageChannel.js).
 // When the phone's person gets an answer, the phone shows a notification banner; tapping it opens
 // the answer in My questions inside the phone (a message to the panel's iframe).
+// The guided tour (GuidedTour) opens by itself on the first visit; "Guide" in the strip opens it again.
 export default function StageView() {
-  const { peopleList, centerPersonId, circleData, currentViewerId, viewerReady } = useApp();
+  const { peopleList, centerPersonId, circleData, currentViewerId, viewerReady, tourRun, startTour } = useApp();
   const phoneRef = useRef(null);
   const [clock, setClock] = useState(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  useEffect(() => {
+    if (apiClient.tourSeen) return;
+    apiClient.markTourSeen();
+    startTour();
+  }, [startTour]);
 
   const members = circleData?.members || [];
   const center = members.find(m => m.id === centerPersonId) || peopleList.find(p => p.id === centerPersonId);
@@ -62,7 +72,7 @@ export default function StageView() {
   const time = phoneTime(clock?.now, circleData?.circle?.timezone);
 
   return (
-    <div className="stage-page">
+    <div className={`stage-page ${tourRun ? 'tour-open' : ''}`}>
       <main className="stage" aria-label="Watch the loop">
         <section className="stage-pane device-pane">
           <p className="stage-label">
@@ -117,6 +127,16 @@ export default function StageView() {
           </div>
         </section>
       </main>
+      {tourRun && ready && (
+        <GuidedTour
+          key={tourRun}
+          notice={notice}
+          centerId={centerPersonId}
+          askerId={asker.id}
+          onExplore={() => setPickerOpen(true)}
+        />
+      )}
+      {pickerOpen && <PersonPicker onClose={() => setPickerOpen(false)} />}
     </div>
   );
 }

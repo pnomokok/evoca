@@ -3,6 +3,7 @@ import { apiClient } from '../api/client';
 import { AppContext } from './useApp';
 import { announceChange, listenForChanges } from '../utils/stageChannel';
 import { JOURNAL, LANDING, pathFor, routeFromPath } from '../utils/routes';
+import { SUGGESTED_QUESTION, paneTourWants } from '../utils/tour';
 
 // Signed in (bearer): the session fixes person and circle, so GET /api/circle gives everything;
 // the device invitation only for the center, the one person the device acts as.
@@ -126,6 +127,8 @@ export function AppProvider({ children, initialTab = 'landing', initialPanelSubT
   // The archive's dialogs, opened from the header, the bottom bar or a chapter: {period, prompt} or null.
   const [askDialog, setAskDialog] = useState(null);
   const [recordOpen, setRecordOpen] = useState(false);
+  // The stage's guided tour (GuidedTour): a run number while it is open, else null.
+  const [tourRun, setTourRun] = useState(null);
   // A message carried over a restart (for example after leaving a family) is shown at once.
   const [toast, setToast] = useState(() => (initialToast ? { message: initialToast, type: 'info' } : null));
   const toastTimerRef = useRef(null);
@@ -297,10 +300,15 @@ export function AppProvider({ children, initialTab = 'landing', initialPanelSubT
     navigate(currentViewerId && currentViewerId === centerPersonId ? { tab: 'device' } : JOURNAL);
   }, [navigate, currentViewerId, centerPersonId]);
 
-  const openAsk = useCallback((period = null, prompt = '') => setAskDialog({ period, prompt }), []);
+  // While the guided tour points at "Ask", the dialog opens with its suggested question.
+  const openAsk = useCallback((period = null, prompt = '') => setAskDialog({
+    period, prompt: prompt || (paneTourWants('ask-alt') ? SUGGESTED_QUESTION : '')
+  }), []);
   const closeAsk = useCallback(() => setAskDialog(null), []);
   const openRecord = useCallback(() => setRecordOpen(true), []);
   const closeRecord = useCallback(() => setRecordOpen(false), []);
+  const startTour = useCallback(() => setTourRun(n => (n ?? 0) + 1), []);
+  const closeTour = useCallback(() => setTourRun(null), []);
 
   // Demo controls: move the clock, then reload people, circle and invitation, and let every view refetch.
   const demoAdvance = async (hours) => {
@@ -359,6 +367,9 @@ export function AppProvider({ children, initialTab = 'landing', initialPanelSubT
       recordOpen,
       openRecord,
       closeRecord,
+      tourRun,
+      startTour,
+      closeTour,
       currentViewerId,
       viewerReady,
       peopleList,

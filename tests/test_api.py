@@ -21,6 +21,7 @@ Coverage
 - Full device flow: session/start → turn → session/end
 - WAV positions advance across turns
 - Segment start_ms < end_ms after a /turn
+- The guided tour's sample answer (an MP3 sent as the device sends a recording) is decoded and stored
 - GET /api/audio: center person allowed
 - GET /api/audio: private overlap → 403
 - GET /api/audio: member blocked without story source
@@ -386,6 +387,36 @@ async def test_segments_stored_with_nonzero_end_ms(test_app):
     segs = db.query(Segment).filter(Segment.session_id == session_id).all()
     for seg in segs:
         assert seg.end_ms >= seg.start_ms, f"Segment {seg.id}: [{seg.start_ms},{seg.end_ms}]"
+
+
+@pytest.mark.anyio
+async def test_turn_accepts_the_tour_sample_answer(test_app):
+    """The device's "Use a sample answer" sends a committed MP3 in the same field and under the
+    same file name as a microphone recording (web/src/api/client.js postDeviceTurn)."""
+    app, db, fatma, elif_, circle, q, store, llm_h, audio_dir = test_app
+    _set_llm_script(test_app, ["What a lovely sled!"])
+    clip = (Path(__file__).resolve().parent.parent / "web" / "public" / "demo-audio" / "answer_1.mp3").read_bytes()
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.post("/api/device/session/start", headers={"x-person-id": fatma.id})
+        session_id = r.json()["session_id"]
+        before = _count_samples(audio_dir / f"{session_id}.wav")
+        rr = await c.post(
+            "/api/device/turn",
+            headers={"x-person-id": fatma.id},
+            data={"session_id": session_id},
+            files={"audio": ("turn.webm", clip, "audio/mpeg")},
+        )
+    assert rr.status_code == 200, rr.text
+    assert rr.json()["heard_text"] == "hello grandma"
+    # The clip is about 12.7 s long; all of it reached the session's recording.
+    added = _count_samples(audio_dir / f"{session_id}.wav") - before
+    assert added >= 12 * 16_000
+
+
+def _count_samples(path: Path) -> int:
+    import server.wav_writer as ww
+    return ww._count_existing_samples(path) if path.exists() else 0
 
 
 # ---------------------------------------------------------------------------

@@ -70,6 +70,7 @@ export default function ArchiveHeader() {
               className={`subnav-pill ${current === key ? 'active' : ''}`}
               onClick={() => navigate({ tab: 'panel', subTab: key })}
               aria-current={panelSubTab === key ? 'page' : undefined}
+              data-tour={key === 'questions' ? 'questions-tab' : undefined}
             >
               <Icon size={15} />
               <span>{label}</span>
@@ -79,7 +80,7 @@ export default function ArchiveHeader() {
 
         <div className="archive-actions">
           {canAsk && <>
-            <button type="button" className="editorial-action-btn question" onClick={() => openAsk()}>
+            <button type="button" className="editorial-action-btn question" onClick={() => openAsk()} data-tour="ask-alt">
               <MessageSquarePlus size={15} />
               <span>Ask a question</span>
             </button>

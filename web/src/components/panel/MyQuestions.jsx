@@ -5,6 +5,7 @@ import { formatWhen } from '../../utils/format';
 import Avatar from '../Avatar';
 import AnswerCard from './AnswerCard';
 import FirstQuestionComposer from './FirstQuestionComposer';
+import { isSuggestedQuestion } from '../../utils/tour';
 import '../../styles/journal.css';
 
 // The three steps of a question. The API only says "waiting" or "answered", so a question is on
@@ -59,6 +60,9 @@ export default function MyQuestions({ reloadKey }) {
   const member = (id) => circleData?.members?.find(m => m.id === id) || null;
   const center = circleData?.members?.find(m => m.role === 'center');
   const centerFirst = center?.name?.split(' ')[0] || '';
+  // The guided tour points at one answer: to its own question if there is one, else the first.
+  const answeredWithCard = questions.filter(q => q.status === 'answered' && loaded.answers[q.id]);
+  const tourAnswerId = (answeredWithCard.find(q => isSuggestedQuestion(q.text)) || answeredWithCard[0])?.id;
 
   return (
     <div className="lifeline-archive-page my-questions-page">
@@ -98,7 +102,7 @@ export default function MyQuestions({ reloadKey }) {
                   </button>
                 )}
               </div>
-              {answerItem && <AnswerCard item={answerItem} showQuestion={false} />}
+              {answerItem && <AnswerCard item={answerItem} showQuestion={false} tourMark={q.id === tourAnswerId} />}
             </li>
           );
         })}

@@ -1,12 +1,20 @@
 import React, { useState } from 'react';
 import { AlertTriangle, Send } from 'lucide-react';
 import { QUESTION_PLACEHOLDER, useSendQuestion } from './useSendQuestion';
+import { SUGGESTED_QUESTION, usePaneTourTargets } from '../../utils/tour';
 
 // My questions with nothing asked yet: ask the first question right here, through the same
 // API, filtering and feedback as the Ask dialog. onSent() reloads the list.
+// On the stage, while the guided tour points here, it is prefilled with the tour's question.
 export default function FirstQuestionComposer({ onSent }) {
   const [text, setText] = useState('');
   const { send, isSubmitting, filterWarning, clearWarning, centerFirst } = useSendQuestion();
+  const tourAsks = usePaneTourTargets().includes('ask');
+  const [prefilled, setPrefilled] = useState(false);
+  if (tourAsks && !prefilled) {
+    setPrefilled(true);
+    if (!text) setText(SUGGESTED_QUESTION);
+  }
 
   const submit = async (e) => {
     e.preventDefault();
@@ -17,7 +25,7 @@ export default function FirstQuestionComposer({ onSent }) {
   };
 
   return (
-    <form className="first-question-composer" onSubmit={submit} aria-labelledby="first-question-title">
+    <form className="first-question-composer" onSubmit={submit} aria-labelledby="first-question-title" data-tour="ask">
       <h2 id="first-question-title" className="first-question-title">
         {centerFirst ? `Ask ${centerFirst} your first question` : 'Ask your first question'}
       </h2>
