@@ -22,10 +22,13 @@ export default function FamilyTreeCard({
 
   // Match dynamically by role and relation without hardcoding IDs
   const centerMember = members.find(m => m.role === 'center') || members[0];
-  const daughterMember = members.find(m => m.relation_to_center === 'daughter' || m.role === 'admin') || members[1];
+  const daughterMember = members.find(m => m !== centerMember && (m.relation_to_center === 'daughter' || m.role === 'admin'))
+    || members.find(m => m !== centerMember);
   const grandChildren = members.filter(m => m !== centerMember && m !== daughterMember);
-  const grandChild1 = grandChildren[0] || members[2];
-  const grandChild2 = grandChildren[1] || members[3];
+  const grandChild1 = grandChildren[0];
+  const grandChild2 = grandChildren[1];
+  // Connector lines only where someone is below them: none lead nowhere.
+  const bottomCount = [grandChild1, grandChild2].filter(Boolean).length;
 
   const getInitials = (name) => {
     return name
@@ -97,9 +100,11 @@ export default function FamilyTreeCard({
         )}
 
         {/* Stem 1: From Center to Daughter */}
-        <div className="minimal-stem-single" aria-hidden="true">
-          <span className="stem-vertical-line" />
-        </div>
+        {centerMember && daughterMember && (
+          <div className="minimal-stem-single" aria-hidden="true">
+            <span className="stem-vertical-line" />
+          </div>
+        )}
 
         {/* Middle Node: Daughter */}
         {daughterMember && (
@@ -119,18 +124,25 @@ export default function FamilyTreeCard({
           </div>
         )}
 
-        {/* Stem 2: Fork branching down to Grandchildren */}
-        <div className="minimal-stem-fork" aria-hidden="true">
-          <span className="fork-trunk" />
-          <span className="fork-crossbar" />
-          <div className="fork-droplines">
-            <span className="fork-drop left" />
-            <span className="fork-drop right" />
+        {/* Stem 2: one line to a single grandchild, a fork to two */}
+        {daughterMember && bottomCount === 1 && (
+          <div className="minimal-stem-single" aria-hidden="true">
+            <span className="stem-vertical-line" />
           </div>
-        </div>
+        )}
+        {daughterMember && bottomCount === 2 && (
+          <div className="minimal-stem-fork" aria-hidden="true">
+            <span className="fork-trunk" />
+            <span className="fork-crossbar" />
+            <div className="fork-droplines">
+              <span className="fork-drop left" />
+              <span className="fork-drop right" />
+            </div>
+          </div>
+        )}
 
         {/* Bottom Tier: Grandchildren */}
-        <div className="tree-nodes-tier-bottom">
+        {bottomCount > 0 && <div className="tree-nodes-tier-bottom">
           {grandChild1 && (
             <div className="tree-node-unit level-3">
               <span
@@ -168,7 +180,7 @@ export default function FamilyTreeCard({
               </div>
             </div>
           )}
-        </div>
+        </div>}
       </div>
     </aside>
   );

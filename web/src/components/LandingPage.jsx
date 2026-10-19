@@ -142,7 +142,7 @@ export default function LandingPage({ isSignedIn, onTryDemo, onCreateFamily, onO
           </h1>
 
           <p className="hero-description">
-            Evoca turns ordinary kitchen conversations into enduring family history. No touchscreens, no passwords, and no manual recordings—just an elder speaking naturally, while her family listens, asks thoughtful questions, and treasures her voice for generations.
+            Evoca turns ordinary kitchen conversations into enduring family history. No apps, no passwords, and no manual recordings—just an elder speaking naturally, while her family listens, asks thoughtful questions, and treasures her voice for generations.
           </p>
 
           <div className="hero-actions">
@@ -384,7 +384,7 @@ export default function LandingPage({ isSignedIn, onTryDemo, onCreateFamily, onO
               </div>
               <h3 className="audience-title">Elders who will never install an app</h3>
               <p className="audience-desc">
-                No touchscreens to navigate, no passwords to forget, and no updates to approve. Grandma simply talks as if speaking with an old friend.
+                No apps to navigate, no passwords to forget, and no updates to approve. Grandma simply talks as if speaking with an old friend.
               </p>
             </div>
 

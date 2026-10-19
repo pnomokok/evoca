@@ -40,7 +40,7 @@ from sqlalchemy.orm import Session as DbSession
 from core.clock import now_utc
 from core.enums import CircleStatus, InvitationStatus, QuestionSource, SessionStart
 from core.models import Circle, Invitation, Person, Reaction, Session as OrmSession, Story
-from core.services.session_tools import get_pending_questions_data
+from core.services.session_tools import circle_topic_texts, get_pending_questions_data, story_touches_topic
 
 REASON_REACTION_ONE = "{name} reacted to your story"
 REASON_REACTION_MANY = "Your family reacted to your stories"
@@ -93,9 +93,12 @@ def _center_already_talked(db: DbSession, circle: Circle, now: datetime, tz: Zon
 def invitation_reason(db: DbSession, circle: Circle) -> str:
     """The most meaningful thing waiting for the center, as a short sentence."""
     center_id = circle.center_person_id
+    # Reactions on a story that touches a sensitive topic do not count: the
+    # opening does not tell them either (get_session_context, same helper).
+    topic_texts = circle_topic_texts(db, circle.id)
     reactor_ids = {
         r.person_id
-        for r in db.query(Reaction)
+        for r, story in db.query(Reaction, Story)
         .join(Story, Story.id == Reaction.story_id)
         .filter(
             Story.circle_id == circle.id,
@@ -104,6 +107,7 @@ def invitation_reason(db: DbSession, circle: Circle) -> str:
             Reaction.person_id != center_id,
         )
         .all()
+        if not story_touches_topic(story, topic_texts)
     }
     if len(reactor_ids) == 1:
         person = db.get(Person, next(iter(reactor_ids)))

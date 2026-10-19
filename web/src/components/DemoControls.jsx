@@ -3,6 +3,7 @@ import { useApp } from '../context/useApp';
 import { apiClient } from '../api/client';
 import Modal from './Modal';
 import { formatDemoClock, hoursToNextMorning } from '../utils/demoClock';
+import { useDemoArchiving } from '../utils/useDemoArchiving';
 import { AlertTriangle, ChevronDown, Clock } from 'lucide-react';
 
 const CLOCK_REFRESH_MS = 60_000;
@@ -30,6 +31,9 @@ export default function DemoControls({ inline = false }) {
     return () => clearInterval(timer);
   }, [loadClock]);
 
+  // The archivist is writing up a story: moving the clock now waits for it (POST /api/demo/advance).
+  const archiving = useDemoArchiving(demoMode);
+
   // Close the menu on a click outside it or on Escape.
   useEffect(() => {
     if (!menuOpen) return;
@@ -52,8 +56,8 @@ export default function DemoControls({ inline = false }) {
     setMenuOpen(false);
     setBusy(true);
     try {
-      await action();
-      showToast(doneMessage, 'info');
+      const result = await action();
+      showToast(typeof doneMessage === 'function' ? doneMessage(result) : doneMessage, 'info');
     } catch (err) {
       console.error('Demo control failed:', err);
       showToast("That didn't work. Please try again.", 'error');
@@ -63,7 +67,19 @@ export default function DemoControls({ inline = false }) {
     }
   };
 
-  const advance = (hours, label) => run(() => demoAdvance(hours), `Moved ahead: ${label}`);
+  // The server waits for a story being written up before it moves the clock (archive_wait).
+  const advance = (hours, label) => run(() => demoAdvance(hours), result => (
+    result?.archive_wait === 'timed_out'
+      ? `Moved ahead: ${label}. The story was still being written up; it may need another move.`
+      : `Moved ahead: ${label}`
+  ));
+  const busyLabel = archiving ? 'Waiting for the story...' : 'Moving time...';
+  const writing = archiving && (
+    <span className="demo-archiving" role="status">
+      <span className="demo-spinner" aria-hidden="true" />
+      Evoca is writing up the story...
+    </span>
+  );
 
   const handleReset = async () => {
     setConfirmReset(false);
@@ -96,9 +112,10 @@ export default function DemoControls({ inline = false }) {
   if (inline) {
     return (
       <div className="demo-controls inline" role="group" aria-label="Demo clock">
+        {writing}
         <span className="demo-clock-text">
           <Clock size={13} />
-          Demo time <b data-testid="demo-clock">{busy ? 'Moving time...' : formatDemoClock(clock?.now, timeZone)}</b>
+          Demo time <b data-testid="demo-clock">{busy ? busyLabel : formatDemoClock(clock?.now, timeZone)}</b>
         </span>
         <button type="button" className="stage-btn" onClick={() => advance(1, '1 hour')} disabled={busy}>+1 hour</button>
         <button
@@ -121,6 +138,7 @@ export default function DemoControls({ inline = false }) {
 
   return (
     <div className="demo-controls" ref={menuRef}>
+      {writing}
       <button
         type="button"
         className="demo-clock-chip"
@@ -131,7 +149,7 @@ export default function DemoControls({ inline = false }) {
         title="Demo clock: move time forward or start over"
       >
         <Clock size={12} />
-        <span data-testid="demo-clock">{busy ? 'Moving time...' : formatDemoClock(clock?.now, timeZone)}</span>
+        <span data-testid="demo-clock">{busy ? busyLabel : formatDemoClock(clock?.now, timeZone)}</span>
         <ChevronDown size={12} />
       </button>
 

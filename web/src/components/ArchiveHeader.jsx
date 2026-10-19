@@ -15,8 +15,8 @@ const TABS = [
 
 // The family archive's header, the same in the demo and signed in: brand and family name, the tabs,
 // "Ask a question" and "Record memory", and when signed in the person's name and Leave.
-// Below 768 px: brand, family name and a menu (Record memory, Family settings, Leave); the tabs and
-// "Ask" are in the bottom bar (FamilyPanel). In a stage pane: who is holding the phone, and the menu.
+// Below 768 px: brand, family name and a menu (Family settings, Leave); the tabs, "Ask a question"
+// and "Record a memory" are in the bottom bar's "+" (FamilyPanel). In a stage pane: who is holding the phone, and the menu.
 export default function ArchiveHeader() {
   const { panelSubTab, storyBack, navigate, circleData, currentViewerId, isSignedIn, leaveFamily, openAsk, openRecord } = useApp();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -35,7 +35,6 @@ export default function ArchiveHeader() {
   const tabs = TABS.filter(t => (!t.admin || isAdmin) && (!t.canAsk || canAsk));
 
   const menuItems = [
-    canAsk && { key: 'record', label: 'Record memory', icon: Mic, run: openRecord },
     isAdmin && { key: 'settings', label: 'Family settings', icon: Settings, run: () => navigate({ tab: 'panel', subTab: 'settings' }) },
     isSignedIn && !embedded && { key: 'leave', label: 'Leave', icon: LogOut, run: leaveFamily }
   ].filter(Boolean);

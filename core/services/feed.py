@@ -19,9 +19,9 @@ Two kinds of items, newest first:
                      (kept for older clients). audio is [] and audio_url null
                      when the answer's session has no audio file (e.g. a
                      text-only session), instead of URLs that 404.
-                     photo_url / photo_caption are the answer story's photo.
+                     photo_url / photo_caption / photo_added_by are the answer story's photo.
   story_published    A published story in the viewer's circle that the viewer
-                     can_see(), with its photo_url / photo_caption (or nulls).
+                     can_see(), with its photo_url / photo_caption / photo_added_by (or nulls).
 
 Everything is filtered by can_see() before it leaves this function.
 """

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import PhotoCaption from './PhotoCaption';
 import { useApp } from '../../context/useApp';
 import { useAudioElement } from '../../utils/useAudioElement';
 import { apiClient } from '../../api/client';
@@ -26,6 +27,7 @@ import BlobPhoto from './BlobPhoto';
 import AddPhotoModal from './AddPhotoModal';
 import Modal from '../Modal';
 import { announceChange } from '../../utils/stageChannel';
+import { punctuateWords } from '../../utils/transcript';
 import { BACK_LABELS, BACK_SHORT, JOURNAL } from '../../utils/routes';
 
 const REACTIONS = [
@@ -69,7 +71,7 @@ function mapTranscript(transcript, pieces) {
         playEnd: w.end_ms - p.start_ms + p.offset
       };
     });
-    return { ...seg, words };
+    return { ...seg, words: punctuateWords(words, seg.text) };
   });
 }
 
@@ -438,6 +440,11 @@ export default function StoryView() {
   const speakerIds = new Set(transcript.map(s => s.speaker?.id).filter(Boolean));
   const showSpeakers = speakerIds.size > 1;
   const primarySubject = story.subjects?.[0];
+  // Whose life chapters this story is on: its subjects who are in the family (first names).
+  const chapterPeople = [...new Set((story.subjects || [])
+    .filter(s => circleData?.members?.some(m => m.id === s.person_id))
+    .map(s => s.name?.split(' ')[0])
+    .filter(Boolean))];
   const isEstimated = primarySubject?.estimated || primarySubject?.period_source === 'ai';
   const periodDisplay = periodLabel(primarySubject?.period) || 'Family archive';
   const tellerFirst = story.teller?.name?.split(' ')[0] || '';
@@ -583,7 +590,7 @@ export default function StoryView() {
           hasPhoto={Boolean(story.photo_url)}
           onClose={() => setShowPhotoModal(false)}
           onSaved={(res) => {
-            setStory(prev => ({ ...prev, photo_url: res.photo_url, photo_caption: res.photo_caption }));
+            setStory(prev => ({ ...prev, photo_url: res.photo_url, photo_caption: res.photo_caption, photo_added_by: res.photo_added_by }));
             setShowPhotoModal(false);
             showToast('The photo is added to the story.', 'info');
           }}
@@ -658,6 +665,9 @@ export default function StoryView() {
             )}
           </div>
         </div>
+        {chapterPeople.length > 0 && (
+          <p className="story-on-chapters">On the life chapters of: {chapterPeople.join(', ')}</p>
+        )}
       </header>
 
       <div className="story-two-column-showcase">
@@ -776,7 +786,7 @@ export default function StoryView() {
                           title={seekable ? `Listen from ${formatDuration(item.playStart) || '0:00'}` : undefined}
                           style={{ cursor: seekable ? 'pointer' : 'default' }}
                         >
-                          {item.w}{' '}
+                          {item.display}{' '}
                         </span>
                       );
                     })
@@ -798,7 +808,7 @@ export default function StoryView() {
                 fallback={{ title: story.title, period: primarySubject?.period, teller: story.teller?.name }}
               />
               {story.photo_caption && (
-                <figcaption className="photo-caption"><span>{story.photo_caption}</span></figcaption>
+                <figcaption className="photo-caption"><PhotoCaption caption={story.photo_caption} addedBy={story.photo_added_by} /></figcaption>
               )}
             </figure>
           )}

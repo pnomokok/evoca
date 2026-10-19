@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { useApp } from '../../context/useApp';
+import { useDismiss } from '../../utils/useDismiss';
 import FamilyDashboard from './FamilyDashboard';
 import LifelineView from './LifelineView';
 import StoryView from './StoryView';
@@ -7,14 +8,19 @@ import AskQuestionModal from './AskQuestionModal';
 import RecordMemoryModal from './RecordMemoryModal';
 import FamilySettings from './FamilySettings';
 import MyQuestions from './MyQuestions';
-import { BookOpen, Hourglass, ListChecks, MessageSquarePlus, Tv } from 'lucide-react';
+import { BookOpen, Hourglass, ListChecks, MessageSquarePlus, Mic, Plus, Tv } from 'lucide-react';
 
 // The archive's pages under its header (ArchiveHeader): the page comes from the URL (AppContext).
-// Below 768 px the bottom bar holds Journal, Chapters, Questions and Ask.
+// Below 768 px the bottom bar holds Journal, Chapters, Questions and "+" (a small sheet: Ask a
+// question, Record a memory).
 export default function FamilyPanel() {
-  const { panelSubTab, storyBack, navigate, circleData, currentViewerId, isSignedIn, askDialog, openAsk, closeAsk, recordOpen, closeRecord } = useApp();
+  const { panelSubTab, storyBack, navigate, circleData, currentViewerId, isSignedIn, askDialog, openAsk, closeAsk, recordOpen, openRecord, closeRecord } = useApp();
   // Bumped when the ask dialog closes, so My questions shows a question just asked.
   const [askCount, setAskCount] = useState(0);
+  const [addOpen, setAddOpen] = useState(false);
+  const addRef = useRef(null);
+  const closeAdd = useCallback(() => setAddOpen(false), []);
+  useDismiss(addOpen, addRef, closeAdd);
 
   // The center person talks to Evoca on the device; the panel never asks or records for her.
   // Only once the circle data belongs to the current viewer (a switch updates the id first).
@@ -93,13 +99,30 @@ export default function FamilyPanel() {
         )}
 
         {!isCenter && (
-          <button
-            className="mobile-tab-btn action-ask"
-            onClick={() => openAsk()}
-          >
-            <MessageSquarePlus size={18} />
-            <span>Ask</span>
-          </button>
+          <div className="mobile-add" ref={addRef}>
+            <button
+              type="button"
+              className="mobile-tab-btn action-add"
+              onClick={() => setAddOpen(open => !open)}
+              aria-expanded={addOpen}
+              aria-controls="mobile-add-sheet"
+              aria-label="Ask a question or record a memory"
+            >
+              <span className="mobile-add-plus"><Plus size={20} /></span>
+            </button>
+            {addOpen && (
+              <div id="mobile-add-sheet" className="mobile-add-sheet" role="menu">
+                <button type="button" role="menuitem" onClick={() => { closeAdd(); openAsk(); }}>
+                  <MessageSquarePlus size={18} />
+                  <span>Ask a question</span>
+                </button>
+                <button type="button" role="menuitem" onClick={() => { closeAdd(); openRecord(); }}>
+                  <Mic size={18} />
+                  <span>Record a memory</span>
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </nav>
 

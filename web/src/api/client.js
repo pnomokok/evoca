@@ -455,6 +455,13 @@ class EvocaApiClient {
     return handleResponse(res);
   }
 
+  // {archiving}: whether the demo family's archivist is still writing up a story.
+  async getDemoStatus() {
+    const res = await fetch(`${API_BASE_URL}/api/demo/status`);
+    if (res.status === 404) return null;
+    return handleResponse(res);
+  }
+
   async postDemoAdvance(hours) {
     const res = await fetch(`${API_BASE_URL}/api/demo/advance`, {
       method: 'POST',

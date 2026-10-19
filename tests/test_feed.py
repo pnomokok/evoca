@@ -137,6 +137,7 @@ def test_answer_appears_for_asker_after_publishing(w, monkeypatch, tmp_path):
             "duration_ms": 10_000,
             "photo_url": None,
             "photo_caption": None,
+            "photo_added_by": None,
         },
     }
 

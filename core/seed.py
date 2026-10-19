@@ -97,9 +97,9 @@ AUDIO_DIR = Path("data") / "audio"
 # there is not seeded: it is kept for uploading live in the demo video.
 SEED_PHOTOS_DIR = SEED_ASSETS / "photos"
 SEED_PHOTOS = (
-    ("The Mulberry Tree", "mulberry.jpg", "Mom in the village garden, around 1956"),
-    ("The Tailor's Shop", "tailor.jpg", "Mom at the tailor's shop, late 1960s"),
-    ("Father's Workshop", "workshop.jpg", "Her father's workshop, 1950s"),
+    ("The Mulberry Tree", "mulberry.jpg", "Fatma in the village garden, around 1956"),
+    ("The Tailor's Shop", "tailor.jpg", "Fatma at the tailor's shop, late 1960s"),
+    ("Father's Workshop", "workshop.jpg", "Fatma's father's workshop, 1950s"),
 )
 
 

@@ -621,7 +621,7 @@ session's circle), otherwise the same 403 as a non-member. Without it, the viewe
 | `POST /api/auth/logout` | Panel, device | Revokes the current session (bearer only; 401 otherwise). |
 | `GET /api/circle` | Panel | The circle, "me" and members; for an admin each member also has `has_invite` (an active personal link exists). |
 | `GET /api/questions/mine` | Panel | The viewer's own questions, only `waiting` or `answered`: declined questions and questions on a topic the elder refused look `waiting`. `answered` only once the viewer can see the answer's story. An unanswered question that matches a current family topic is not listed, whatever its status. |
-| `GET /api/demo/clock`, `POST /api/demo/advance`, `POST /api/demo/reset` | Demo controls | Only with `EVOCA_DEMO_MODE=1` (otherwise 404). `advance {hours}` (1-72) moves the demo clock and runs the publisher and invitation scheduler at once. `reset` rebuilds the database from the seed, and only if it is `data/demo.db`. |
+| `GET /api/demo/clock`, `GET /api/demo/status`, `POST /api/demo/advance`, `POST /api/demo/reset` | Demo controls | Only with `EVOCA_DEMO_MODE=1` (otherwise 404). `status` is only `{archiving}`: whether the demo circle's archivist is running. `advance {hours}` (1-72) first waits for those runs (up to 90 s; `archive_wait` says `none`, `done` or `timed_out`), so a story told just before keeps its 24-hour window, then moves the demo clock and runs the publisher and invitation scheduler at once. `reset` rebuilds the database from the seed, and only if it is `data/demo.db`. |
 
 ## Background jobs and the demo clock
 

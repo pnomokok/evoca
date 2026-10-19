@@ -6,6 +6,7 @@ import { useDismiss } from '../utils/useDismiss';
 import DemoControls from './DemoControls';
 import PersonPicker from './PersonPicker';
 import Avatar from './Avatar';
+import { useDemoArchiving } from '../utils/useDemoArchiving';
 import { ChevronDown, LogOut, MonitorSmartphone } from 'lucide-react';
 
 // The demo layer: one thin strip above the product on every demo page (never on the landing page,
@@ -17,6 +18,8 @@ export default function DemoStrip() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const panelRef = useRef(null);
+  // Compact strip: the controls (and their "writing up" line) are folded away, so it shows here too.
+  const archiving = useDemoArchiving(!wide && !panelOpen);
   const closePanel = useCallback(() => setPanelOpen(false), []);
   useDismiss(panelOpen, panelRef, closePanel);
 
@@ -68,6 +71,12 @@ export default function DemoStrip() {
             >
               Demo <ChevronDown size={12} />
             </button>
+            {archiving && (
+              <span className="demo-archiving" role="status">
+                <span className="demo-spinner" aria-hidden="true" />
+                Evoca is writing up the story...
+              </span>
+            )}
             {panelOpen && <div id="demo-strip-panel" className="demo-strip-panel">{controls}</div>}
           </div>
         )}

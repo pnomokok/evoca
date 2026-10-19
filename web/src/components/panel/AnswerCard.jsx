@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import PhotoCaption from './PhotoCaption';
 import { useApp } from '../../context/useApp';
 import { useAudioElement } from '../../utils/useAudioElement';
 import { apiClient } from '../../api/client';
@@ -137,7 +138,9 @@ export default function AnswerCard({ item, showQuestion = true }) {
           <p className="answer-asked">You asked: “{item.question.text}”</p>
         )}
         <h3 className="answer-title">{a.story_title}</h3>
-        {a.photo_url && a.photo_caption && <p className="answer-photo-caption">{a.photo_caption}</p>}
+        {a.photo_url && a.photo_caption && (
+          <p className="answer-photo-caption"><PhotoCaption caption={a.photo_caption} addedBy={a.photo_added_by} /></p>
+        )}
 
         {pieces.length > 0 && (
           <div className="answer-player">

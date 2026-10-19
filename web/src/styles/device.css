@@ -64,12 +64,16 @@
   animation: deviceFadeIn 1.2s ease both;
 }
 
+/* Over a photo: a soft dark band on the left keeps the clock, date and title readable on any
+   picture, and the bottom darkens for the controls. */
 .state-idle:has(.device-photo)::before {
   content: '';
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: linear-gradient(180deg, rgba(20, 17, 13, 0.1) 25%, rgba(20, 17, 13, 0.82) 100%);
+  background:
+    linear-gradient(90deg, rgba(20, 17, 13, 0.72) 0%, rgba(20, 17, 13, 0.45) 32%, rgba(20, 17, 13, 0) 62%),
+    linear-gradient(180deg, rgba(20, 17, 13, 0.1) 25%, rgba(20, 17, 13, 0.82) 100%);
 }
 
 .device-screen > .device-main,

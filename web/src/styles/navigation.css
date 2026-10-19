@@ -284,3 +284,29 @@
   margin-left: 8px;
   vertical-align: middle;
 }
+
+/* The demo strip while the archivist writes up a story (DemoControls). */
+.demo-archiving {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: var(--text-helper);
+  color: var(--text-charcoal-muted);
+  white-space: nowrap;
+  margin-right: var(--space-2);
+}
+
+.demo-spinner {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--border-paper-dark);
+  border-top-color: var(--accent-terracotta);
+  animation: demoSpin 1s linear infinite;
+}
+
+@keyframes demoSpin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .demo-spinner { animation: none; }
+}

@@ -193,13 +193,15 @@ def test_seeded_stories_have_their_photos(seed_db):
         mulberry = build_story(db, people["Elif"], _story_id(seed_db, "The Mulberry Tree"))
         tailor = build_story(db, people["Elif"], _story_id(seed_db, "The Tailor's Shop"))
         workshop_id = _story_id(seed_db, "Father's Workshop")
-        assert mulberry["photo_url"] and mulberry["photo_caption"] == "Mom in the village garden, around 1956"
-        assert tailor["photo_url"] and tailor["photo_caption"] == "Mom at the tailor's shop, late 1960s"
+        assert mulberry["photo_url"] and mulberry["photo_caption"] == "Fatma in the village garden, around 1956"
+        assert tailor["photo_url"] and tailor["photo_caption"] == "Fatma at the tailor's shop, late 1960s"
+        # Ayşe added them; the panel says so next to the caption.
+        assert mulberry["photo_added_by"] == tailor["photo_added_by"] == "Ayşe"
         # The pending Workshop is for Ayşe only: Elif sees neither the story nor its photo.
         with pytest.raises(NotFound):
             build_story(db, people["Elif"], workshop_id)
         workshop = build_story(db, people["Ayşe"], workshop_id)
-        assert workshop["photo_caption"] == "Her father's workshop, 1950s"
+        assert workshop["photo_caption"] == "Fatma's father's workshop, 1950s"
         photo_id = workshop["photo_url"].rsplit("/", 1)[-1]
         with pytest.raises(NotFound):
             photo_svc.photo_file(db, people["Elif"], photo_id)

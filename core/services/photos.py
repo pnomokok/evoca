@@ -225,4 +225,4 @@ def delete_photo(db: DbSession, viewer_id: str, story_id: str) -> dict[str, Any]
     db.delete(photo)
     db.commit()
     _remove_file(path)
-    return {"story_id": story.id, "photo_url": None, "photo_caption": None}
+    return {"story_id": story.id, "photo_url": None, "photo_caption": None, "photo_added_by": None}

@@ -127,7 +127,7 @@ Because Elif is a plain member, these samples also show what access control hide
   `caption` (at most 120 characters). Allowed for the story's teller, any person the story is about (a subject) or an
   admin; anyone else who can see the story gets 403. One photo per story: a new upload replaces the old one.
   The server re-encodes it to a JPEG of at most 1600 px and removes all metadata (EXIF, GPS), so the client does not
-  need to. Wrong type, too big or unreadable: 400. Returns `{story_id, photo_url, photo_caption}`.
+  need to. Wrong type, too big or unreadable: 400. Returns `{story_id, photo_url, photo_caption, photo_added_by}`.
 - `DELETE /api/stories/{id}/photo`: the uploader, the teller or an admin. Returns the same shape with nulls.
 - `GET /api/photos/{photo_id}`: the JPEG, `Cache-Control: private, no-store` (the browser keeps no copy, so a photo is gone once the story turns private or hidden). A story the viewer cannot see, or a hidden story,
   gives the same 404 as a missing photo.
@@ -146,7 +146,8 @@ Because Elif is a plain member, these samples also show what access control hide
   so; the client must not guess why. A question that was "not sent" (the filtered response) is not listed.
   `answer_story_id` is set only when `status` is `answered`; open the story page with it.
 - `POST /api/admin/members`: JSON `{"name": "Deniz Yilmaz", "birth_year": 2010, "relation_to_center": "grandson",
-  "role": "member"}` (`role` is `member` or `admin`, default `member`). Returns the new member, the shape of a
+  "role": "member"}` (`role` is `member` or `admin`, default `member`; `birth_year` is optional: missing,
+  `null` or `""` means unknown, a given year must be between 1900 and this year). Returns the new member, the shape of a
   `GET /api/circle` member.
 - `PATCH /api/admin/members/{person_id}`: JSON `{"relation_to_center": "..."}` and/or `{"role": "admin"}`. Returns the member.
 - `DELETE /api/admin/members/{person_id}`: removes the person from the circle only; their stories stay. Returns
@@ -175,9 +176,11 @@ run with `EVOCA_DEMO_MODE=1` (both, or new stories may publish early); otherwise
 anyone on the page can use them (ARCHITECTURE.md "Known limits").
 
 - `GET /api/demo/clock`: `{now, offset_hours}`. `now` is the demo time (UTC ISO 8601), the same as `now` in `GET /api/device/invitation`.
-- `POST /api/demo/advance`: JSON `{"hours": 24}`, between 1 and 72 (otherwise 400). Moves the clock forward, then at once
+- `GET /api/demo/status`: `{archiving}` only: whether the demo family's archivist is still writing up a story.
+- `POST /api/demo/advance`: JSON `{"hours": 24}`, between 1 and 72 (otherwise 400). First waits (up to 90 s) for a story
+  being written up; `archive_wait` in the response is `none`, `done` or `timed_out`. Moves the clock forward, then at once
   publishes stories whose 24 hours are over and runs the invitation scheduler, so the light and the feed change right away.
-  Returns the same shape as `GET /api/demo/clock`. It takes about two seconds (both servers must see the new time).
+  Returns the shape of `GET /api/demo/clock` plus `archive_wait`. It takes about two seconds more (both servers must see the new time).
   After it, refetch the feed, lifeline, invitation and anything else time-dependent.
 - `POST /api/demo/reset`: no body. Rebuilds the whole demo database from the seed (circles made with
   `POST /api/circles` are gone too), sets the clock back (offset 0), ends live
@@ -208,8 +211,8 @@ Some lists are empty for Elif. When they have items, they look like this:
 ## Notes
 
 - Periods carry `estimated: true` when they are an AI guess (`period_source: "ai"`); show the "estimated" label for them.
-- `photo_url` and `photo_caption` are on the story page, on feed story and answer cards and on lifeline story items;
-  both are `null` when the story has no photo (or is hidden). Show a placeholder then.
+- `photo_url`, `photo_caption` and `photo_added_by` (the uploader's first name) are on the story page, on feed story and answer cards and on lifeline story items;
+  all three are `null` when the story has no photo (or is hidden). Show a placeholder then.
 - Each lifeline period has `years: {from, to}`, computed from the person's `birth_year` with fixed ages: childhood 0-12,
   youth 13-22, marriage_early_years 23-30, raising_children 31-45, midlife 46-60, retirement 61+. `to` is `null` for
   retirement and when it lies after the current year; `years` is `null` when the birth year is unknown.

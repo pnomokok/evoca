@@ -354,17 +354,31 @@
 }
 
 .getting-started-step {
-  background: none;
-  border: 0;
-  padding: 6px 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  background: var(--bg-paper-light);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
   text-align: left;
   font: 500 15px var(--font-sans);
   color: var(--text-charcoal);
   cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.getting-started-step:hover { color: var(--accent-terracotta); text-decoration: underline; }
-.getting-started-steps li.done .getting-started-step { color: var(--text-charcoal-muted); text-decoration: line-through; }
+.getting-started-chevron { flex: none; color: var(--text-charcoal-faint); transition: transform 0.15s ease; }
+.getting-started-step:hover { background: var(--accent-terracotta-soft); border-color: rgba(169, 95, 70, 0.25); }
+.getting-started-step:hover .getting-started-chevron { color: var(--accent-terracotta); transform: translateX(2px); }
+.getting-started-step:focus-visible { outline: 2px solid var(--accent-terracotta); outline-offset: 2px; }
+.getting-started-steps li.done .getting-started-step { background: transparent; color: var(--text-charcoal-muted); }
+.getting-started-steps li.done .getting-started-step > span:first-child { text-decoration: line-through; }
+
+/* The dashboard spaces its sections 48 px apart; the card sits closer to the chronicle. */
+.album-dashboard > .getting-started { margin-bottom: -28px; }
 
 /* A row or section the page just scrolled to (utils/focusLater.js). */
 .focus-flash {
@@ -380,5 +394,48 @@
   font-family: var(--font-serif);
   font-style: italic;
   font-size: 14px;
+  color: var(--text-charcoal-muted);
+}
+
+/* Life chapters: whose life (LifelineView). */
+.whose-life {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+
+.whose-life-label {
+  font-size: var(--text-label);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-charcoal-faint);
+}
+
+.whose-life-people { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+
+.whose-life-person {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 0;
+  padding: 4px 6px;
+  border-radius: var(--radius-md);
+  font: 600 12px var(--font-sans);
+  color: var(--text-charcoal-muted);
+  cursor: pointer;
+}
+
+.whose-life-person:hover { background: var(--bg-paper-light); }
+.whose-life-person:focus-visible { outline: 2px solid var(--accent-terracotta); outline-offset: 2px; }
+.whose-life-person.active { color: var(--text-charcoal); }
+
+.story-on-chapters {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-helper);
   color: var(--text-charcoal-muted);
 }
