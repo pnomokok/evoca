@@ -3,7 +3,9 @@
 **A voice-first family memory. Grandma just talks; the whole family listens, asks and remembers with her.**
 
 > Demo video (under 3 min): TODO link
-> Track: Alexa+ (simulated device, real MCP server) · Mini challenges: AWS Builder, Open Source (MIT)
+> Track: Alexa+ (self-hosted MCP server + simulated device) · Mini challenge: AWS Builder · MIT licensed
+
+![The demo stage: on the left Fatma's living room device with its light on and "Elif has a question for you"; on the right Elif's phone showing her question waiting for Fatma's morning chat.](docs/images/stage.webp)
 
 ---
 
@@ -21,8 +23,8 @@ Evoca is an Alexa+-style companion for the elder and a web panel for the rest of
 |---|---|
 | A light comes on at chat time: "Elif has a question for you." | Ask a question; it reaches Grandma in a natural moment of conversation |
 | A warm conversation with real follow-up questions | Hear **just the part of her story that answers you**, in her own voice, with "Maybe give her a call." |
-| "Keep this between us" is honoured, always | A life timeline that fills up, with estimated periods the family can correct |
-| "Play me what I told about the harbour" | Record your own memory of her; it appears on the timeline of everyone it is about |
+| "Keep this between us" is honoured, always | Life chapters for every family member, with estimated periods the family can correct |
+| "Play me what I told about the harbour" | Record your own memory; it appears on the chapters of everyone it is about |
 | Hears the family's reactions: "Elif laughed at your story" | React with ❤️ 😂 😢 🙏, add an old photo, listen from the start |
 
 It is a loop, not a one-way book: question → conversation → her voice → reaction → the next conversation.
@@ -30,14 +32,30 @@ It is a loop, not a one-way book: question → conversation → her voice → re
 **She does not have to be asked.** If Grandma tells the story behind a family question on her own, before the
 companion ever asks it, Evoca recognises the answer and sends it to the person who asked.
 
-**Any family can start.** Set up a circle around one elder, add family members and admins, set sensitive topics
-the companion must never raise, and follow the questions you asked.
-TODO: confirm against the merged web client (circle setup wizard, member management, "My questions").
+![A story page: Fatma's recording, the transcript in her own words, the old photo with its caption, the AI summary and the family's reactions.](docs/images/story.webp)
+
+**Any family can start.**
+
+- **Setup wizard and personal links.** A setup wizard creates the family around one elder. Each person joins with
+  their own invite link: no password, no app.
+- **Members and admins.** Admins add and remove members, make links, and set the elder's chat time.
+- **Sensitive topics.** Admins list subjects the companion must never raise. A question that touches one is held
+  back, but still looks accepted to the person who asked it.
+- **My questions.** Each question shows its journey: asked, waiting for her morning chat, answered. When the answer
+  is published, the asker gets a notification that opens it.
+- **Life chapters for everyone.** Every family member has life chapters, not only the elder. A memory Elif records
+  about her grandmother and herself shows on both their chapters.
+- **Photos.** Anyone who can see a story can add its first photo. Replacing it is up to the teller, a person the
+  story is about, or an admin.
+- **Getting started.** A new family sees its first steps on the journal: connect the elder's device, invite the
+  family, ask the first question.
+
+![The family journal: the newest story with its photo, and the family tree card showing each person's part in the archive and the latest family moments.](docs/images/journal.webp)
 
 ## Who it is for, and why it matters
 
 - **Elders who will never install an app**, but will talk to a voice at the kitchen table. Evoca asks nothing
-  of them except conversation: no screen, no login, no link to tap.
+  of them but conversation: no app, no login, no typing. She talks, and presses one button when she wants to.
 - **Families spread across cities and countries**, who want to know the stories while there is still time to
   ask, and to hear them in her voice, not read a summary.
 - **A reason to come back every day.** Each answer brings a reaction, each reaction brings the next conversation.
@@ -50,6 +68,15 @@ and everything Evoca knows and does sits behind its own MCP server. Alexa+ tools
 yet, so the device is simulated in the browser. Everything behind it is real and runs today: the MCP server,
 both agents, speech-to-text, text-to-speech and the archive. Moving to a real Alexa+ device replaces the
 simulated screen, not the system.
+
+**Track path:**
+
+- **A self-hosted MCP server** ([`mcp_server/server.py`](mcp_server/server.py)) over Streamable HTTP. It negotiates
+  protocol version `2026-07-28`; the rules require `2025-11-25` or later. Checked with
+  [`mcp_server/check_client.py`](mcp_server/check_client.py).
+- **Used at runtime by both agents.** The chat agent and the archivist are MCP clients of that server; every
+  conversation and every archiving run goes through its tools.
+- **A simulated Alexa+ device** in the browser: the screen, the light, push-to-talk and the voice.
 
 ## How it works
 
@@ -104,7 +131,7 @@ flowchart LR
 | `reopen_question` | Archivist's code | A question that was asked but not answered waits for the next conversation |
 | `mark_reactions_delivered` / `set_story_access` | Chat agent and its code | Reactions are told once; she can choose by voice who hears a story |
 
-All 20 tools of [`mcp_server/server.py`](mcp_server/server.py) are listed above; inputs and access rules per tool are
+All 18 tools of [`mcp_server/server.py`](mcp_server/server.py) are listed above; inputs and access rules per tool are
 in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). MCP Python SDK v2 (`mcp` 2.3), Streamable HTTP; client and server
 negotiate protocol version `2026-07-28` (checked with [`mcp_server/check_client.py`](mcp_server/check_client.py)).
 
@@ -136,9 +163,9 @@ Families tell secrets. Evoca treats every privacy promise as something the code 
 
 | What | Result |
 |---|---|
-| Unit and API tests | 612 passed, 1 skipped (`pytest`) |
-| End-to-end demo on real AWS (`scripts/e2e_demo.py`) | 9/9 steps passed in 82 s: seed, admin settings, invitation, device session with a secret and a playlist, archivist, 24-hour publish, reaction, a family recording, next-day opening |
-| Agent evals | 14 chat scenarios and 2 archivist scenarios, table below |
+| Unit and API tests | 699 passed, 1 skipped in 110 s (`pytest`) |
+| End-to-end demo on real AWS (`scripts/e2e_demo.py`) | 9/9 steps passed in 91 s: seed, admin settings, invitation, device session with a secret and a playlist, archivist, 24-hour publish, reaction, a family recording, next-day opening |
+| Agent evals | 17 chat scenarios and 2 archivist scenarios, table below |
 
 **How the agents are evaluated:** a model plays the elder in scripted scenarios (a secret, a refused topic, a
 memory told in pieces), and every run is checked by code rules and a judge model: no private text repeated, no
@@ -150,7 +177,7 @@ judge: Claude Haiku 4.5 on Bedrock):
 | Scenario | Runs | Rule checks | No invented facts | Model | Result |
 |---|---|---|---|---|---|
 | grandmother_basic | 3 | 87/87 | 3/3 | Nova 2 Lite | [prefetch_v1](evals/results/prefetch_v1.md) |
-| asks_to_listen (playlist) | 1 | 24/24 | 1/1 | Nova 2 Lite | [polish_v1](evals/results/polish_v1.md) |
+| asks_to_listen (playlist) | 3 | 72/72 | 2/3 | Nova 2 Lite | [playlist_fixed_x3](evals/results/playlist_fixed_x3.md) |
 | declines_topic | 3 | 87/87 | 3/3 | Nova 2 Lite | [declines_v9](evals/results/declines_v9.md) |
 | avoid_topic_not_raised | 3 | 90/90 | 3/3 | Nova 2 Lite | [prefetch_v1](evals/results/prefetch_v1.md) |
 | private_then_move_on | 1 | 30/30 | 1/1 | Nova 2 Lite | [refused_v1_private](evals/results/refused_v1_private.md) |
@@ -163,6 +190,9 @@ judge: Claude Haiku 4.5 on Bedrock):
 | answers_in_askers_voice | 3 | 88/90 | 2/3 | Nova 2 Lite | [askers_voice_baseline_v1](evals/results/askers_voice_baseline_v1.md) |
 | hard_of_hearing | 1 | 29/29 | 1/1 | Nova 2 Lite | [full_v7](evals/results/full_v7.md) |
 | agent_question_no_asker | 3 | 90/90 | 1/3 | Nova 2 Lite | [prefetch_v1](evals/results/prefetch_v1.md) |
+| reaction_then_agent_question | 3 | 96/96 | 2/3 | Nova 2 Lite | [opening_attribution_after_x3](evals/results/opening_attribution_after_x3.md) |
+| reaction_then_family_question | 3 | 96/96 | 2/3 | Nova 2 Lite | [opening_attribution_after_x3](evals/results/opening_attribution_after_x3.md) |
+| reaction_and_family_question_same_person | 3 | 96/96 | 3/3 | Nova 2 Lite | [opening_attribution_after_x3](evals/results/opening_attribution_after_x3.md) |
 | Archivist: one memory → one story | 3 | 3/3 correct | – | Nova 2 Lite | [split_v3](evals/results/split_v3.md) |
 | Archivist: two memories → two stories | 3 | 3/3 correct | – | Nova 2 Lite | [split_v3](evals/results/split_v3.md) |
 
@@ -178,6 +208,18 @@ companion repeating "your grandfather" to her in 2 of 3 runs, before she says hi
 judge finding with and without the opening prefetch (calling Zehra a childhood friend, which only the simulated elder
 said): 2 of 3 runs with it, 1 of 3 without ([noprefetch_baseline_v1](evals/results/noprefetch_baseline_v1.md)).
 
+**The opening is checked in code.** Who asked a question ("Your granddaughter Elif has a question for you") and how a
+reaction is told ("loved", "laughed at", "was moved by", "was grateful for") are composed in code, and the reply is
+checked afterwards. If the model drops the family lead-in or uses a reaction verb that does not match the emoji, a
+template from the same data replaces the opening. In
+[opening_attribution_after_x3](evals/results/opening_attribution_after_x3.md) the guard replaced the opening in 1 of
+15 runs.
+
+**Playlist checks.** Earlier playlist results were measured with a broken check: a stray backspace character where
+`\b` belonged meant the "does not retell" and "unseen story" checks could never fail. `asks_to_listen` above is a
+fresh run with the fixed checks. `get_linked_playlist` was called in all 3 runs. In the run the judge marked as
+inventing facts, every detail it listed was said by the simulated elder, not the companion.
+
 **Latency per voice turn** (measured on every turn and shown next to the device screen):
 
 | Stage | Median |
@@ -187,8 +229,8 @@ said): 2 of 3 runs with it, 1 of 3 without ([noprefetch_baseline_v1](evals/resul
 | Text-to-speech | 0.26 s |
 | Total | 6.3 s |
 
-Median of the three voice turns in one `scripts/e2e_demo.py` run: Whisper small.en on a local CPU, Nova 2 Lite in
-us-east-1, Polly standard engine in eu-north-1.
+Median of the three voice turns in one earlier `scripts/e2e_demo.py` run (the latest run prints only per-turn
+totals): Whisper small.en on a local CPU, Nova 2 Lite in us-east-1, Polly standard engine in eu-north-1.
 
 Every turn also returns a **tool-call trace** (tool, input, short result, duration) shown beside the device.
 
@@ -197,7 +239,7 @@ Every turn also returns a **tool-call trace** (tool, input, short result, durati
 | | Used for |
 |---|---|
 | **Amazon Bedrock** (Nova 2 Lite, Converse API) | Both agents, privacy, answer and refusal checkers |
-| **Amazon Polly** | The companion's voice |
+| **Amazon Polly** | The companion's voice, and Fatma's voice in the demo's sample answers |
 | **Model Context Protocol** (Python SDK v2) | Evoca MCP server and the agents' MCP client |
 | **Kiro** | Development environment and agent for the backend foundation; steering rules shared by every coding agent |
 | **Claude Code** | Implementation and the `privacy-reviewer` subagent |
@@ -240,15 +282,21 @@ To change defaults (Regions, voice, models), copy `.env.example` to `.env`; `run
 The first start downloads the speech-to-text model (Whisper small.en, about 460 MB, into `data/hf-cache`) and can
 take a few minutes.
 
-**Demo controls** (demo mode only): move the clock forward to chat time or past the 24-hour window, and reset the
-demo family, from the web client or `POST /api/demo/advance` and `POST /api/demo/reset`.
-TODO: the web client buttons come with the unmerged web client; on `main` only the API exists.
+**The demo strip** (demo mode only) runs along the top of every demo page:
+
+- **Person picker** ("Viewing as Elif"): open the archive as any family member.
+- **Clock controls**: "+1 hour", "Next morning" (to the elder's chat time) and "+1 day" (past the 24-hour window).
+- **Reset**: start the demo family over.
+- **Guide**: start the guided tour.
+- "Watch the loop" (the stage) and "Exit demo".
+
+The same clock and reset are `POST /api/demo/advance` and `POST /api/demo/reset`.
 
 **Whole demo without a browser:** `python scripts/e2e_demo.py`.
 
 ## Try it
 
-The demo family is fictional. Its story photos and the landing page images are AI-generated (TODO(tool)).
+The demo family is fictional. Its story photos and the landing page images are AI-generated with ChatGPT.
 
 **Recommended: the guided tour.** Open http://localhost:5173, choose "Try the demo", then "Watch the loop"
 (`/demo/loop`): Fatma's living room device and her granddaughter Elif's phone, side by side. The guide starts by
@@ -272,7 +320,7 @@ for real. The clips are Amazon Polly in Fatma's voice (`scripts/make_demo_audio.
 answering yourself always works too.
 
 **On your own:** "Explore as a family member" (person picker) opens the archive as anyone in the family. As **Ayşe**
-(admin), add a sensitive topic and see a question about it filtered. As **Fatma** on the device, try "keep this
+(admin), add a sensitive topic and see a question about it filtered. As **Fatma** on the device (with a microphone), try "keep this
 between us" and "play me the story about the mulberry tree".
 
 No account is needed: the demo entry is for judging only (see Known limits).
@@ -282,8 +330,10 @@ No account is needed: the demo entry is for judging only (see Known limits).
 What we chose not to build for the hackathon, and what we know is not solved yet. Each line: the limit, then what
 we do about it or would do next.
 
-- **No sign-in.** The demo trusts the person and circle headers, so anyone with a circle's id can open the panel as
-  any member; next: personal invite links or sign-in before any real family uses it.
+- **Personal links are the only sign-in, and the demo has none.** Real families sign in with personal invite links:
+  only token hashes are stored, and a new link revokes the old one. Whoever has a link is that person, so it should be
+  shared privately. In demo mode the person picker can open the archive as anyone, by design, for judging; the
+  `X-Person-Id`/`X-Circle-Id` headers are trusted only in demo mode.
 - **Demo controls are open to everyone in demo mode.** Anyone on the page can move the clock or reset the demo, and
   moving past 24 hours shortens the time to hide a story; `EVOCA_DEMO_MODE` stays off outside the demo.
 - **Refused topics are matched by words.** An indirect reference (asking about a sister after she refused to talk
@@ -291,8 +341,9 @@ we do about it or would do next.
 - **The privacy check is a model's judgment.** An indirect request ("leave this out of the family book") can be
   missed, and an explicit "keep this between us" can hide a harmless story too; we accept losing a story over
   leaking a secret.
-- **The archivist sometimes splits one memory.** Code merges stories that overlap and share a life period; two short,
-  separate memories told back to back in the same period can be merged by mistake.
+- **Story boundaries are a judgement.** Code merges a memory the model split in two when the parts share a life
+  period. A short, separate memory told right next to another one in the same period can be merged into it, and
+  the archivist can leave a short sentence out of a story.
 - **Hiding a story cannot be undone in the app.** An accidental hide is reversed only in the database; next: let the
   person who hid it undo it.
 
@@ -302,13 +353,13 @@ we do about it or would do next.
   and two versions of the same story are kept side by side.
 - **More languages:** the data model already stores each person's language; multilingual speech-to-text and Polly
   voices would let a grandmother tell her stories in her own language.
-- Real Alexa+ devices once third-party tools open; personal invite links and sign-in.
+- Real Alexa+ devices once third-party tools open.
 - When an elder passes away, the circle becomes a memorial archive; private parts stay private forever.
 
 ## Team
 
-- Zeynep Sude Kilecioğlu: backend, agents, MCP server
-- Aleyna Karaağaç: web client and design
+- Zeynep Sude Kilecioğlu: backend, agents, MCP server and web integration
+- Aleyna Karaağaç: web client, design and web integration
 
 ## License
 
