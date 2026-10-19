@@ -134,11 +134,11 @@ export default function LandingPage({ isSignedIn, onTryDemo, onCreateFamily, onO
             >
               <path d="M0 12h50c4 0 6-6 10-6s6 12 10 12 6-16 10-16 6 20 10 20 6-14 10-14 6 8 10 8 6-4 10-4h120" />
             </svg>
-            <span className="hero-badge-text">A Voice-First Living Memory</span>
+            <span className="hero-badge-text">A voice-first family memory</span>
           </div>
 
           <h1 className="hero-title">
-            A voice-first family memory. Grandma just talks; the whole family listens, asks and remembers with her.
+            Grandma just talks. The whole family listens.
           </h1>
 
           <p className="hero-description">

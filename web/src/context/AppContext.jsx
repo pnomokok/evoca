@@ -308,7 +308,10 @@ export function AppProvider({ children, initialTab = 'landing', initialPanelSubT
   const closeAsk = useCallback(() => setAskDialog(null), []);
   const openRecord = useCallback(() => setRecordOpen(true), []);
   const closeRecord = useCallback(() => setRecordOpen(false), []);
-  const startTour = useCallback(({ skipReset = false } = {}) => setTourRun(t => ({ run: (t?.run ?? 0) + 1, skipReset })), []);
+  const startTour = useCallback(({ skipReset = false } = {}) => {
+    apiClient.markTourSeen();
+    setTourRun(t => ({ run: (t?.run ?? 0) + 1, skipReset }));
+  }, []);
   const closeTour = useCallback(() => setTourRun(null), []);
 
   // Demo controls: move the clock, then reload people, circle and invitation, and let every view refetch.

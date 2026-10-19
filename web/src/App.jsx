@@ -63,7 +63,7 @@ function AnswerToast() {
 
 // The landing page; its demo buttons open the demo modal, which leads to the stage or the person picker.
 function Landing() {
-  const { isSignedIn, openCreateFamily, openHome, navigate } = useApp();
+  const { isSignedIn, openCreateFamily, openHome, navigate, startTour } = useApp();
   const [demoStep, setDemoStep] = useState(null); // null | 'entry' | 'picker'
 
   return (
@@ -80,7 +80,7 @@ function Landing() {
       {demoStep === 'entry' && (
         <DemoEntryModal
           onClose={() => setDemoStep(null)}
-          onWatchLoop={() => { setDemoStep(null); navigate({ tab: 'stage' }); }}
+          onWatchLoop={() => { setDemoStep(null); navigate({ tab: 'stage' }); startTour(); }}
           onExplore={() => setDemoStep('picker')}
         />
       )}
