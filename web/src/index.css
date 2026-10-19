@@ -2247,20 +2247,16 @@ h1, h2, h3, h4, .serif-font {
     color: var(--accent-terracotta);
   }
 
-  /* "+": Ask a question or Record a memory, in a small sheet above the bar. */
+  /* "+": Ask a question or Record a memory, in a small sheet above the bar. A bar item like the
+     others (icon and label), inside the bar, never over the content. */
   .mobile-add { position: relative; display: flex; }
-  /* Nothing asked yet: the composer is the way to ask, and the "+" would cover its Send. */
-  .app-container:has(.first-question-composer) .mobile-add { display: none; }
 
   .mobile-add-plus {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
+    width: 18px;
+    height: 18px;
     display: grid;
     place-items: center;
-    background: var(--accent-terracotta);
-    color: #fff;
-    box-shadow: 0 4px 12px rgba(169, 95, 70, 0.3);
+    color: var(--accent-terracotta);
   }
 
   .mobile-tab-btn.action-add[aria-expanded="true"] .mobile-add-plus { transform: rotate(45deg); }

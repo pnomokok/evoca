@@ -119,6 +119,31 @@
   line-height: 1.4;
 }
 
+/* Step 5 while the story is written up: a small indeterminate bar. */
+.tour-progress {
+  display: block;
+  position: relative;
+  height: 3px;
+  margin-top: 10px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--accent-terracotta-soft);
+}
+.tour-progress::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 35%;
+  border-radius: 2px;
+  background: var(--accent-terracotta);
+  animation: tourProgress 1.4s ease-in-out infinite;
+}
+@keyframes tourProgress {
+  from { left: -35%; }
+  to { left: 100%; }
+}
+
 .tour-card-hint {
   margin: 6px 0 0;
   font-size: var(--text-helper, 13px);
@@ -171,6 +196,7 @@
 @media (prefers-reduced-motion: reduce) {
   .tour-scrim { transition: none; }
   .tour-glow { animation: none; box-shadow: 0 0 18px rgba(240, 178, 140, 0.45); }
+  .tour-progress::after { animation: none; left: 0; width: 100%; opacity: 0.5; }
 }
 
 /* The reset dialog's "Then start the guided tour" */

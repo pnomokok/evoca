@@ -315,7 +315,9 @@
    My questions page is compact, so its Send shows without scrolling. */
 [data-embed="panel"] .app-container { padding-bottom: 64px; }
 [data-embed] [data-tour] { scroll-margin-top: 16px; scroll-margin-bottom: 70px; }
-[data-embed="panel"] .my-questions-page .section-header-editorial { margin-bottom: var(--space-3); }
+[data-embed="panel"] .my-questions-page .section-header-editorial { margin-bottom: var(--space-3); gap: 2px; }
+[data-embed="panel"] .my-questions-page .section-title-serif { font-size: 26px; }
+[data-embed="panel"] .my-questions-page .section-header-editorial .section-desc { display: none; }
 [data-embed="panel"] .first-question-composer { padding: var(--space-3); gap: var(--space-2); }
 [data-embed="panel"] .first-question-composer .archival-textarea { min-height: 0; resize: none; }
 

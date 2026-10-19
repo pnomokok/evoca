@@ -12,6 +12,7 @@ const LAYOUT_MS = 200;
 const SETTLE_MS = 300;               // conditions must hold this long before the step moves on
 const MEASURE_GIVE_UP_MS = 2500;     // no visible targets by then: the card shows without a spotlight
 const SESSION_REPLY_MS = 600;
+const STATUS_FRESH_MS = 1500;        // step 5 trusts "not writing" only from a status read this long after it began
 const DAY_MS = 24 * 3600_000;
 const GAP = 18;
 const EDGE = 12;
@@ -24,27 +25,28 @@ const STEPS = [
     dockedHint: 'Open Demo at the top, then press Next morning.', done: 'chat time reached' },
   { text: "Press Talk. Evoca brings up Elif's question at the right moment.", done: 'conversation started' },
   { text: 'Answer as Fatma: speak, or use a sample answer. Say goodbye when you are done.', done: 'conversation ended' },
-  { text: 'Evoca writes up the story and finds the part that answers Elif. The family has 24 hours to hide it before it is shared.',
-    hint: 'Press +1 day.', dockedHint: 'Open Demo at the top and press +1 day.', done: 'question answered' },
+  { text: "The story is ready. Press +1 day to skip the family's 24-hour window.",
+    dockedHint: 'Open Demo at the top first.', done: 'question answered' },
   { text: "Elif hears the answer in Grandma's own voice. React to it.", done: 'reaction made' },
   { text: 'The next morning, Grandma hears it too.', hint: 'Press Next morning, then Talk.',
     dockedHint: 'Open Demo at the top, press Next morning, then Talk.', done: 'next morning opening heard' },
 ];
 const END = STEPS.length;
-const WRITING = 'Evoca is writing up the story...';
+const WRITING = 'Evoca is writing up the story from the conversation. This takes about half a minute; wait before moving the clock.';
 const NO_ANSWER = "Evoca didn't find an answer to Elif's question in this conversation. Talk again the next morning, or skip this step.";
 
 // Each step's one set of targets, fixed while the step shows: [{ place, names }], the card points at
 // the first. place: a pane ('panel', 'device') or the demo strip. Below 1100 px the clock buttons are
-// folded into the strip's Demo menu, so the menu button stands in for them.
-function stepTargets(step, docked) {
+// folded into the strip's Demo menu, so the menu button stands in for them. Step 5 has two phases:
+// while the story is written up nothing is highlighted, then "+1 day".
+function stepTargets(step, docked, writing) {
   const clock = (name) => ({ place: 'strip', names: [docked ? 'demo-menu' : name] });
   switch (step) {
     case 0: return [{ place: 'panel', names: ['ask'] }];
     case 1: return [clock('next-morning')];
     case 2: return [{ place: 'device', names: ['talk'] }];
     case 3: return [{ place: 'device', names: ['answer'] }];      // Hold, and the sample answer or its note
-    case 4: return [clock('plus-day')];
+    case 4: return writing ? [] : [clock('plus-day')];
     case 5: return [{ place: 'panel', names: ['answer-card'] }];  // play and the reactions
     case 6: return [clock('next-morning'), { place: 'device', names: ['talk'] }];
     default: return [];
@@ -67,7 +69,7 @@ function flagsReducer(flags, action) {
   }
 }
 
-const NO_FACTS = { questionExists: false, answered: false, reacted: false, clockMoved: false, lightOn: false, archiving: false, now: 0 };
+const NO_FACTS = { questionExists: false, answered: false, reacted: false, clockMoved: false, lightOn: false, archiving: false, now: 0, fetchedAt: 0 };
 
 // Each transition in dev builds: from, to, why.
 function logTransition(from, to, reason) {
@@ -140,6 +142,7 @@ export default function GuidedTour({ skipReset = false, centerId, askerId, onExp
   const [facts, setFacts] = useState(NO_FACTS);
   const [flags, dispatch] = useReducer(flagsReducer, NO_FLAGS);
   const [step, setStep] = useState(0);
+  const [stepAt, setStepAt] = useState(0);         // when the current step began (ms)
   const [paneRects, setPaneRects] = useState({});   // pane -> { key, rects, visible }, in the pane's viewport
   const [layout, setLayout] = useState(null);       // { key, spots, card }
   const cardRef = useRef(null);
@@ -202,6 +205,7 @@ export default function GuidedTour({ skipReset = false, centerId, askerId, onExp
       clockMoved: Number(clock?.offset_hours) > 0,
       archiving: Boolean(status?.archiving),
       now: clock?.now ? new Date(clock.now).getTime() : 0,
+      fetchedAt: Date.now(),
     });
   }, [centerId, askerId]);
 
@@ -243,6 +247,7 @@ export default function GuidedTour({ skipReset = false, centerId, askerId, onExp
     const timer = setTimeout(() => {
       logTransition(step, next, STEPS.slice(step, next).map(s => s.done).join(', '));
       setStep(next);
+      setStepAt(Date.now());
     }, SETTLE_MS);
     return () => clearTimeout(timer);
   }, [phase, step, conditionKey]);
@@ -250,16 +255,18 @@ export default function GuidedTour({ skipReset = false, centerId, askerId, onExp
   const skip = () => {
     logTransition(step, step + 1, 'skipped');
     setStep(step + 1);
+    setStepAt(Date.now());
   };
 
   const running = phase === 'running';
   const current = running && step < END ? STEPS[step] : null;
-  const targets = current ? stepTargets(step, docked) : [];
-  // The key names the step's target set; it changes only with the step (or docking).
-  const key = current ? `${step}|${JSON.stringify(targets)}` : '';
   const noAnswer = step === 4 && flags.endClock != null && !facts.answered && !facts.archiving
     && facts.now - flags.endClock >= DAY_MS;
-  const writing = step === 4 && facts.archiving;
+  // Step 5 waits for the write-up: until a status read since the step began says it is done.
+  const writing = step === 4 && !noAnswer && (facts.archiving || facts.fetchedAt < stepAt + STATUS_FRESH_MS);
+  const targets = current ? stepTargets(step, docked, writing) : [];
+  // The key names the step's target set; it changes only with the step (or docking).
+  const key = current ? `${step}|${JSON.stringify(targets)}` : '';
   const text = noAnswer ? NO_ANSWER : writing ? WRITING : current?.text;
   const hint = noAnswer || writing ? null : (docked && current?.dockedHint) || current?.hint;
 
@@ -322,7 +329,7 @@ export default function GuidedTour({ skipReset = false, centerId, askerId, onExp
       const alone = { left: (vw - w) / 2, top: vh - h - 24, arrow: null };
       setLayout(prev => {
         let next;
-        if (!current) {
+        if (!current || !targets.length) {
           next = { key, spots: [], card: alone };
         } else if (!spots) {
           // Not measured (yet), or gone out of sight within the step (a pane scrolls it back): no
@@ -391,6 +398,7 @@ export default function GuidedTour({ skipReset = false, centerId, askerId, onExp
     label = `Guide · step ${step + 1} of ${END}`;
     body = <>
       <p id="tour-card-text" className="tour-card-text">{text}</p>
+      {writing && <span className="tour-progress" role="progressbar" aria-label="Writing up the story" />}
       {hint && <p className="tour-card-hint">{hint}</p>}
     </>;
     // While a conversation runs, step 4 ends it for you instead of skipping.
