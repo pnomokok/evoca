@@ -250,13 +250,30 @@ TODO: the web client buttons come with the unmerged web client; on `main` only t
 
 The demo family is fictional. Its story photos and the landing page images are AI-generated (TODO(tool)).
 
-TODO: rewrite after the web client's demo entry and guided tour are merged. Current flow:
+**Recommended: the guided tour.** Open http://localhost:5173, choose "Try the demo", then "Watch the loop"
+(`/demo/loop`): Fatma's living room device and her granddaughter Elif's phone, side by side. The guide starts by
+itself on the first visit ("Guide" in the demo strip starts it again) and walks through the whole loop in about
+three minutes:
 
-1. As **Elif** (granddaughter), ask Grandma a question.
-2. As **Ayşe** (admin), add a sensitive topic and see a question about it filtered.
-3. Open the **device screen** as **Fatma**, press to talk, and answer. Try "keep this between us" and
-   "play me the story about the mulberry tree".
-4. Move the demo clock past 24 hours; as Elif, hear the answer in Fatma's voice and react.
+1. Elif asks Grandma a question on her phone.
+2. "Next morning" moves the demo clock to chat time, and the device's light comes on.
+3. Talk: Evoca brings up Elif's question; the MCP tools it calls appear below the device.
+4. Fatma answers, then says goodbye.
+5. The archivist writes up the story and finds the part that answers Elif; "+1 day" passes the 24 hours the family
+   has to hide it.
+6. Elif hears the answer in Fatma's own voice and reacts.
+7. The next morning, Fatma hears about the reaction.
+
+Each step moves on by itself when it happens, or with Next.
+
+**No microphone needed.** When Evoca asks the tour's question, "Use a sample answer" on the device plays Fatma's
+answer and sends that same audio exactly as a recording, so speech-to-text, the companion and the archivist all run
+for real. The clips are Amazon Polly in Fatma's voice (`scripts/make_demo_audio.py`). Holding the microphone and
+answering yourself always works too.
+
+**On your own:** "Explore as a family member" (person picker) opens the archive as anyone in the family. As **Ayşe**
+(admin), add a sensitive topic and see a question about it filtered. As **Fatma** on the device, try "keep this
+between us" and "play me the story about the mulberry tree".
 
 No account is needed: the demo entry is for judging only (see Known limits).
 

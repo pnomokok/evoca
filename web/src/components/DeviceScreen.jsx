@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/useApp';
 import { useAudioElement } from '../utils/useAudioElement';
 import { apiClient } from '../api/client';
-import { announceChange } from '../utils/stageChannel';
+import { announceChange, sendTour } from '../utils/stageChannel';
+import { SAMPLE_ANSWERS, isSuggestedQuestion } from '../utils/tour';
 import { playChime, primeChime } from '../utils/chime';
 import Avatar from './Avatar';
 import { Mic, Volume2, Square, Lock, Sparkles } from 'lucide-react';
@@ -54,7 +55,7 @@ function DeviceCard({ card, members }) {
 }
 
 // The trace and latency of each turn, in the technical style: for the judges, outside the device.
-function TracePanel({ turns }) {
+function TracePanel({ turns, tourMark }) {
   const last = turns[turns.length - 1];
   const earlier = turns.slice(0, -1);
   const rows = (turn) => (turn.trace || []).length === 0
@@ -79,7 +80,7 @@ function TracePanel({ turns }) {
   );
 
   return (
-    <section className={`trace-panel ${last ? '' : 'empty'}`} data-testid="trace-panel" aria-label="What Evoca did">
+    <section className={`trace-panel ${last ? '' : 'empty'}`} data-testid="trace-panel" aria-label="What Evoca did" data-tour={tourMark}>
       <div className="trace-head">
         <span>What Evoca did · MCP tools</span>
         <span>{last ? `turn ${turns.length}` : 'no tool calls yet'}</span>
@@ -113,6 +114,9 @@ export default function DeviceScreen() {
   const [deviceError, setDeviceError] = useState(null);
   // "This stays between us": shown for a few seconds after a turn that kept something private.
   const [privacyMoment, setPrivacyMoment] = useState(false);
+  // The guided tour's sample answers: the next clip to send, and whether one is playing.
+  const [sampleIndex, setSampleIndex] = useState(0);
+  const [sampling, setSampling] = useState(false);
   // Photos of stories the center person can see, for the idle screen.
   const [photoItems, setPhotoItems] = useState([]);
   const [photo, setPhoto] = useState({ path: null, src: null });
@@ -203,6 +207,7 @@ export default function DeviceScreen() {
     if (mediaRecorderRef.current?.state === 'recording') mediaRecorderRef.current.stop();
     setIsRecording(false);
     setIsPlayingAudio(false);
+    setSampling(false);
     setTurns([]);
     setDeviceError(null);
     setPhase('idle');
@@ -302,6 +307,7 @@ export default function DeviceScreen() {
     setPhase('starting');
     setDeviceError(null);
     setTurns([]);
+    setSampleIndex(0);
     try {
       const turn = await apiClient.postDeviceSessionStart(centerPersonId);
       session.centerId = centerPersonId;
@@ -313,7 +319,8 @@ export default function DeviceScreen() {
         session.id = turn.session_id;
         setPhase('active');
       }
-      playTurnAudio(turn);
+      sendTour({ kind: 'event', name: 'session_start' });
+      playTurnAudio(turn).then(() => sendTour({ kind: 'event', name: 'opening_played' }));
     } catch (err) {
       console.error('Device session start failed:', err);
       setDeviceError("Evoca couldn't start just now. Please tap Talk again.");
@@ -341,8 +348,9 @@ export default function DeviceScreen() {
     }
   };
 
-  // Submit a spoken turn (POST /api/device/turn multipart: audio + session_id, no text field)
-  const submitTurn = async (audioBlob) => {
+  // Submit a spoken turn (POST /api/device/turn multipart: audio + session_id, no text field).
+  // beforeReply: a sample answer still playing; the reply waits for it.
+  const submitTurn = async (audioBlob, beforeReply = null) => {
     const session = sessionRef.current;
     if (!audioBlob || audioBlob.size === 0 || !session.id) {
       setBusy(false);
@@ -351,6 +359,7 @@ export default function DeviceScreen() {
     setBusy(true);
     try {
       const turn = await apiClient.postDeviceTurn(audioBlob, session.id, centerPersonId);
+      if (beforeReply) await beforeReply;
       addTurn(turn);
       if (turn.session_open === false) {
         session.id = null;
@@ -394,6 +403,47 @@ export default function DeviceScreen() {
     }
   };
 
+  // The guided tour's "Use a sample answer": the next clip plays aloud and the same audio goes to
+  // POST /api/device/turn as a recording would, so speech-to-text and the companion run for real.
+  const playSample = async () => {
+    const url = SAMPLE_ANSWERS[sampleIndex];
+    if (!url || phase !== 'active' || busy || isRecording || isPlayingAudio || sampling) return;
+    primeChime();
+    setSampling(true);
+    let blob;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`sample answer: ${res.status}`);
+      blob = await res.blob();
+    } catch (err) {
+      console.warn(err);
+      setSampling(false);
+      showToast("The sample answer isn't available.", 'error');
+      return;
+    }
+    setSampleIndex(i => i + 1);
+    const heard = new Promise(resolve => {
+      const src = URL.createObjectURL(blob);
+      let finished = false;
+      const done = () => {
+        if (finished) return;
+        finished = true;
+        getPlayer().onpause = null;
+        URL.revokeObjectURL(src);
+        setSampling(false);
+        resolve();
+      };
+      const player = getPlayer();
+      // A pause (a demo reset stops the player) ends it too, so the reply never waits forever.
+      player.onended = done;
+      player.onpause = done;
+      player.onerror = done;
+      player.src = src;
+      player.play().catch(done);
+    });
+    await submitTurn(blob, heard);
+  };
+
   // Recording stops: a soft chime, and the screen shows it is thinking until the reply arrives.
   const stopRecording = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
@@ -414,7 +464,7 @@ export default function DeviceScreen() {
   // One state on the screen at a time.
   const invitationOn = Boolean(invitationData?.active);
   const screenState =
-    isRecording ? 'listening'
+    (isRecording || sampling) ? 'listening'
       : (phase === 'starting' || busy) ? 'thinking'
         : (isPlayingAudio || (phase === 'active' && lastTurn?.reply_text)) ? 'speaking'
           : invitationOn ? 'invitation' : 'idle';
@@ -429,6 +479,13 @@ export default function DeviceScreen() {
   const caption = lastTurn?.reply_text || '';
   const showPhoto = Boolean(photoSrc) && screenState === 'idle';
   const showTrace = turns.length > 0 || Boolean(apiClient.embed);
+
+  // The sample answers belong to the tour's question: offered only when it was asked in this session.
+  const tourQuestionAsked = turns.some(t => (t.cards || []).some(c => c.type === 'question' && isSuggestedQuestion(c.text)));
+  const canSample = tourQuestionAsked && sampleIndex < SAMPLE_ANSWERS.length;
+  const showSample = canSample && !busy && !isRecording && !isPlayingAudio && !sampling;
+  // The tour rings Goodbye too once the next sample is the goodbye, or after two spoken answers.
+  const ringGoodbye = canSample ? sampleIndex >= SAMPLE_ANSWERS.length - 1 : turns.length > 2;
 
   return (
     <div className={`device-stack ${apiClient.embed ? 'embedded' : ''}`}>
@@ -495,16 +552,24 @@ export default function DeviceScreen() {
                   onPointerDown={startRecording}
                   onPointerUp={stopRecording}
                   onPointerLeave={() => isRecording && stopRecording()}
-                  disabled={busy || isPlayingAudio}
+                  disabled={busy || isPlayingAudio || sampling}
                   aria-label={isRecording ? 'Listening, let go to finish' : 'Hold to speak'}
+                  data-tour={canSample ? undefined : 'answer'}
                 >
                   <span className="device-ring" aria-hidden="true" />
                   <Mic size={30} />
                   <span className="device-talk-label">{isRecording ? 'Listening' : 'Hold'}</span>
                 </button>
+                {showSample && (
+                  <button type="button" className="device-quiet-btn sample" onClick={playSample} data-tour="answer">
+                    Use a sample answer
+                  </button>
+                )}
                 <div className="device-side right">
-                  {!isRecording && (
-                    <button type="button" className="device-quiet-btn" onClick={handleGoodbye}>Goodbye</button>
+                  {!isRecording && !sampling && (
+                    <button type="button" className="device-quiet-btn" onClick={handleGoodbye} data-tour={ringGoodbye ? 'answer' : undefined}>
+                      Goodbye
+                    </button>
                   )}
                 </div>
               </>
@@ -515,6 +580,7 @@ export default function DeviceScreen() {
                 onClick={handleTalk}
                 disabled={phase === 'starting' || !viewerReady || !centerPersonId}
                 aria-label="Talk: Alexa, what's new?"
+                data-tour={phase === 'starting' ? undefined : 'talk'}
               >
                 <span className="device-ring" aria-hidden="true" />
                 <span className="device-talk-label big">Talk</span>
@@ -531,7 +597,8 @@ export default function DeviceScreen() {
         </div>
       </div>
 
-      {showTrace && <TracePanel turns={turns} />}
+      {/* While the session starts, the tour's "Talk" step points at the tool trace. */}
+      {showTrace && <TracePanel turns={turns} tourMark={phase === 'idle' ? undefined : 'talk'} />}
     </div>
   );
 }

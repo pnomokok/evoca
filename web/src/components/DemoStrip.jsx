@@ -7,13 +7,13 @@ import DemoControls from './DemoControls';
 import PersonPicker from './PersonPicker';
 import Avatar from './Avatar';
 import { useDemoArchiving } from '../utils/useDemoArchiving';
-import { ChevronDown, LogOut, MonitorSmartphone } from 'lucide-react';
+import { ChevronDown, Compass, LogOut, MonitorSmartphone } from 'lucide-react';
 
 // The demo layer: one thin strip above the product on every demo page (never on the landing page,
 // never when signed in). The only place to switch person, open the stage, move the clock or leave the demo.
 // Below 768 px it collapses to one "Demo" button that opens the same controls.
 export default function DemoStrip() {
-  const { activeTab, navigate, circleData, peopleList, currentViewerId } = useApp();
+  const { activeTab, navigate, circleData, peopleList, currentViewerId, startTour } = useApp();
   const wide = useMediaQuery('(min-width: 769px)');
   const [pickerOpen, setPickerOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -30,6 +30,8 @@ export default function DemoStrip() {
 
   const go = (route) => { setPanelOpen(false); navigate(route); };
   const openPicker = () => { setPanelOpen(false); setPickerOpen(true); };
+  // The guided tour lives on the stage: open it there and start from step 1.
+  const openGuide = () => { go({ tab: 'stage' }); startTour(); };
 
   const controls = <>
     <button type="button" className="demo-strip-btn viewer" onClick={openPicker} aria-haspopup="dialog">
@@ -46,6 +48,10 @@ export default function DemoStrip() {
     >
       <MonitorSmartphone size={14} />
       <span>Watch the loop</span>
+    </button>
+    <button type="button" className="demo-strip-btn" onClick={openGuide}>
+      <Compass size={14} />
+      <span>Guide</span>
     </button>
     <DemoControls inline={onStage || !wide} />
     <button type="button" className="demo-strip-btn quiet" onClick={() => go(LANDING)}>
@@ -68,11 +74,12 @@ export default function DemoStrip() {
               onClick={() => setPanelOpen(open => !open)}
               aria-expanded={panelOpen}
               aria-controls="demo-strip-panel"
+              data-tour="demo-menu"
             >
               Demo <ChevronDown size={12} />
             </button>
             {archiving && (
-              <span className="demo-archiving" role="status">
+              <span className="demo-archiving" role="status" data-tour="archiving">
                 <span className="demo-spinner" aria-hidden="true" />
                 Evoca is writing up the story...
               </span>

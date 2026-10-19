@@ -12,11 +12,13 @@ const CLOCK_REFRESH_MS = 60_000;
 // Rendered only in demo mode: a 404 from the clock hides it.
 // inline: the stage's bar, with every action as a visible button instead of a menu.
 export default function DemoControls({ inline = false }) {
-  const { circleData, demoAdvance, demoReset, showToast, isSignedIn } = useApp();
+  const { circleData, demoAdvance, demoReset, showToast, isSignedIn, activeTab, navigate, startTour } = useApp();
   const [clock, setClock] = useState(null);
   const [demoMode, setDemoMode] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  // The reset dialog offers to start the guided tour again (ticked on the stage).
+  const [tourAfterReset, setTourAfterReset] = useState(false);
   const [busy, setBusy] = useState(false);
   const menuRef = useRef(null);
 
@@ -75,15 +77,25 @@ export default function DemoControls({ inline = false }) {
   ));
   const busyLabel = archiving ? 'Waiting for the story...' : 'Moving time...';
   const writing = archiving && (
-    <span className="demo-archiving" role="status">
+    <span className="demo-archiving" role="status" data-tour="archiving">
       <span className="demo-spinner" aria-hidden="true" />
       Evoca is writing up the story...
     </span>
   );
 
+  const openReset = () => {
+    setMenuOpen(false);
+    setTourAfterReset(activeTab === 'stage');
+    setConfirmReset(true);
+  };
+
   const handleReset = async () => {
     setConfirmReset(false);
     await run(demoReset, 'The demo has started over');
+    if (tourAfterReset) {
+      if (activeTab !== 'stage') navigate({ tab: 'stage' });
+      startTour();
+    }
   };
 
   const resetDialog = confirmReset && (
@@ -98,6 +110,10 @@ export default function DemoControls({ inline = false }) {
         The demo family goes back to its starting stories and the clock goes back to today.
         Everything recorded, asked or uploaded since then is deleted.
       </p>
+      <label className="reset-tour-option">
+        <input type="checkbox" checked={tourAfterReset} onChange={(e) => setTourAfterReset(e.target.checked)} />
+        <span>Then start the guided tour</span>
+      </label>
       <div className="dialog-action-bar">
         <button type="button" className="editorial-btn secondary" onClick={() => setConfirmReset(false)}>
           Cancel
@@ -115,7 +131,7 @@ export default function DemoControls({ inline = false }) {
         {writing}
         <span className="demo-clock-text">
           <Clock size={13} />
-          Demo time <b data-testid="demo-clock">{busy ? busyLabel : formatDemoClock(clock?.now, timeZone)}</b>
+          <span className="demo-clock-label">Demo time</span> <b data-testid="demo-clock">{busy ? busyLabel : formatDemoClock(clock?.now, timeZone)}</b>
         </span>
         <button type="button" className="stage-btn" onClick={() => advance(1, '1 hour')} disabled={busy}>+1 hour</button>
         <button
@@ -124,12 +140,13 @@ export default function DemoControls({ inline = false }) {
           onClick={() => advance(nextMorningHours, 'next morning')}
           disabled={busy || nextMorningHours == null}
           title={circleData?.circle?.chat_time ? `To ${circleData.circle.chat_time} tomorrow, the family's chat time` : undefined}
+          data-tour="next-morning"
         >
           Next morning
         </button>
-        <button type="button" className="stage-btn" onClick={() => advance(24, '1 day')} disabled={busy}>+1 day</button>
+        <button type="button" className="stage-btn" onClick={() => advance(24, '1 day')} disabled={busy} data-tour="plus-day">+1 day</button>
         {!isSignedIn && (
-          <button type="button" className="stage-btn quiet" onClick={() => setConfirmReset(true)} disabled={busy}>Reset</button>
+          <button type="button" className="stage-btn quiet" onClick={openReset} disabled={busy}>Reset</button>
         )}
         {resetDialog}
       </div>
@@ -162,13 +179,14 @@ export default function DemoControls({ inline = false }) {
             onClick={() => advance(nextMorningHours, 'next morning')}
             disabled={nextMorningHours == null}
             title={circleData?.circle?.chat_time ? `To ${circleData.circle.chat_time} tomorrow, the family's chat time` : undefined}
+            data-tour="next-morning"
           >
             Next morning
           </button>
-          <button type="button" role="menuitem" onClick={() => advance(24, '1 day')}>+1 day</button>
+          <button type="button" role="menuitem" onClick={() => advance(24, '1 day')} data-tour="plus-day">+1 day</button>
           {/* A reset rebuilds the database and deletes every family made with "Create your family". */}
           {!isSignedIn && (
-            <button type="button" role="menuitem" className="danger" onClick={() => { setMenuOpen(false); setConfirmReset(true); }}>
+            <button type="button" role="menuitem" className="danger" onClick={openReset}>
               Reset demo
             </button>
           )}

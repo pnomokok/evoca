@@ -121,6 +121,15 @@ class EvocaApiClient {
     writeStorage('evoca_viewer_chosen', '1');
   }
 
+  // The stage's guided tour starts by itself only on the first visit.
+  get tourSeen() {
+    return readStorage('evoca_tour_seen') === '1';
+  }
+
+  markTourSeen() {
+    writeStorage('evoca_tour_seen', '1');
+  }
+
   // Signed in: only the bearer token (the session fixes person and circle).
   // Demo: X-Person-Id, the given person (the device acts as the center) or the picked viewer.
   getHeaders(customHeaders = {}, overridePersonId = null) {

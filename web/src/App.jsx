@@ -16,6 +16,7 @@ import PersonPicker from './components/PersonPicker';
 import AnswerNotice from './components/panel/AnswerNotice';
 import { useNewAnswers } from './components/panel/useNewAnswers';
 import { focusLater } from './utils/focusLater';
+import { usePaneTourTargets, useTourRings } from './utils/tour';
 import { Info, AlertCircle, BookOpen } from 'lucide-react';
 import './styles/navigation.css';
 
@@ -131,6 +132,8 @@ function MainContent() {
 function EmbedContent() {
   const { activeTab } = useApp();
   const openAnswer = useOpenAnswer();
+  // The guided tour on the stage says what to ring; the pane draws it.
+  useTourRings(usePaneTourTargets());
   // The stage's phone banner asks the panel to open an answer (StageView); same origin only.
   useEffect(() => {
     if (activeTab === 'device') return undefined;

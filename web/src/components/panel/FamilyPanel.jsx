@@ -92,6 +92,7 @@ export default function FamilyPanel() {
             className={`mobile-tab-btn ${current === 'questions' ? 'active' : ''}`}
             onClick={() => goTo('questions')}
             aria-current={subTab === 'questions' ? 'page' : undefined}
+            data-tour="questions-tab"
           >
             <ListChecks size={18} />
             <span>Questions</span>
@@ -107,6 +108,7 @@ export default function FamilyPanel() {
               aria-expanded={addOpen}
               aria-controls="mobile-add-sheet"
               aria-label="Ask a question or record a memory"
+              data-tour="ask-alt"
             >
               <span className="mobile-add-plus"><Plus size={20} /></span>
             </button>

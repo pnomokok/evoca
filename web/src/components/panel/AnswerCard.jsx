@@ -19,8 +19,8 @@ const REACTIONS = [
 
 // An answer to the viewer's question (a "question_answered" feed item): the story's photo if it has one,
 // otherwise the designed card; then her voice, "Maybe give her a call.", the reactions (never counts)
-// and a link to the whole story.
-export default function AnswerCard({ item, showQuestion = true }) {
+// and a link to the whole story. tourMark: the guided tour may ring its play button and reactions.
+export default function AnswerCard({ item, showQuestion = true, tourMark = false }) {
   const { showToast, circleData, openStory } = useApp();
   const a = item.answer;
   const [story, setStory] = useState(null);
@@ -150,6 +150,7 @@ export default function AnswerCard({ item, showQuestion = true }) {
               onClick={togglePlay}
               aria-label={playing ? 'Pause the answer' : 'Listen to the answer'}
               data-pieces={pieces.length}
+              data-tour={tourMark ? 'answer-card' : undefined}
             >
               {playing ? <Pause size={18} /> : <Play size={18} style={{ marginLeft: 2 }} />}
             </button>
@@ -169,7 +170,7 @@ export default function AnswerCard({ item, showQuestion = true }) {
         <p className="answer-call">Maybe give her a call.</p>
 
         {story && (
-          <div className="answer-reactions" role="group" aria-label="React to this story">
+          <div className="answer-reactions" role="group" aria-label="React to this story" data-tour={tourMark ? 'answer-card' : undefined}>
             {REACTIONS.map(r => {
               const mine = story.reactions?.mine?.includes(r.key);
               const present = story.reactions?.present?.includes(r.key);

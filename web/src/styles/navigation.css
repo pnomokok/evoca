@@ -85,6 +85,11 @@
   .demo-strip-inner { width: auto; height: 38px; padding: 0 16px; }
 }
 
+/* Room for "Guide" and the "writing up the story" status on one row: the clock icon names the time. */
+@media (min-width: 769px) and (max-width: 1500px) {
+  .demo-strip .demo-clock-label { display: none; }
+}
+
 /* The archive header: one row at 1366 px. */
 .archive-header .topbar-inner {
   width: 94%;
