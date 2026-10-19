@@ -255,8 +255,9 @@ class EvocaApiClient {
   }
 
   // --- Story Page ---
-  async getStory(storyId) {
-    const res = await fetch(`${API_BASE_URL}/api/stories/${storyId}`, { headers: this.getHeaders() });
+  // asPersonId: as someone else in the demo (the stage's tour checks the phone person's reactions).
+  async getStory(storyId, asPersonId = null) {
+    const res = await fetch(`${API_BASE_URL}/api/stories/${storyId}`, { headers: this.getHeaders({}, asPersonId) });
     return handleResponse(res);
   }
 

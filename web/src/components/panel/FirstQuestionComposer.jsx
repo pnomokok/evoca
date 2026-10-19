@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AlertTriangle, Send } from 'lucide-react';
+import { apiClient } from '../../api/client';
 import { QUESTION_PLACEHOLDER, useSendQuestion } from './useSendQuestion';
 import { SUGGESTED_QUESTION, usePaneTourTargets } from '../../utils/tour';
 
@@ -25,12 +26,15 @@ export default function FirstQuestionComposer({ onSent }) {
   };
 
   return (
-    <form className="first-question-composer" onSubmit={submit} aria-labelledby="first-question-title" data-tour="ask">
+    <form className="first-question-composer" onSubmit={submit} aria-labelledby="first-question-title">
       <h2 id="first-question-title" className="first-question-title">
         {centerFirst ? `Ask ${centerFirst} your first question` : 'Ask your first question'}
       </h2>
+      {/* On the stage's phone, one line, so Send stays above the bottom bar. */}
       <p className="section-desc">
-        Evoca brings it up in {centerFirst ? `${centerFirst}'s` : 'her'} next morning chat, and her answer comes back here, in her own voice.
+        {apiClient.embed
+          ? 'Her answer comes back here, in her own voice.'
+          : `Evoca brings it up in ${centerFirst ? `${centerFirst}'s` : 'her'} next morning chat, and her answer comes back here, in her own voice.`}
       </p>
       <label className="sr-only" htmlFor="first-question-text">Your question</label>
       <textarea
@@ -51,7 +55,7 @@ export default function FirstQuestionComposer({ onSent }) {
         </div>
       )}
       <div className="first-question-actions">
-        <button type="submit" className="editorial-btn primary" disabled={isSubmitting || !text.trim()}>
+        <button type="submit" className="editorial-btn primary" disabled={isSubmitting || !text.trim()} data-tour="ask">
           <Send size={15} />
           <span>{isSubmitting ? 'Sending...' : 'Send'}</span>
         </button>

@@ -264,7 +264,7 @@ three minutes:
 6. Elif hears the answer in Fatma's own voice and reacts.
 7. The next morning, Fatma hears about the reaction.
 
-Each step moves on by itself when it happens, or with Next.
+Starting the guide starts the demo over. Each step moves on by itself when it happens, in any order; "Skip step" is there if you want to move on without doing it.
 
 **No microphone needed.** When Evoca asks the tour's question, "Use a sample answer" on the device plays Fatma's
 answer and sends that same audio exactly as a recording, so speech-to-text, the companion and the archivist all run

@@ -32,9 +32,7 @@ export default function StageView() {
   const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
-    if (apiClient.tourSeen) return;
-    apiClient.markTourSeen();
-    startTour();
+    if (!apiClient.tourSeen) startTour();
   }, [startTour]);
 
   const members = circleData?.members || [];
@@ -127,12 +125,13 @@ export default function StageView() {
           </div>
         </section>
       </main>
-      {tourRun && ready && (
+      {/* Not only while ready: the tour resets the demo, and must outlive the panes reloading. */}
+      {tourRun && (
         <GuidedTour
-          key={tourRun}
-          notice={notice}
-          centerId={centerPersonId}
-          askerId={asker.id}
+          key={tourRun.run}
+          skipReset={tourRun.skipReset}
+          centerId={ready ? centerPersonId : null}
+          askerId={ready ? asker.id : null}
           onExplore={() => setPickerOpen(true)}
         />
       )}

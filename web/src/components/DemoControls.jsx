@@ -94,7 +94,7 @@ export default function DemoControls({ inline = false }) {
     await run(demoReset, 'The demo has started over');
     if (tourAfterReset) {
       if (activeTab !== 'stage') navigate({ tab: 'stage' });
-      startTour();
+      startTour({ skipReset: true });
     }
   };
 

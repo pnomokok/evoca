@@ -39,9 +39,12 @@ export function listenForChanges(onChange) {
 }
 
 // The tour's messages:
-//   { kind: 'targets', targets } from the stage: data-tour names a pane rings (the first one it has wins);
+//   { kind: 'targets', byPane, key } from the stage: the step's data-tour names, per pane;
+//   { kind: 'rect', pane, key, rects, visible } from a pane: one box per target, in its own viewport;
 //   { kind: 'hello' } from a pane that just loaded, so the stage sends its targets again;
-//   { kind: 'event', name } from the device: 'session_start' | 'opening_played'.
+//   { kind: 'event', name } from the device: 'session_start' | 'opening_played' | 'session_open' |
+//     'session_closed' | 'question_asked' | 'turn_sent'; { kind: 'ask-session' } and { kind: 'goodbye' }
+//     from the stage.
 export function sendTour(message) {
   post({ ...message, type: 'tour' });
 }

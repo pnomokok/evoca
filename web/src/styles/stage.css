@@ -310,6 +310,17 @@
 [data-embed="panel"] body,
 [data-embed="panel"] .app-container { background: var(--bg-ivory); }
 
+/* The phone pane: its content scrolls clear of the fixed bottom bar, and a tour target scrolled into
+   view keeps a margin from it (and from the top), so nothing ends up behind a bar. The empty
+   My questions page is compact, so its Send shows without scrolling. */
+[data-embed="panel"] .app-container { padding-bottom: 64px; }
+[data-embed] [data-tour] { scroll-margin-top: 16px; scroll-margin-bottom: 70px; }
+[data-embed="panel"] .my-questions-page .section-header-editorial { margin-bottom: var(--space-3); gap: 2px; }
+[data-embed="panel"] .my-questions-page .section-title-serif { font-size: 26px; }
+[data-embed="panel"] .my-questions-page .section-header-editorial .section-desc { display: none; }
+[data-embed="panel"] .first-question-composer { padding: var(--space-3); gap: var(--space-2); }
+[data-embed="panel"] .first-question-composer .archival-textarea { min-height: 0; resize: none; }
+
 /* Sized to fit its frame; if a very low window still makes it taller, the pane scrolls, never clips. */
 .embed-device-view { height: 100vh; overflow-y: auto; }
 

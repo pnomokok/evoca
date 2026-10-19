@@ -110,7 +110,8 @@ export default function FamilyPanel() {
               aria-label="Ask a question or record a memory"
               data-tour="ask-alt"
             >
-              <span className="mobile-add-plus"><Plus size={20} /></span>
+              <span className="mobile-add-plus"><Plus size={18} /></span>
+              <span>Add</span>
             </button>
             {addOpen && (
               <div id="mobile-add-sheet" className="mobile-add-sheet" role="menu">

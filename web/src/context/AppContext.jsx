@@ -127,7 +127,8 @@ export function AppProvider({ children, initialTab = 'landing', initialPanelSubT
   // The archive's dialogs, opened from the header, the bottom bar or a chapter: {period, prompt} or null.
   const [askDialog, setAskDialog] = useState(null);
   const [recordOpen, setRecordOpen] = useState(false);
-  // The stage's guided tour (GuidedTour): a run number while it is open, else null.
+  // The stage's guided tour (GuidedTour) while it is open: { run, skipReset }, else null.
+  // Starting it resets the demo first, unless that was just done (skipReset).
   const [tourRun, setTourRun] = useState(null);
   // A message carried over a restart (for example after leaving a family) is shown at once.
   const [toast, setToast] = useState(() => (initialToast ? { message: initialToast, type: 'info' } : null));
@@ -307,7 +308,10 @@ export function AppProvider({ children, initialTab = 'landing', initialPanelSubT
   const closeAsk = useCallback(() => setAskDialog(null), []);
   const openRecord = useCallback(() => setRecordOpen(true), []);
   const closeRecord = useCallback(() => setRecordOpen(false), []);
-  const startTour = useCallback(() => setTourRun(n => (n ?? 0) + 1), []);
+  const startTour = useCallback(({ skipReset = false } = {}) => {
+    apiClient.markTourSeen();
+    setTourRun(t => ({ run: (t?.run ?? 0) + 1, skipReset }));
+  }, []);
   const closeTour = useCallback(() => setTourRun(null), []);
 
   // Demo controls: move the clock, then reload people, circle and invitation, and let every view refetch.
