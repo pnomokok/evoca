@@ -18,6 +18,10 @@ Rules:
   comments) survives. The file name is a fresh UUID, never the client's.
 - The chat agent and the archivist never see photos: nothing here is offered
   through MCP.
+- Each database has its own photos folder (photo_dir()): the default
+  data/evoca.db uses data/photos, any other database data/photos-<file stem>
+  (data/demo.db -> data/photos-demo). A photo is served only from the current
+  database's folder, so a seed or reset of one database never touches another's.
 
 Like core/services/stories.py, functions take an open session and an explicit
 viewer_id and commit their own writes.
@@ -34,6 +38,7 @@ from typing import Any
 from PIL import Image, ImageOps, UnidentifiedImageError
 from sqlalchemy.orm import Session as DbSession
 
+import core.db as cdb
 from core.access import can_see, role
 from core.clock import now_utc
 from core.enums import Role, StoryStatus
@@ -44,7 +49,9 @@ from core.services.stories import STORY_NOT_FOUND, Forbidden, NotFound
 log = logging.getLogger(__name__)
 
 # Relative to the working directory, like data/audio (server/wav_writer.py).
-PHOTO_DIR = Path("data") / "photos"
+DEFAULT_PHOTO_DIR = Path("data") / "photos"
+# Tests point this at a temporary folder; None means photo_dir() decides.
+PHOTO_DIR: Path | None = None
 
 MAX_BYTES = 5 * 1024 * 1024
 MAX_SIDE = 1600
@@ -60,6 +67,28 @@ NOT_ALLOWED = "You cannot change the photo of this story."
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def photo_dir_for(db_path: Path | None) -> Path:
+    """The photos folder of a database file: data/photos for the default
+    data/evoca.db, data/photos-<stem> for any other (":memory:" -> photos-memory)."""
+    if db_path is None or str(db_path) == ":memory:":
+        return Path("data") / "photos-memory"
+    if Path(db_path).resolve() == cdb._default_path.resolve():
+        return DEFAULT_PHOTO_DIR
+    return Path("data") / f"photos-{Path(db_path).stem}"
+
+
+def photo_dir() -> Path:
+    """The current database's photos folder (EVOCA_DB_PATH, as core.db resolved it)."""
+    if PHOTO_DIR is not None:
+        return PHOTO_DIR
+    return photo_dir_for(None if cdb._in_memory else cdb._abs_path)
+
+
+def is_default_photo_dir(folder: Path) -> bool:
+    """True for data/photos, the default database's folder."""
+    return folder.resolve() == DEFAULT_PHOTO_DIR.resolve()
+
 
 def _photo_story(db: DbSession, viewer_id: str, story_id: str) -> Story:
     """The story, if the viewer can see it and it is not hidden."""
@@ -133,7 +162,8 @@ def photo_file(db: DbSession, viewer_id: str, photo_id: str) -> Path:
     except NotFound:
         raise NotFound(PHOTO_NOT_FOUND) from None
     path = Path(photo.path)
-    if not path.exists():
+    # Only files of this database's own folder are served.
+    if path.resolve().parent != photo_dir().resolve() or not path.exists():
         raise NotFound(PHOTO_NOT_FOUND)
     return path
 
@@ -159,9 +189,10 @@ def set_photo(
         raise ValueError(f"A caption can be at most {MAX_CAPTION} characters.")
     jpeg = clean_jpeg(raw)
 
-    PHOTO_DIR.mkdir(parents=True, exist_ok=True)
+    folder = photo_dir()
+    folder.mkdir(parents=True, exist_ok=True)
     photo_id = str(uuid.uuid4())
-    path = PHOTO_DIR / f"{photo_id}.jpg"
+    path = folder / f"{photo_id}.jpg"
     path.write_bytes(jpeg)
 
     old = current_photo(db, story.id)

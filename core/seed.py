@@ -21,8 +21,9 @@ Photos: the stories' photos come from core/seed_assets/photos/ and are added
 through the photo service (core/services/photos.py, as an upload by Ayşe), so
 they are re-encoded and stripped of metadata like any upload. A missing file
 is skipped with a warning. Seeding wipes the database, so afterwards every
-file in the photos directory that no StoryPhoto row references is deleted
-(that directory only). The demo family is fictional and its photos are
+file in this database's photos folder (photo_svc.photo_dir()) that no
+StoryPhoto row references is deleted, in that folder only. In data/photos, the
+default database's folder, orphans are only logged, never deleted. The demo family is fictional and its photos are
 AI-generated (README, "Try it").
 """
 
@@ -122,21 +123,27 @@ def _add_seed_photos(uploader_id: str, story_ids: dict[str, str]) -> int:
 
 
 def _remove_orphan_photos() -> int:
-    """Delete files in the photos directory that no StoryPhoto row references.
-    Only that directory's own files are touched. Returns how many were deleted."""
-    photo_dir = photo_svc.PHOTO_DIR
+    """Delete files in this database's photos folder that no StoryPhoto row
+    references. Only that folder's own files are touched; in data/photos (the
+    default database) they are logged and kept. Returns how many were deleted."""
+    photo_dir = photo_svc.photo_dir()
     if not photo_dir.is_dir():
         return 0
     with SessionLocal() as db:
         kept = {Path(p.path).resolve() for p in db.query(StoryPhoto).all() if p.path}
+    orphans = [f for f in photo_dir.iterdir() if f.is_file() and f.resolve() not in kept]
+    if photo_svc.is_default_photo_dir(photo_dir):
+        if orphans:
+            log.warning("%d photo files in %s belong to no story; kept (default database folder).",
+                        len(orphans), photo_dir.as_posix())
+        return 0
     removed = 0
-    for f in photo_dir.iterdir():
-        if f.is_file() and f.resolve() not in kept:
-            try:
-                f.unlink()
-                removed += 1
-            except OSError as exc:
-                log.warning("Could not delete orphan photo %s: %s", f, exc)
+    for f in orphans:
+        try:
+            f.unlink()
+            removed += 1
+        except OSError as exc:
+            log.warning("Could not delete orphan photo %s: %s", f, exc)
     return removed
 
 

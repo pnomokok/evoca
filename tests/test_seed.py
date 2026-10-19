@@ -239,3 +239,15 @@ def test_a_missing_seed_photo_is_skipped(seed_db, tmp_path, monkeypatch, caplog)
     assert "tailor.jpg is missing" in caplog.text
     with seed_db() as db:
         assert db.query(StoryPhoto).count() == 1
+
+
+def test_seed_never_deletes_in_the_default_photos_folder(seed_db, tmp_path, monkeypatch, caplog):
+    """data/photos belongs to the default database: orphans there are logged, never deleted."""
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(photo_svc, "PHOTO_DIR", Path("data") / "photos")
+    keep = Path("data/photos/uploaded-under-evoca-db.jpg")
+    keep.parent.mkdir(parents=True)
+    keep.write_bytes(b"a real upload")
+    assert seed.main([]) == 0
+    assert keep.exists()
+    assert "belong to no story; kept" in caplog.text

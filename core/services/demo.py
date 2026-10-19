@@ -38,9 +38,10 @@ MIN_HOURS, MAX_HOURS = 1, 72
 REPO = Path(__file__).resolve().parent.parent.parent
 DEMO_DB = REPO / "data" / "demo.db"
 
-# Where session audio, TTS and photos live (relative to the working directory,
-# like server/wav_writer.py, server/routers/device.py and core/services/photos.py).
-FILE_DIRS = (Path("data") / "audio", Path("data") / "tts", Path("data") / "photos")
+# Where session audio and TTS live (relative to the working directory, like
+# server/wav_writer.py and server/routers/device.py); photos are in the demo
+# database's own folder (core/services/photos.py photo_dir()).
+FILE_DIRS = (Path("data") / "audio", Path("data") / "tts")
 
 
 class ResetRefused(RuntimeError):
@@ -106,8 +107,10 @@ def _recorded_files(db: DbSession) -> list[Path]:
 
 
 def _inside_file_dirs(path: Path) -> bool:
+    from core.services.photos import photo_dir
+
     resolved = path.resolve()
-    return any(resolved.parent == d.resolve() for d in FILE_DIRS)
+    return any(resolved.parent == d.resolve() for d in (*FILE_DIRS, photo_dir()))
 
 
 def reset() -> list[dict[str, Any]]:
@@ -115,7 +118,8 @@ def reset() -> list[dict[str, Any]]:
     people (the shape of GET /api/people?circle_id=).
 
     The caller ends live device sessions (and closes their database sessions)
-    first. Only files inside data/audio, data/tts and data/photos are deleted.
+    first. Only files inside data/audio, data/tts and the demo database's
+    photos folder (data/photos-demo) are deleted.
     """
     from core.seed import reset_and_seed
 
