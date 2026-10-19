@@ -135,18 +135,29 @@ h1, h2, h3, h4, .serif-font {
   flex-wrap: wrap;
 }
 
+/* The lockup: the mark beside "Evoca", centred on the wordmark (not on the tagline below it). */
 .topbar-brand {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto auto;
   align-items: center;
-  gap: 12px;
+  column-gap: 9px;
 }
 
-/* The Evoca mark (three ovals), next to the "Evoca" wordmark. */
+.topbar-brand .brand-text-group { display: contents; }
+.topbar-brand .brand-mark { grid-row: 1; }
+.topbar-brand .brand-name { grid-row: 1; grid-column: 2; }
+.topbar-brand .brand-tagline { grid-row: 2; grid-column: 2; }
+
+/* The Evoca mark (three ovals), no box behind it; about 1.4x the wordmark's cap height. */
 .brand-mark {
   display: block;
-  width: 34px;
-  height: auto;
+  height: 30px;
+  width: auto;
   flex: none;
+}
+
+@media (max-width: 768px) {
+  .brand-mark { height: 26px; }
 }
 
 .brand-text-group {

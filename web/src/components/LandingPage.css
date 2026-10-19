@@ -197,7 +197,7 @@ html {
 .landing-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   background: none;
   border: 0;
   padding: 0;
@@ -439,6 +439,40 @@ html {
 }
 
 .footer-github:hover { color: #FAF6ED; }
+
+/* Wide screens: the text in the left column, aligned with the nav's brand; the photo clear on the right.
+   The overlay darkens only behind the text (to about 55%) and fades to nearly clear. */
+@media (min-width: 900px) {
+  .hero-content {
+    max-width: 1160px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  .hero-title,
+  .hero-description,
+  .hero-actions { max-width: min(46vw, 640px); }
+
+  .hero-title { font-size: clamp(2.6rem, 4.4vw, 4.2rem); }
+
+  .hero-bg-image {
+    opacity: 0.92;
+    filter: none;
+    object-position: 70% 30%;
+  }
+
+  .hero-bg-overlay {
+    background:
+      linear-gradient(to right,
+        rgba(28, 26, 23, 0.94) 0%,
+        rgba(28, 26, 23, 0.88) 40%,
+        rgba(28, 26, 23, 0.6) 55%,
+        rgba(28, 26, 23, 0.12) 72%,
+        rgba(28, 26, 23, 0.04) 100%),
+      linear-gradient(to top, #1c1a17 0%, rgba(28, 26, 23, 0) 18%);
+  }
+}
 
 @media (max-width: 480px) {
   .hero-actions { flex-direction: column; align-items: stretch; }
