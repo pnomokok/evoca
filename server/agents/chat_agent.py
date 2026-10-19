@@ -60,6 +60,17 @@ Privacy ("don't let anyone hear that")
 - Reactions: after a reply that names every person who reacted to a story,
   the code calls mark_reactions_delivered for that story, so it is not
   announced again in the next session.
+
+Opening wording (attribution and reactions)
+-------------------------------------------
+- The opening's reaction sentences (reaction_lines in get_session_context) and
+  the lead-in to each waiting question (lead_in in get_pending_questions) are
+  composed in code (core/services/opening_lines.py); the prompt says them as given.
+- Opening guard, after the opening reply and before TTS: if the marked family
+  question's lead-in is missing (or the reply says "I've been wondering" for
+  it, or "has a question for you" for the companion's own question), or a
+  reaction verb does not match its emoji, the reply is replaced by a template
+  built only from the opening's own data (opening_template). Logged.
 """
 
 from __future__ import annotations
@@ -79,6 +90,7 @@ from core.clock import now_utc
 from core.db import SessionLocal
 from core.enums import SessionStart
 from core.models import Segment
+from core.services.opening_lines import OWN_LEAD_IN, reaction_verbs
 from core.services.sessions import add_segment, end_session, start_session
 from server.llm import LLM, BedrockLLM, strip_thinking
 from server.mcp_bridge import MCPBridge
@@ -324,6 +336,103 @@ def clean_reply(text: str, ending: bool) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Opening guard: attribution and reaction wording (pure functions)
+# ---------------------------------------------------------------------------
+
+FREE_MEMORY_INVITATION = "Is there a memory on your mind today that you would like to share?"
+
+_REACTION_VERB = re.compile(
+    r"\b(?:loved|laughed at|(?:was|were) moved by|(?:was|were) grateful for)\b", re.IGNORECASE
+)
+_WONDERING = re.compile(r"\bI(?:'ve| have) been wondering\b", re.IGNORECASE)
+_FAMILY_LEAD = re.compile(r"\bhas a question for you\b", re.IGNORECASE)
+# Forms of address a family member puts at the front of a question ("Grandma, how ...").
+_VOCATIVES = ("grandma", "grandpa", "granny", "grandmother", "grandfather", "nana", "mom", "mum", "dad")
+
+
+@dataclass
+class OpeningFacts:
+    """What the opening may say, all from its own tool results."""
+    center_first_name: str
+    reaction_lines: list[str]
+    reaction_emojis: list[str]
+    question: dict[str, Any] | None   # the marked question as get_pending_questions returned it
+
+
+def _plain(text: str) -> str:
+    return re.sub(r"\s+", " ", text.replace("’", "'")).strip().lower()
+
+
+def stored_question(text: str, center_first_name: str) -> str:
+    """The stored question for speech: no leading "Grandma," or "<her name>,", one question mark."""
+    names = [*_VOCATIVES, *([center_first_name.lower()] if center_first_name else [])]
+    text = strip_quotes(text).strip()
+    text = re.sub(r"^(?:" + "|".join(map(re.escape, names)) + r")\s*,\s*", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"[\s?.!]+$", "", text)
+    return (text[:1].upper() + text[1:] + "?") if text else ""
+
+
+def opening_mismatch(reply: str, facts: OpeningFacts) -> str | None:
+    """Why the opening's wording is wrong, or None. Reasons are fixed codes."""
+    plain = _plain(reply)
+    q = facts.question
+    if q:
+        lead_in = q.get("lead_in") or ""
+        if q.get("asker_id"):
+            if _plain(lead_in).rstrip(":") not in plain:
+                return "family_lead_in_missing"
+            if _WONDERING.search(reply.replace("’", "'")):
+                return "family_question_in_own_voice"
+        elif _FAMILY_LEAD.search(reply):
+            return "own_question_attributed"
+    allowed = reaction_verbs(facts.reaction_emojis)
+    statements = " ".join(s for s in split_sentences(reply) if not _is_question(s))
+    for match in _REACTION_VERB.finditer(statements):
+        if re.sub(r"\s+", " ", match.group(0).lower()) not in allowed:
+            return "reaction_verb_mismatch"
+    return None
+
+
+def opening_template(facts: OpeningFacts) -> str:
+    """Hello, <name>! <reaction lines> <lead_in> <question as stored>."""
+    parts = [f"Hello, {facts.center_first_name}!" if facts.center_first_name else "Hello!"]
+    parts += facts.reaction_lines
+    q = facts.question
+    question = stored_question(q.get("text") or "", facts.center_first_name) if q else ""
+    if question:
+        parts += [q.get("lead_in") or OWN_LEAD_IN, question]
+    else:
+        parts.append(FREE_MEMORY_INVITATION)
+    return " ".join(p for p in parts if p)
+
+
+def _items(result: Any) -> list[dict[str, Any]]:
+    items = result.get("result", []) if isinstance(result, dict) else result
+    return [q for q in items or [] if isinstance(q, dict)]
+
+
+def opening_facts(trace: list["ToolTrace"]) -> OpeningFacts | None:
+    """The opening's facts from this turn's tool calls; None without a session context."""
+    context = next((t.result for t in trace if t.tool == "get_session_context"
+                    and not t.is_error and isinstance(t.result, dict)), None)
+    if context is None:
+        return None
+    pending = [q for t in trace if t.tool == "get_pending_questions" and not t.is_error
+               for q in _items(t.result)]
+    marked = next((t.input.get("question_id") for t in trace
+                   if t.tool == "mark_question_asked" and not t.is_error), None)
+    question = next((q for q in pending if marked and q.get("question_id") == marked), None)
+    lines = [r.get("reaction_line", "") for r in context.get("reaction_lines", []) if isinstance(r, dict)]
+    return OpeningFacts(
+        center_first_name=(context.get("center_person_name") or "").split(" ")[0],
+        reaction_lines=[line for line in lines if line],
+        reaction_emojis=[r.get("emoji", "") for r in context.get("undelivered_reactions", [])
+                         if isinstance(r, dict)],
+        question=question,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Privacy guard: salient terms of hidden turns (kept in memory, never sent)
 # ---------------------------------------------------------------------------
 
@@ -518,6 +627,7 @@ class TurnResult:
     marked_private: bool = False      # this turn was hidden (its text left the history)
     privacy_guard: str | None = None  # "regenerated" or "safe_reply" if a reply touched a hidden part
     privacy_check: str | None = None  # "confirmed" / "not_confirmed" when a mark was considered
+    opening_guard: str | None = None  # why the opening was replaced by the template, if it was
 
 
 # ---------------------------------------------------------------------------
@@ -1121,6 +1231,19 @@ class ChatAgent:
                 reply_text, extra_ms = await self._remove_promise(text_blocks, ending, terms)
                 llm_ms_total += extra_ms
 
+        # Opening guard: attribution and reaction wording must match what the
+        # code composed; otherwise the template, from the opening's own data.
+        opening_guard: str | None = None
+        # Only the opening the code starts (no user speech), so a template never
+        # skips the privacy guard for words the person said.
+        facts = opening_facts(trace) if not self._turns and not ending and not store_user else None
+        if facts is not None:
+            opening_guard = opening_mismatch(reply_text, facts)
+            if opening_guard:
+                log.warning("Opening wording off (%s); used the template (session %s)",
+                            opening_guard, self._ensure_session())
+                reply_text = opening_template(facts)
+
         if reply_block is not None:
             # Keep the history in line with what was actually spoken.
             reply_block["text"] = reply_text
@@ -1188,4 +1311,5 @@ class ChatAgent:
             marked_private=record.hidden,
             privacy_guard=guard,
             privacy_check=privacy_check,
+            opening_guard=opening_guard,
         )

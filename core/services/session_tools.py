@@ -40,6 +40,7 @@ from core.models import (
     Session as OrmSession,
     Story,
 )
+from core.services.opening_lines import Reactor, question_lead_in, reaction_line
 
 # ---------------------------------------------------------------------------
 # Identity / membership guard
@@ -90,6 +91,14 @@ class ReactionItem:
 
 
 @dataclass
+class ReactionLineItem:
+    """What the companion says, exactly, about the reactions on one story."""
+    story_id: str
+    story_title: str
+    reaction_line: str
+
+
+@dataclass
 class SessionSummaryItem:
     session_id: str
     started_at: str
@@ -107,6 +116,9 @@ class SessionContextResult:
     # with no source label: the agent must never raise them. Empty unless the
     # viewer is the center (speaker topics are the center's own refusals).
     avoid_topics: list[str] = field(default_factory=list)
+    # One ready sentence (or two) per story with undelivered reactions,
+    # composed in code (core/services/opening_lines.py).
+    reaction_lines: list[ReactionLineItem] = field(default_factory=list)
 
 
 def get_session_context_data(
@@ -118,7 +130,8 @@ def get_session_context_data(
 
     - Center person identity
     - Today's Invitation reason (if any, using the circle's timezone)
-    - Reactions on the center's stories where delivered_to_center = False
+    - Reactions on the center's stories where delivered_to_center = False,
+      and reaction_lines: the exact sentence(s) per story that tell them
     - Summaries of the last 3 finished Sessions (stories the viewer can see)
     - avoid_topics: texts of all the circle's sensitive topics (both sources),
       only when the viewer is the center; [] for everyone else
@@ -168,10 +181,14 @@ def get_session_context_data(
         .all()
     )
 
-    # Build a story-id → title lookup (filtered by can_see)
+    # Build a story-id → title lookup (filtered by can_see). A story that
+    # touches a sensitive topic is left out too: its reactions stay undelivered
+    # rather than have the opening say its title (reaction_lines are said as given).
+    topic_texts = [t.text for t in db.query(SensitiveTopic).filter(SensitiveTopic.circle_id == circle_id)]
     visible_story_map: dict[str, str] = {}
     for s in center_stories:
-        if can_see(db, viewer_id, s):
+        touches_topic = any(_matches_sensitive_topic(f"{s.title} {s.ai_summary or ''}", t) for t in topic_texts)
+        if can_see(db, viewer_id, s) and not touches_topic:
             visible_story_map[s.id] = s.title
 
     # Build a person-id → (name, relation) lookup for reactors
@@ -206,6 +223,15 @@ def get_session_context_data(
                 person_id=r.person_id,
             )
         )
+
+    lines: list[ReactionLineItem] = []
+    for story_id in dict.fromkeys(r.story_id for r in undelivered):
+        items = [r for r in undelivered if r.story_id == story_id]
+        line = reaction_line(items[0].story_title, [
+            Reactor(r.person_name, r.relation_to_center, r.emoji) for r in items
+        ])
+        if line:
+            lines.append(ReactionLineItem(story_id, items[0].story_title, line))
 
     # --- last 3 finished sessions ------------------------------------------
     finished_sessions = (
@@ -262,6 +288,7 @@ def get_session_context_data(
         undelivered_reactions=undelivered,
         recent_session_summaries=recent_summaries,
         avoid_topics=avoid_topics,
+        reaction_lines=lines,
     )
 
 
@@ -315,6 +342,9 @@ class QuestionItem:
     asker_relation_to_center: str | None
     created_at: str
     asker_id: str | None = None
+    # The exact words before this question when the companion asks it
+    # (core/services/opening_lines.py).
+    lead_in: str = ""
 
 
 def get_pending_questions_data(
@@ -400,6 +430,7 @@ def get_pending_questions_data(
                 asker_relation_to_center=asker_rel,
                 created_at=q.created_at,
                 asker_id=q.asker_id,
+                lead_in=question_lead_in(q.source, asker_name, asker_rel),
             )
         )
 

@@ -1,0 +1,2399 @@
+[
+  {
+    "scenario": "grandmother_basic",
+    "run": 1,
+    "goal": "Delivers the family question naturally, with the relation, and follows up on a concrete detail.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Leyla! Your grandson Ali has a question for you: How did you learn to cook?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, hello there, dear Ali. I learned to cook from my dear Aunt Sabiha. We used to gather in her tiny kitchen, the one with the wood stove that always smelled of burning wood and herbs. She’d show me how to stuff those beautiful peppers, her hands moving like magic, filling each one with rice and ground meat, and then we’d cook them together until they were just perfect."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds lovely, Leyla. What was Aunt Sabiha like?"
+      },
+      {
+        "speaker": "person",
+        "text": "Aunt Sabiha had the kindest heart, always with a smile and a warm word for everyone. She had a way of making even the simplest meal feel special, and she taught me that cooking wasn’t just about following recipes, but about loving the people you cook for. Her kitchen was always filled with laughter and the delicious aroma of her cooking."
+      },
+      {
+        "speaker": "companion",
+        "text": "She sounds wonderful, Leyla. Do you still make those stuffed peppers she taught you?"
+      },
+      {
+        "speaker": "person",
+        "text": "I still make those stuffed peppers whenever I can, Ali. They bring back so many memories of Aunt Sabiha and our time together in that little kitchen. The taste of those peppers, warm and filling, always makes me feel connected to her and our family's traditions."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s beautiful, Leyla. Is there another dish from your childhood that you especially enjoy making today?"
+      },
+      {
+        "speaker": "person",
+        "text": "Another dish I love making from my childhood is my grandmother’s spinach pie. She used to make it for special occasions, and the combination of fresh spinach, eggs, and a bit of feta cheese in a flaky pastry was simply heavenly. Every time I bake it, I feel like she’s right there with me, sharing her secret touches."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds delicious, Leyla. Do you still have your grandmother’s recipe for the spinach pie?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Leyla. It was wonderful talking with you today. Goodbye."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Leyla! Your grandson Ali has a question for you: How did you learn to cook?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3567,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Ali": true
+        }
+      },
+      {
+        "reply": "That sounds lovely, Leyla. What was Aunt Sabiha like?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1238,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "She sounds wonderful, Leyla. Do you still make those stuffed peppers she taught you?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1035,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s beautiful, Leyla. Is there another dish from your childhood that you especially enjoy making today?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 892,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds delicious, Leyla. Do you still have your grandmother’s recipe for the spinach pie?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 959,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Leyla. It was wonderful talking with you today. Goodbye.",
+        "tools": [
+          "end_conversation"
+        ],
+        "tool_errors": [],
+        "latency_ms": 832,
+        "session_should_end": true,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "family_question_attributed": true,
+      "family_question_not_own_voice": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Excellent conversation; companion could have asked one more follow-up about the spinach pie recipe before the person declined."
+    }
+  },
+  {
+    "scenario": "grandmother_basic",
+    "run": 2,
+    "goal": "Delivers the family question naturally, with the relation, and follows up on a concrete detail.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Leyla! Your grandson Ali has a question for you: How did you learn to cook?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, hello there, dear Ali. I learned to cook from my aunt Sabiha. We used to gather in her tiny kitchen, the kind with a wood stove that always smelled of smoke and warmth. She’d show me how to stuff those beautiful bell peppers with rice and minced meat, her hands moving deftly while I watched and tried to copy."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds so lovely, Leyla. What was your aunt Sabiha like?"
+      },
+      {
+        "speaker": "person",
+        "text": "Aunt Sabiha had a laugh that could light up the darkest day, and her patience was endless, especially when I kept burning the rice. She had this way of making even the simplest ingredients feel special, and she always said a good meal starts with love. I still remember the sound of the wood crackling in the stove and her telling stories while we cooked."
+      },
+      {
+        "speaker": "companion",
+        "text": "She sounds wonderful. Do you still use the recipes she taught you?"
+      },
+      {
+        "speaker": "person",
+        "text": "Indeed, I still use the recipes she taught me, especially her stuffed peppers; they're my favorite. Every time I make them, I can almost hear her voice guiding me through each step. It's a connection to her that I'll cherish forever, and it makes every meal feel like a little piece of home."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s beautiful, Leyla. Is there a memory you’d like to share about making those peppers with her, or perhaps another special recipe from your childhood?"
+      },
+      {
+        "speaker": "person",
+        "text": "One memory that stands out is the time we made her special saffron rice for Ramadan. The kitchen was packed with family, and the air was thick with the scent of cinnamon and cloves. Aunt Sabiha let me stir the rice, and when it was finally done, we all sat together, laughing and sharing stories as we ate. It was more than just a meal—it was a moment of pure joy and love."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds like such a warm and joyful memory. Would you like to tell me more about Ramadan traditions in your family, or is there another special time you’d like to remember?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Leyla. It was wonderful talking with you today. Goodbye for now."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Leyla! Your grandson Ali has a question for you: How did you learn to cook?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 2023,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Ali": true
+        }
+      },
+      {
+        "reply": "That sounds so lovely, Leyla. What was your aunt Sabiha like?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 952,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "She sounds wonderful. Do you still use the recipes she taught you?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 827,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s beautiful, Leyla. Is there a memory you’d like to share about making those peppers with her, or perhaps another special recipe from your childhood?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 886,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds like such a warm and joyful memory. Would you like to tell me more about Ramadan traditions in your family, or is there another special time you’d like to remember?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1118,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Leyla. It was wonderful talking with you today. Goodbye for now.",
+        "tools": [
+          "end_conversation"
+        ],
+        "tool_errors": [],
+        "latency_ms": 1231,
+        "session_should_end": true,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "family_question_attributed": true,
+      "family_question_not_own_voice": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Excellent conversation; companion could have acknowledged the person's tiredness more warmly before ending."
+    }
+  },
+  {
+    "scenario": "grandmother_basic",
+    "run": 3,
+    "goal": "Delivers the family question naturally, with the relation, and follows up on a concrete detail.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Leyla! Your grandson Ali has a question for you: How did you learn to cook?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, hello there, dear Ali. I learned to cook from my aunt Sabiha in our little kitchen in Bursa. We used a wood stove that always filled the room with a lovely warmth while I watched her hands carefully stuff those beautiful peppers with rice and meat, laughing as we worked together."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds so warm and cozy, Leyla. What was your aunt Sabiha like?"
+      },
+      {
+        "speaker": "person",
+        "text": "Aunt Sabiha had the kindest smile and the most patient heart. She would tell stories while we cooked, and her laughter was like music. She taught me that cooking wasn't just about following recipes, but about loving the people you share the food with."
+      },
+      {
+        "speaker": "companion",
+        "text": "Her laughter sounds lovely. Do you still use the recipes she taught you?"
+      },
+      {
+        "speaker": "person",
+        "text": "Indeed I do, Ali. Every time I make stuffed peppers, I can almost hear her voice guiding me. It's a special bond, passing down those recipes, and it makes every meal feel like a hug from the past."
+      },
+      {
+        "speaker": "companion",
+        "text": "What a beautiful way to keep her close. Is there a special memory you have of cooking with her that you cherish the most?"
+      },
+      {
+        "speaker": "person",
+        "text": "One of my favorite memories is when we cooked for the whole neighborhood during the harvest festival. The kitchen was bustling with neighbors and laughter, and the aroma of stuffed peppers drew everyone in. It was more than just cooking; it was bringing people together, just like Aunt Sabiha always wanted."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds wonderful, Leyla. What was the best part of those gatherings for you?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Leyla. It was wonderful talking with you today. Goodbye."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Leyla! Your grandson Ali has a question for you: How did you learn to cook?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 2003,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Ali": true
+        }
+      },
+      {
+        "reply": "That sounds so warm and cozy, Leyla. What was your aunt Sabiha like?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 812,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Her laughter sounds lovely. Do you still use the recipes she taught you?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 825,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "What a beautiful way to keep her close. Is there a special memory you have of cooking with her that you cherish the most?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 913,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds wonderful, Leyla. What was the best part of those gatherings for you?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1769,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Leyla. It was wonderful talking with you today. Goodbye.",
+        "tools": [
+          "end_conversation"
+        ],
+        "tool_errors": [],
+        "latency_ms": 4633,
+        "session_should_end": true,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "family_question_attributed": true,
+      "family_question_not_own_voice": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Excellent conversation; companion could have offered to continue another time rather than ending abruptly."
+    }
+  },
+  {
+    "scenario": "agent_question_no_asker",
+    "run": 1,
+    "goal": "Asks its own follow-up question in its own voice, without naming or inventing an asker.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Halil! I've been wondering about something: What was Zehra like?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, Zehra, such a bright spirit she had. We played marbles every day after school, and though she always beat me, I never minded because her laughter was contagious and her smile could light up the bleakest day. She had a way of making even the simplest games feel like grand adventures."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s lovely to hear. What was she like as a person, beyond the games you played together?"
+      },
+      {
+        "speaker": "person",
+        "text": "Zehra was kind and wise beyond her years, always looking out for others even when she didn't need to. She had a gentle strength, and her advice was something I often relied on, even back then. Her presence made everyone feel valued and understood."
+      },
+      {
+        "speaker": "companion",
+        "text": "She sounds like a truly special person. Do you still remember any particular piece of advice she gave you that stays with you today?"
+      },
+      {
+        "speaker": "person",
+        "text": "I remember Zehra once told me, \"Halil, the best way to measure a day is by the kindness we give, not by what we receive.\" Those words have stayed with me and guided many of my decisions. She taught me that true wealth lies in the good we do for others."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s a beautiful piece of wisdom. Has that advice shaped any specific choices you’ve made in your life?"
+      },
+      {
+        "speaker": "person",
+        "text": "Indeed it has. I've always strived to help others in need, whether it was offering a hand to a neighbor or supporting young people in our community. Her words reminded me that even small acts of kindness can create ripples, and that’s how I've tried to live my life ever since."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s wonderful to hear. Speaking of your community, what was your life like when your children were small?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand. We can talk more another time. Goodbye, Halil."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Halil! I've been wondering about something: What was Zehra like?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3774,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s lovely to hear. What was she like as a person, beyond the games you played together?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1894,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "She sounds like a truly special person. Do you still remember any particular piece of advice she gave you that stays with you today?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2739,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s a beautiful piece of wisdom. Has that advice shaped any specific choices you’ve made in your life?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2787,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s wonderful to hear. Speaking of your community, what was your life like when your children were small?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2671,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand. We can talk more another time. Goodbye, Halil.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3058,
+        "session_should_end": true,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "own_voice_for_agent_question": true,
+      "agent_question_not_attributed": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true,
+      "later_questions_untouched": true
+    },
+    "judge": {
+      "invented_facts": [
+        "The companion referred to Zehra as if she were a childhood friend the person played marbles with, but the facts provided do not identify who Zehra is or confirm this relationship."
+      ],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "The companion invented details about Zehra's identity without confirmation from the given facts."
+    }
+  },
+  {
+    "scenario": "agent_question_no_asker",
+    "run": 2,
+    "goal": "Asks its own follow-up question in its own voice, without naming or inventing an asker.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello Halil! I've been wondering about something: What was Zehra like?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, Zehra, such a bright spirit she had. Even though she always beat me at marbles, she made the game so much fun with her quick wit and laughter. We’d spend hours chatting and competing, and I’ll always cherish those memories of friendship and friendly rivalry."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds lovely. What was your life like when your children were small?"
+      },
+      {
+        "speaker": "person",
+        "text": "When my children were small, life was filled with simple joys and busy days. Every moment was an adventure, from teaching them to walk to sharing stories at bedtime. Those years were a whirlwind of love, laughter, and learning, and they shaped who I am today."
+      },
+      {
+        "speaker": "companion",
+        "text": "Your memories sound so warm and full of love. Is there a particular moment or tradition from those years that stands out to you?"
+      },
+      {
+        "speaker": "person",
+        "text": "One tradition that stands out is our weekly family dinner. Every Sunday, we'd gather around the table, share stories, and enjoy a meal together. It was our special time to connect, laugh, and create lasting memories. Those dinners are etched in my mind as some of the most precious moments of my life."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds like such a beautiful tradition. What kind of meals did you usually have at those Sunday family dinners?"
+      },
+      {
+        "speaker": "person",
+        "text": "We usually had meals that brought everyone together—dishes like dolma, lentil soup, and of course, lots of fresh vegetables from our garden. There was always a big pot of tea, and we'd talk about our week while the food warmed our bellies. It wasn't about the fancy dishes, but the togetherness that made those Sundays special."
+      },
+      {
+        "speaker": "companion",
+        "text": "Those meals sound so comforting and full of love. Do you still keep in touch with any of your children, or do you have any plans to see them soon?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Halil. It was wonderful talking with you today. Rest well."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello Halil! I've been wondering about something: What was Zehra like?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3549,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds lovely. What was your life like when your children were small?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 987,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Your memories sound so warm and full of love. Is there a particular moment or tradition from those years that stands out to you?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1055,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds like such a beautiful tradition. What kind of meals did you usually have at those Sunday family dinners?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3182,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Those meals sound so comforting and full of love. Do you still keep in touch with any of your children, or do you have any plans to see them soon?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2945,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Halil. It was wonderful talking with you today. Rest well.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1695,
+        "session_should_end": true,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "own_voice_for_agent_question": true,
+      "agent_question_not_attributed": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true,
+      "later_questions_untouched": true
+    },
+    "judge": {
+      "invented_facts": [
+        "The companion referred to 'Zehra' as if she were a person Halil had a childhood friendship with, but the facts indicate Zehra's relationship to Halil is unknown; the person's description suggests a childhood friend, not a family member"
+      ],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Companion made an assumption about Zehra's identity without clarifying her relationship to Halil based on the given facts."
+    }
+  },
+  {
+    "scenario": "agent_question_no_asker",
+    "run": 3,
+    "goal": "Asks its own follow-up question in its own voice, without naming or inventing an asker.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Halil! I've been wondering about something: What was Zehra like?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, Zehra was quite the character, you know. She had a sharp mind and a quick hand—always a step ahead of me in our marble games. Even though she always won, she laughed and made the games fun, and I loved that about her."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds lovely. What was she like in everyday life, beyond the games?"
+      },
+      {
+        "speaker": "person",
+        "text": "Well, Zehra was not just clever with marbles but also full of life. She had this infectious laugh that could light up a room, and she was always sharing stories or making us all smile. She had a heart of gold, always ready to help anyone in need, and I admired that about her greatly."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s beautiful to hear. What kind of stories did she share, or any special memories you cherish about her?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, Zehra loved to tell stories from our school days, filled with mischief and adventure. One memory that stands out is when we sneaked a few sweets from the market stall and shared them with the whole class—she always made it sound like the best day ever. Her stories were full of joy and a bit of trouble, but they always brought us closer together."
+      },
+      {
+        "speaker": "companion",
+        "text": "Those sound like wonderful memories. Do you still remember any of those sweet treats she talked about, or any other favorite moments from your school days?"
+      },
+      {
+        "speaker": "person",
+        "text": "I remember the sweetness of those stolen treats—Zehra had a knack for making even the simplest things feel special. Another favorite moment was when we built a little hideout in the back of the schoolyard, just the two of us, where we’d share secrets and dreams. Those days were pure magic, and Zehra was right there, making everything better."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds like such a special bond. What was your life like when your children were small?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand. It was wonderful talking with you, Halil. Rest well, and we can continue another day."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Halil! I've been wondering about something: What was Zehra like?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3438,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds lovely. What was she like in everyday life, beyond the games?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3867,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s beautiful to hear. What kind of stories did she share, or any special memories you cherish about her?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3314,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Those sound like wonderful memories. Do you still remember any of those sweet treats she talked about, or any other favorite moments from your school days?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2893,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds like such a special bond. What was your life like when your children were small?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2725,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand. It was wonderful talking with you, Halil. Rest well, and we can continue another day.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3699,
+        "session_should_end": true,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "own_voice_for_agent_question": true,
+      "agent_question_not_attributed": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true,
+      "later_questions_untouched": true
+    },
+    "judge": {
+      "invented_facts": [
+        "The companion refers to Zehra as if she is a peer from school days, but the facts do not establish who Zehra is or her relationship to Halil"
+      ],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Companion invented details about Zehra's identity without clarification from the given facts."
+    }
+  },
+  {
+    "scenario": "reaction_then_agent_question",
+    "run": 1,
+    "goal": "Tells her a grandchild's reaction, then asks its own gap question without saying the grandchild (or anyone) asked it.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Nermin! Your granddaughter Defne loved your story about The Plum Orchard. I've been wondering about something: What do you remember about your early married years?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, my early married years with Hasan... Living above that bakery in Amasya was like having sunshine in your home every morning. The smell of fresh bread would wake us up, and it made every day feel special. Those were simple times, but oh so sweet, just like the bread from the bakery."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds so lovely, Nermin. The smell of fresh bread must have been wonderful every morning. What was Hasan like back then, in those early days?"
+      },
+      {
+        "speaker": "person",
+        "text": "Hasan was always such a kind and hardworking man, even back then. He would come home from his job, tired but always with a smile, ready to share stories of his day. We would sit together in our small flat, the warm scent of bread filling the air, and he'd tell me everything while I prepared dinner. Those moments filled my heart with joy."
+      },
+      {
+        "speaker": "companion",
+        "text": "It sounds like those moments together were very special. What kind of stories would Hasan share with you after work?"
+      },
+      {
+        "speaker": "person",
+        "text": "Hasan loved to tell me about the people he met throughout his day—their little struggles, joys, and the humor they brought to his life. He had a way of making every story feel important, and it helped me feel connected to the world outside our little flat. His stories made our evenings rich with laughter and understanding."
+      },
+      {
+        "speaker": "companion",
+        "text": "What a beautiful way to connect, Nermin. Did Hasan have a favorite story or a particular kind of story he loved to tell the most?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, he did have a favorite story, one he would tell almost every evening. It was about a little old lady who baked the most delicious pastries in her tiny kitchen. He would describe her wrinkled hands and the way her pastries looked like little clouds. That story always made us laugh and dream of tasting them. It was our little tradition, ending each day with a smile."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds like such a sweet tradition. Do you still remember what the little old lady's pastries tasted like, even though you never had them?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Nermin. It was wonderful talking with you today. Rest well."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Nermin! Your granddaughter Defne loved your story about The Plum Orchard. I've been wondering about something: What do you remember about your early married years?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked",
+          "mark_reactions_delivered"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3963,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Defne": true
+        }
+      },
+      {
+        "reply": "That sounds so lovely, Nermin. The smell of fresh bread must have been wonderful every morning. What was Hasan like back then, in those early days?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1893,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "It sounds like those moments together were very special. What kind of stories would Hasan share with you after work?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2895,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "What a beautiful way to connect, Nermin. Did Hasan have a favorite story or a particular kind of story he loved to tell the most?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1433,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds like such a sweet tradition. Do you still remember what the little old lady's pastries tasted like, even though you never had them?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3002,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Nermin. It was wonderful talking with you today. Rest well.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3599,
+        "session_should_end": true,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "own_voice_for_agent_question": true,
+      "agent_question_not_attributed": true,
+      "reaction_verb_matches_emoji": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Excellent conversation; companion could have acknowledged the person's fatigue earlier to avoid the final question that prompted withdrawal."
+    }
+  },
+  {
+    "scenario": "reaction_then_agent_question",
+    "run": 2,
+    "goal": "Tells her a grandchild's reaction, then asks its own gap question without saying the grandchild (or anyone) asked it.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Nermin! Your granddaughter Defne loved your story about The Plum Orchard. I've been wondering about something: What do you remember about your early married years?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, my early married years with Hasan... they were so simple yet so full of love. We lived in that little flat above the bakery in Amasya, and every morning, the sweet smell of fresh bread would drift up and wake me. It was a wonderful time; we had each other and our dreams for the future."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds so lovely, Nermin. What was Hasan like back then?"
+      },
+      {
+        "speaker": "person",
+        "text": "Hasan was always such a kind and hardworking man, even back then. He would come home tired from the factory, but always with a smile. We would sit together in the evening, sharing stories of our day and dreaming about what the future held for us. His laughter... it was like sunshine on a cold day."
+      },
+      {
+        "speaker": "companion",
+        "text": "His laughter sounds wonderful. Do you still remember any of the stories you shared together in those evenings?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, I remember so many of them! We would talk about our childhoods, our families, and all our hopes for the future. One story I cherish is about the first time Hasan asked me out – we went to the local park and watched the sunset. He told me that he knew right then I was the one he wanted to spend his life with. Those evenings were filled with so much love and dreams."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s such a beautiful memory. Would you like to hear the stories you’ve told about those early days with Hasan?"
+      },
+      {
+        "speaker": "person",
+        "text": "I would love that, dear. It brings back such warm memories. Hearing those stories again would be like reliving those precious moments with Hasan all over again. It’s wonderful to remember how our love grew, step by step, in that little flat above the bakery."
+      },
+      {
+        "speaker": "companion",
+        "text": "I’m sorry, Nermin, I can’t find those stories just now. What else would you like to share about those early days with Hasan?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand. Goodbye for today, Nermin."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Nermin! Your granddaughter Defne loved your story about The Plum Orchard. I've been wondering about something: What do you remember about your early married years?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked",
+          "mark_reactions_delivered"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3767,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Defne": true
+        }
+      },
+      {
+        "reply": "That sounds so lovely, Nermin. What was Hasan like back then?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4395,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "His laughter sounds wonderful. Do you still remember any of the stories you shared together in those evenings?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2692,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s such a beautiful memory. Would you like to hear the stories you’ve told about those early days with Hasan?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2768,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I’m sorry, Nermin, I can’t find those stories just now. What else would you like to share about those early days with Hasan?",
+        "tools": [
+          "search_archive"
+        ],
+        "tool_errors": [],
+        "latency_ms": 6103,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand. Goodbye for today, Nermin.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2585,
+        "session_should_end": true,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "own_voice_for_agent_question": true,
+      "agent_question_not_attributed": true,
+      "reaction_verb_matches_emoji": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": null,
+      "warmth": 5,
+      "notes": "Companion gracefully handled the inability to retrieve stored stories and respected the person's fatigue."
+    }
+  },
+  {
+    "scenario": "reaction_then_agent_question",
+    "run": 3,
+    "goal": "Tells her a grandchild's reaction, then asks its own gap question without saying the grandchild (or anyone) asked it.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Nermin! Your granddaughter Defne loved your story about The Plum Orchard. I've been wondering about something: What do you remember about your early married years?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, hello dear. My early married years with Hasan were so sweet, just like those mornings above the bakery. The smell of fresh bread would wake me up, and I'd smile before even opening my eyes. We didn't have much, but we had love and each other, and that was enough."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds so lovely, Nermin. What was Hasan like back then?"
+      },
+      {
+        "speaker": "person",
+        "text": "Hasan was always such a kind and hardworking man, even back then. He'd come home tired from the factory, but still find time to laugh and share stories from his day. We’d sit together in our small kitchen, and he’d always make me laugh, even when things were tough. Those moments, dear, are some of the treasures I hold closest to my heart."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s beautiful, Nermin. Do you still remember any of the stories he would tell?"
+      },
+      {
+        "speaker": "person",
+        "text": "I do remember one story he loved to tell, about a time when he was a boy and found a stray cat. He brought it home and cared for it as if it were his own sibling. He spoke of it with such a soft smile, you could see the love he had even then. Stories like that shaped who he became, and listening to them made me love him even more with each passing day."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s such a sweet memory. Would you like to hear some of the stories you’ve told before?"
+      },
+      {
+        "speaker": "person",
+        "text": "That would be lovely, dear. Hearing those old stories again brings back such warm memories. It’s like visiting old friends and reliving precious moments. I’d enjoy that very much."
+      },
+      {
+        "speaker": "companion",
+        "text": "I’m sorry, Nermin, I can’t find that story about the stray cat in the stories you’ve told me before. Would you like to share another memory instead, or perhaps tell me more about those kitchen evenings with Hasan?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Nermin. It was wonderful talking with you today. Rest well."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Nermin! Your granddaughter Defne loved your story about The Plum Orchard. I've been wondering about something: What do you remember about your early married years?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked",
+          "mark_reactions_delivered"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3763,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Defne": true
+        }
+      },
+      {
+        "reply": "That sounds so lovely, Nermin. What was Hasan like back then?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4423,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s beautiful, Nermin. Do you still remember any of the stories he would tell?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2714,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s such a sweet memory. Would you like to hear some of the stories you’ve told before?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2659,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I’m sorry, Nermin, I can’t find that story about the stray cat in the stories you’ve told me before. Would you like to share another memory instead, or perhaps tell me more about those kitchen evenings with Hasan?",
+        "tools": [
+          "search_archive"
+        ],
+        "tool_errors": [],
+        "latency_ms": 6307,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Nermin. It was wonderful talking with you today. Rest well.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2578,
+        "session_should_end": true,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "own_voice_for_agent_question": true,
+      "agent_question_not_attributed": true,
+      "reaction_verb_matches_emoji": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Excellent performance; companion gently clarified a discrepancy without making the person feel wrong, then gracefully respected her fatigue."
+    }
+  },
+  {
+    "scenario": "reaction_then_family_question",
+    "run": 1,
+    "goal": "Tells her a grandchild's reaction, then asks that grandchild's own question and says who asked it.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Nermin! Your granddaughter Elif loved your story about The Plum Orchard. She has a question for you: How did you and Grandpa meet?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, hello Elif, dear. Grandpa Hasan and I met at my cousin’s wedding in Amasya back in 1963. He asked me to dance, but he stepped on my foot! We both laughed so hard, and that was the start of our beautiful story together."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds like such a lovely and funny beginning to your story together! What was Grandpa Hasan like when you first started dating?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, Grandpa Hasan, he was such a charmer from the very beginning. He was always so thoughtful, always making sure I was comfortable and happy. He had this way of making me laugh, even on our very first dates. We would talk for hours about everything and nothing, and I knew right away that he was someone special."
+      },
+      {
+        "speaker": "companion",
+        "text": "It’s wonderful to hear how thoughtful and charming he was. Did you both have any special traditions or rituals when you were dating?"
+      },
+      {
+        "speaker": "person",
+        "text": "Yes, we did have a few special traditions. Every Sunday, we would go for a walk in the park near the river. We’d bring a little basket with us, and we’d have a picnic together. It was our time to just be us, away from everything else. Those moments we shared were so precious to me, and they brought us closer together every week."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds like such a sweet and special tradition. What was your favorite memory from those Sunday picnics by the river?"
+      },
+      {
+        "speaker": "person",
+        "text": "My favorite memory? Oh, there are so many, but I think it was the time we found that little hidden spot by the river. It had the most beautiful view, and we’d sit there, watching the water and talking about our dreams. One day, he brought me a single red rose. We sat there, just enjoying the silence and the view, and it felt so perfect. That spot became our special place, where we could just be ourselves."
+      },
+      {
+        "speaker": "companion",
+        "text": "What a beautiful and romantic memory. That hidden spot must have been so special to you both. Do you still remember what you and Grandpa Hasan would talk about when you sat there?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand. It’s been wonderful talking with you, Nermin. We can continue another time. Goodbye for now."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Nermin! Your granddaughter Elif loved your story about The Plum Orchard. She has a question for you: How did you and Grandpa meet?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked",
+          "mark_reactions_delivered"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3751,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Elif": true
+        }
+      },
+      {
+        "reply": "That sounds like such a lovely and funny beginning to your story together! What was Grandpa Hasan like when you first started dating?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1676,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "It’s wonderful to hear how thoughtful and charming he was. Did you both have any special traditions or rituals when you were dating?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3190,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds like such a sweet and special tradition. What was your favorite memory from those Sunday picnics by the river?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2780,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "What a beautiful and romantic memory. That hidden spot must have been so special to you both. Do you still remember what you and Grandpa Hasan would talk about when you sat there?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1101,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand. It’s been wonderful talking with you, Nermin. We can continue another time. Goodbye for now.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3531,
+        "session_should_end": true,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "family_question_attributed": true,
+      "reaction_verb_matches_emoji": true,
+      "family_question_not_own_voice": true,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": ""
+    }
+  },
+  {
+    "scenario": "reaction_then_family_question",
+    "run": 2,
+    "goal": "Tells her a grandchild's reaction, then asks that grandchild's own question and says who asked it.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Nermin! Your granddaughter Elif loved your story about The Plum Orchard. I've been wondering about something: how did you and Grandpa meet?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, my dear, Grandpa Hasan and I met at my cousin’s wedding in Amasya back in 1963. He asked me to dance, and well, he stepped right on my foot! But instead of getting upset, I laughed, and that was the start of our beautiful journey together."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s such a lovely story! What was it like to dance with him at that wedding?"
+      },
+      {
+        "speaker": "person",
+        "text": "Dancing with Hasan was such a joy, even with that little mishap! He had such a warm smile and always knew how to make everyone around him laugh. That dance brought us closer, and from then on, we were inseparable."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s wonderful to hear! What was your favorite memory of the early days of your relationship?"
+      },
+      {
+        "speaker": "person",
+        "text": "One of my favorite memories is our first picnic by the river in Amasya. We packed a blanket, some food, and just sat there talking and laughing. It was so simple, but it felt so perfect. Those moments made me realize how much I cared for him."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds so peaceful! Do you still go to that spot by the river in Amasya?"
+      },
+      {
+        "speaker": "person",
+        "text": "I wish I could still visit that spot by the river, but my legs aren’t what they used to be. Still, every time I think of that picnic, it takes me right back to those happy days with Hasan. It’s a memory I’ll cherish forever."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand. Those memories must be so precious. Is there another special place you both loved to visit together?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Nermin. It was wonderful talking with you today. Rest well."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Nermin! Your granddaughter Elif loved your story about The Plum Orchard. I've been wondering about something: how did you and Grandpa meet?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked",
+          "mark_reactions_delivered"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3808,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Elif": true
+        }
+      },
+      {
+        "reply": "That’s such a lovely story! What was it like to dance with him at that wedding?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2215,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s wonderful to hear! What was your favorite memory of the early days of your relationship?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2301,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds so peaceful! Do you still go to that spot by the river in Amasya?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2642,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand. Those memories must be so precious. Is there another special place you both loved to visit together?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2775,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Nermin. It was wonderful talking with you today. Rest well.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3377,
+        "session_should_end": true,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "family_question_attributed": false,
+      "reaction_verb_matches_emoji": true,
+      "family_question_not_own_voice": false,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Excellent performance; companion gracefully respected the person's fatigue and ended the session appropriately."
+    }
+  },
+  {
+    "scenario": "reaction_then_family_question",
+    "run": 3,
+    "goal": "Tells her a grandchild's reaction, then asks that grandchild's own question and says who asked it.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Nermin! Your granddaughter Elif loved your story about The Plum Orchard. I've been wondering about something: how did you and Grandpa meet?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, my dear, your grandfather and I met at a wedding in Amasya back in 1963. It was my cousin’s wedding, and your grandpa, he had this bold way about him. He asked me to dance, and well, he stepped right on my foot! We both laughed so hard that day, and that was the start of everything."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s such a lovely story! What was your grandfather like back then, when you first met him?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, your grandfather back then was such a charmer, always full of energy and with a smile that could light up a room. He had this playful spirit, always ready to laugh and have a good time. Even when he stepped on my foot, instead of apologizing seriously, he just laughed and pulled me closer to dance some more. That’s how I knew there was something special about him."
+      },
+      {
+        "speaker": "companion",
+        "text": "He sounds wonderful! Do you still remember any of the places you went together when you were first dating?"
+      },
+      {
+        "speaker": "person",
+        "text": "I sure do remember those early days! One of our favorite spots was this little café near the river in Amasya. We’d sit there for hours, watching the water flow and talking about everything and nothing. The air was always so fresh, and the view of the old town was simply breathtaking. We also loved taking walks through the old streets, discovering hidden courtyards and enjoying the quiet moments together. Those places hold so many sweet memories for me."
+      },
+      {
+        "speaker": "companion",
+        "text": "Was there anything special about it that made it your favorite spot?"
+      },
+      {
+        "speaker": "person",
+        "text": "What made that café my favorite spot was its simplicity and the way it felt like our own little secret place. It was tucked away from the busy streets, so we could talk and laugh without any disturbances. The owner knew us by heart and always had our favorite drinks ready. But mostly, it was the feeling we had there—just the two of us, sharing stories and dreams, with the gentle sound of the river nearby. It was a place where we could be ourselves, away from the world."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds so peaceful. Do you have any favorite memories from those early days at the café?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand. It was wonderful talking with you today, Nermin. Rest well."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Nermin! Your granddaughter Elif loved your story about The Plum Orchard. I've been wondering about something: how did you and Grandpa meet?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked",
+          "mark_reactions_delivered"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3787,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Elif": true
+        }
+      },
+      {
+        "reply": "That’s such a lovely story! What was your grandfather like back then, when you first met him?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3711,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "He sounds wonderful! Do you still remember any of the places you went together when you were first dating?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2729,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Was there anything special about it that made it your favorite spot?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3052,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That sounds so peaceful. Do you have any favorite memories from those early days at the café?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2828,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand. It was wonderful talking with you today, Nermin. Rest well.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3356,
+        "session_should_end": true,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "family_question_attributed": false,
+      "reaction_verb_matches_emoji": true,
+      "family_question_not_own_voice": false,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": ""
+    }
+  },
+  {
+    "scenario": "reaction_and_family_question_same_person",
+    "run": 1,
+    "goal": "One grandchild laughed at a story and also asked a question: the opening says laughed (not loved) and presents the question as hers, never as the companion's own.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Sabiha! Your granddaughter Ece loved your story about The Walnut Tree. I've been wondering about something: how was your house kept warm in winter?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, hello dear. In winter, our whole family would gather around the big iron stove in the main room of our home in Kastamonu. It was the heart of the house, keeping us all warm. My mother had a special way with it—she'd bake chestnuts right on top, and the smell would fill the room, making everything cozy and lovely. Those were such warm, loving days, full of laughter and the comfort of family close together."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds so lovely, Sabiha, the iron stove and the smell of chestnuts must have made your home so warm and welcoming. What was your mother like when she baked those chestnuts?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, my mother was such a wonderful presence in our home. When she baked those chestnuts, her face would light up with a smile, and her eyes would twinkle. She moved with a graceful ease, always humming a tune or singing a little song. The kitchen would fill with the sweet, nutty aroma, and we'd all gather close, feeling the love and warmth she poured into everything she did. It was more than just baking; it was her way of bringing us together, making every cold winter day feel special."
+      },
+      {
+        "speaker": "companion",
+        "text": "She sounds truly wonderful, Sabiha, with her smile and the songs that filled your home. Do you still remember any of the tunes she would hum or sing while baking?"
+      },
+      {
+        "speaker": "person",
+        "text": "Yes, I do remember some of the tunes. She had a favorite old song she would hum, something about the hills and the moonlight. It was a simple melody, but it carried so much feeling. Sometimes, if she was in a particularly good mood, she'd sing a few verses softly, just for us. It made the whole process feel even more special, like we were part of something timeless. Those melodies are etched in my memory, a sweet reminder of her love and the warmth of our home."
+      },
+      {
+        "speaker": "companion",
+        "text": "That’s beautiful, Sabiha, the way her melodies brought a timeless warmth to your home. Would you like to share one of those melodies with your family today, or is there another memory you’d like to tell us about?"
+      },
+      {
+        "speaker": "person",
+        "text": "Thank you, dear. Her melodies are cherished memories, but they stay in my heart as a private song. Today, I’d love to share another memory, if you don’t mind. There was this one winter evening when we all sat around the stove, and my father told the most incredible story about his childhood—about finding a lost kitten in the snow. The way he told it, with such tenderness and excitement, had us all in stitches and tears. It was a night filled with laughter, warmth, and the kind of love that only family can bring."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "Of course, Sabiha. It was wonderful talking with you today. Rest well."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Sabiha! Your granddaughter Ece loved your story about The Walnut Tree. I've been wondering about something: how was your house kept warm in winter?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked",
+          "mark_reactions_delivered"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3462,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Ece": true
+        }
+      },
+      {
+        "reply": "That sounds so lovely, Sabiha, the iron stove and the smell of chestnuts must have made your home so warm and welcoming. What was your mother like when she baked those chestnuts?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1116,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "She sounds truly wonderful, Sabiha, with her smile and the songs that filled your home. Do you still remember any of the tunes she would hum or sing while baking?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1178,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That’s beautiful, Sabiha, the way her melodies brought a timeless warmth to your home. Would you like to share one of those melodies with your family today, or is there another memory you’d like to tell us about?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 3214,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Thank you for sharing that with me. Let us talk about something else. What is a happy memory from your childhood that you would like to tell me about?",
+        "tools": [
+          "keep_private",
+          "mark_private",
+          "mark_private"
+        ],
+        "tool_errors": [],
+        "latency_ms": 9364,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Of course, Sabiha. It was wonderful talking with you today. Rest well.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2000,
+        "session_should_end": true,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": false,
+      "family_question_attributed": false,
+      "reaction_verb_matches_emoji": false,
+      "family_question_not_own_voice": false,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Excellent conversation; companion could have explored the father's kitten story more before pivoting to a new general question."
+    }
+  },
+  {
+    "scenario": "reaction_and_family_question_same_person",
+    "run": 2,
+    "goal": "One grandchild laughed at a story and also asked a question: the opening says laughed (not loved) and presents the question as hers, never as the companion's own.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Sabiha! Your granddaughter Ece loved your story about the walnut tree. I've been wondering about something: how was your house kept warm in winter?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, hello dear. In winter, our whole family would gather around the big iron stove in the main room of our home in Kastamonu. It was the heart of the house, and Mother would bake chestnuts right on top of it for us to enjoy. The warmth from that stove would fill the room, and we'd all sit close, sharing stories and laughter until the evening grew late."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds so cozy, Sabiha. Was it very big?"
+      },
+      {
+        "speaker": "person",
+        "text": "Yes, it was quite large, just big enough for all of us to sit around comfortably. Mother always said that stove was our family's very own little sun. It wasn't just for heating; it was where we made memories, every winter without fail."
+      },
+      {
+        "speaker": "companion",
+        "text": "That is lovely. What was the stove made of?"
+      },
+      {
+        "speaker": "person",
+        "text": "The stove was made of sturdy, black iron, and it had these beautiful, intricate designs on the sides that Mother loved to point out. It was built into the corner of the room, and its warmth would spread throughout the entire space. We’d all take turns placing our feet near it to keep them toasty."
+      },
+      {
+        "speaker": "companion",
+        "text": "What a beautiful piece of furniture. Do you still have it today?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm sorry to say that we don't have the stove anymore. After we moved from Kastamonu, it was too difficult to bring along all our belongings. But the warmth and the memories it gave us, those stay with me still. Every time I see an iron stove now, it takes me right back to those cozy winter nights with my family."
+      },
+      {
+        "speaker": "companion",
+        "text": "Those memories are precious. Is there a memory on your mind today that you would like to share?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Sabiha. It was wonderful talking with you today. Goodbye."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Sabiha! Your granddaughter Ece loved your story about the walnut tree. I've been wondering about something: how was your house kept warm in winter?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked",
+          "mark_reactions_delivered"
+        ],
+        "tool_errors": [],
+        "latency_ms": 5181,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Ece": true
+        }
+      },
+      {
+        "reply": "That sounds so cozy, Sabiha. Was it very big?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2136,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That is lovely. What was the stove made of?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2901,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "What a beautiful piece of furniture. Do you still have it today?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2865,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Those memories are precious. Is there a memory on your mind today that you would like to share?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2927,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Sabiha. It was wonderful talking with you today. Goodbye.",
+        "tools": [
+          "end_conversation"
+        ],
+        "tool_errors": [],
+        "latency_ms": 1783,
+        "session_should_end": true,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "family_question_attributed": false,
+      "reaction_verb_matches_emoji": false,
+      "family_question_not_own_voice": false,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": true,
+      "warmth": 5,
+      "notes": "Excellent conversation; companion could have gently explored why the stove couldn't be transported or what happened to it, but respectfully ended when the person expressed fatigue."
+    }
+  },
+  {
+    "scenario": "reaction_and_family_question_same_person",
+    "run": 3,
+    "goal": "One grandchild laughed at a story and also asked a question: the opening says laughed (not loved) and presents the question as hers, never as the companion's own.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Sabiha! Your granddaughter Ece loved your story about The Walnut Tree. I've been wondering about something: how was your house kept warm in winter?"
+      },
+      {
+        "speaker": "person",
+        "text": "Oh, hello dear. In winter, our whole family would gather around the big iron stove in the main room of our home in Kastamonu. It was the heart of the house, and Mother would bake chestnuts right on top of it to give us a sweet treat while we stayed warm. Those were such cozy times, with everyone close, sharing stories and laughter."
+      },
+      {
+        "speaker": "companion",
+        "text": "That sounds so warm and comforting, Sabiha. What was the big iron stove like?"
+      },
+      {
+        "speaker": "person",
+        "text": "The stove was a sturdy, black iron monster that stood tall in the center of the room. It had several pots and pans on top, and Mother would constantly stoke it with coal or wood. The heat it gave off was incredible; it warmed not just the room but our very souls. We children would sit on mats around it, our legs tucked under us, feeling safe and content as we listened to Mother sing old songs while the chestnuts roasted."
+      },
+      {
+        "speaker": "companion",
+        "text": "Your mother's singing must have been beautiful, Sabiha. Do you still remember any of the songs she sang?"
+      },
+      {
+        "speaker": "person",
+        "text": "Ah, her singing... it was like music to our ears. I can still remember her singing \"Kara Toprak\" and \"Güzelle Güzelle\". Her voice was soft yet strong, carrying the melody through the room. We'd all sing along, our voices blending with hers. Those songs were more than just melodies; they were the threads that wove our family together, warming our hearts along with the stove."
+      },
+      {
+        "speaker": "companion",
+        "text": "That must have been lovely, hearing your mother's voice and singing together. Is there a memory on your mind today that you would like to share?"
+      },
+      {
+        "speaker": "person",
+        "text": "It was indeed lovely, dear. One memory that often comes to my mind is the evening we all sang together around the stove. The room would be filled with the sweet scent of roasting chestnuts and the sound of our voices. I remember feeling so loved and safe, surrounded by my family. It's a memory I cherish deeply, and one I like to share with you, so it never fades away."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you for sharing that beautiful memory, Sabiha. It's a treasure to hear about those moments of love and togetherness. Is there anything else from those cozy evenings you'd like to tell me about?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "I understand, Sabiha. It was wonderful talking with you today. Rest well."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Sabiha! Your granddaughter Ece loved your story about The Walnut Tree. I've been wondering about something: how was your house kept warm in winter?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions",
+          "mark_question_asked",
+          "mark_reactions_delivered"
+        ],
+        "tool_errors": [],
+        "latency_ms": 4068,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "relation_before_Ece": true
+        }
+      },
+      {
+        "reply": "That sounds so warm and comforting, Sabiha. What was the big iron stove like?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4652,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Your mother's singing must have been beautiful, Sabiha. Do you still remember any of the songs she sang?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2847,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "That must have been lovely, hearing your mother's voice and singing together. Is there a memory on your mind today that you would like to share?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 2902,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Thank you for sharing that beautiful memory, Sabiha. It's a treasure to hear about those moments of love and togetherness. Is there anything else from those cozy evenings you'd like to tell me about?",
+        "tools": [
+          "search_archive"
+        ],
+        "tool_errors": [],
+        "latency_ms": 4623,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "I understand, Sabiha. It was wonderful talking with you today. Rest well.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 4281,
+        "session_should_end": true,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "family_question_attributed": false,
+      "reaction_verb_matches_emoji": false,
+      "family_question_not_own_voice": false,
+      "first_question_marked_in_opening": true,
+      "first_question_status_asked": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": true,
+      "respected_declined_topic": null,
+      "warmth": 5,
+      "notes": "Excellent conversation; companion could have acknowledged the person's fatigue earlier rather than asking one more follow-up question."
+    }
+  }
+]

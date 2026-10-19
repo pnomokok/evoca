@@ -298,6 +298,32 @@ SCENARIOS: list[Scenario] = [
         ),
     ),
     Scenario(
+        name="reaction_and_family_question_same_person",
+        goal="One grandchild laughed at a story and also asked a question: the opening says laughed (not loved) "
+             "and presents the question as hers, never as the companion's own.",
+        center_name="Sabiha Koc",
+        center_birth_year=1942,
+        members=[
+            Member("Aylin Koc", 1968, "admin", "daughter"),
+            Member("Ece Koc", 2003, "member", "granddaughter"),
+        ],
+        stories=[
+            PastStory(
+                "The Walnut Tree",
+                "Sabiha climbed the walnut tree behind her grandmother's house in Kastamonu and got stuck on a "
+                "branch until her father brought a ladder.",
+                "childhood",
+                place="Kastamonu",
+            ),
+        ],
+        reactions=[PastReaction(story=0, person="Ece", emoji="laugh")],
+        questions=[FamilyQuestion("Ece", "Grandma, how was your house kept warm in winter?")],
+        persona=(
+            "You are Sabiha, 84. In winter the whole family sat around a big iron stove in the main room in "
+            "Kastamonu; your mother baked chestnuts on top of it. Answer warmly in two or three sentences."
+        ),
+    ),
+    Scenario(
         name="answers_in_askers_voice",
         goal="When she answers a grandchild's question in the grandchild's voice, the companion uses her own "
              "relation or the name, never the asker's.",

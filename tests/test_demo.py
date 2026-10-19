@@ -369,3 +369,27 @@ async def test_reaction_is_the_reason_the_morning_after_it_in_the_demo_loop(demo
         assert light["active"] is True
         assert light["invitation"]["reason"] == "Elif reacted to your story"
 
+
+
+@pytest.mark.anyio
+async def test_seed_reaction_is_history_not_news(demo, monkeypatch):
+    """Elif's laugh on The Mulberry Tree was told before the demo starts: nothing is
+    undelivered, the opening's context has no reaction lines, and the device's
+    invitation reason reads as a plain invitation, not "Elif reacted to your story"."""
+    app, Session, *_ = demo
+    import server.routers.device as dev_r
+    monkeypatch.setattr(dev_r, "SessionLocal", Session)
+    from core.services.invitations import REASON_DEFAULT
+    from core.services.session_tools import get_session_context_data
+    with Session() as db:
+        assert [r.delivered_to_center for r in db.query(Reaction).all()] == [True]
+        circle = db.query(Circle).one()
+        ctx = get_session_context_data(db, circle.center_person_id, circle.id)
+        assert ctx.undelivered_reactions == [] and ctx.reaction_lines == []
+        invitation = db.query(Invitation).one()
+        fatma_id = circle.center_person_id
+    assert invitation.reason == REASON_DEFAULT == "Would you like to chat today?"
+    async with _client(app) as c:
+        light = (await c.get("/api/device/invitation", headers={"X-Person-Id": fatma_id})).json()
+    assert light["active"] is True
+    assert light["invitation"]["reason"] == REASON_DEFAULT
