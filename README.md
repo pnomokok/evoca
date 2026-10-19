@@ -3,7 +3,7 @@
 **A voice-first family memory. Grandma just talks; the whole family listens, asks and remembers with her.**
 
 > Demo video (under 3 min): TODO link
-> Track: Alexa+ (simulated device, real MCP server) · Mini challenges: AWS Builder, Open Source (MIT)
+> Track: Alexa+ (self-hosted MCP server + simulated device) · Mini challenge: AWS Builder · MIT licensed
 
 ![The demo stage: on the left Fatma's living room device with its light on and "Elif has a question for you"; on the right Elif's phone showing her question waiting for Fatma's morning chat.](docs/images/stage.webp)
 
@@ -68,6 +68,15 @@ and everything Evoca knows and does sits behind its own MCP server. Alexa+ tools
 yet, so the device is simulated in the browser. Everything behind it is real and runs today: the MCP server,
 both agents, speech-to-text, text-to-speech and the archive. Moving to a real Alexa+ device replaces the
 simulated screen, not the system.
+
+**Track path:**
+
+- **A self-hosted MCP server** ([`mcp_server/server.py`](mcp_server/server.py)) over Streamable HTTP. It negotiates
+  protocol version `2026-07-28`; the rules require `2025-11-25` or later. Checked with
+  [`mcp_server/check_client.py`](mcp_server/check_client.py).
+- **Used at runtime by both agents.** The chat agent and the archivist are MCP clients of that server; every
+  conversation and every archiving run goes through its tools.
+- **A simulated Alexa+ device** in the browser: the screen, the light, push-to-talk and the voice.
 
 ## How it works
 
