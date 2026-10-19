@@ -364,6 +364,67 @@ html {
   transform: translateY(-2px);
 }
 
+/* The hero's one large "Try the demo", larger than any other button on the page,
+   with its promise underneath; "Create your family" sits next to it as a quiet outline. */
+.hero-cta-main {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-hero-demo {
+  padding: 18px 42px;
+  font-size: 18px;
+  gap: 12px;
+}
+
+.hero-cta-note {
+  font-size: 13px;
+  color: rgba(250, 246, 237, 0.72);
+  letter-spacing: 0.01em;
+}
+
+.btn-hero-quiet {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  margin-top: 6px;
+  background: transparent;
+  color: #FAF6ED;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: var(--radius-full);
+  padding: 12px 22px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.22s ease;
+}
+
+.btn-hero-quiet:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+.footer-github {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 6px;
+  color: #B8B0A2;
+  text-decoration: none;
+}
+
+.footer-github:hover { color: #FAF6ED; }
+
+@media (max-width: 480px) {
+  .hero-actions { flex-direction: column; align-items: stretch; }
+  .hero-cta-main { align-items: stretch; text-align: center; }
+  .btn-hero-demo { justify-content: center; }
+  .btn-hero-quiet { align-self: center; }
+}
+
 /* --------------------------------------------------------------------------
    2. THE PROBLEM SECTION (The Living Conversation Gap)
    -------------------------------------------------------------------------- */

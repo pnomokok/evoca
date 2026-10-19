@@ -267,3 +267,109 @@
 
 /* In the activity list the card sits among other activity cards. */
 .activity-cards-list .answer-card { max-width: 640px; }
+
+/* My questions, nothing asked yet: the first question is asked right on the page. */
+.first-question-composer {
+  max-width: 640px;
+  background: var(--bg-white);
+  border: 1px solid #EADFCB;
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.first-question-title {
+  font-family: var(--font-serif);
+  font-size: var(--text-lead);
+  font-weight: 500;
+  color: var(--text-charcoal);
+  margin: 0;
+}
+
+.first-question-composer .section-desc { margin: 0; }
+.first-question-composer .archival-textarea { width: 100%; box-sizing: border-box; }
+.first-question-actions { display: flex; justify-content: flex-end; }
+
+/* A new family's first steps, at the top of the journal (GettingStarted.jsx). */
+.getting-started {
+  background: var(--bg-white);
+  border: 1px solid #EADFCB;
+  border-left: 4px solid var(--accent-terracotta);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  box-shadow: var(--shadow-subtle);
+}
+
+.getting-started-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.getting-started-title {
+  font-family: var(--font-serif);
+  font-size: var(--text-lead);
+  font-weight: 500;
+  margin: 0 0 4px;
+  color: var(--text-charcoal);
+}
+
+.getting-started-head .section-desc { margin: 0; }
+
+.getting-started-steps {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.getting-started-steps li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.getting-started-mark {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font: 600 13px var(--font-sans);
+  color: var(--accent-terracotta);
+  border: 1.5px solid var(--accent-terracotta);
+}
+
+.getting-started-steps li.done .getting-started-mark {
+  background: var(--accent-sage, #7C8B6F);
+  border-color: var(--accent-sage, #7C8B6F);
+  color: #fff;
+}
+
+.getting-started-step {
+  background: none;
+  border: 0;
+  padding: 6px 0;
+  text-align: left;
+  font: 500 15px var(--font-sans);
+  color: var(--text-charcoal);
+  cursor: pointer;
+}
+
+.getting-started-step:hover { color: var(--accent-terracotta); text-decoration: underline; }
+.getting-started-steps li.done .getting-started-step { color: var(--text-charcoal-muted); text-decoration: line-through; }
+
+/* A row or section the page just scrolled to (utils/focusLater.js). */
+.focus-flash {
+  outline: 2px solid var(--accent-terracotta);
+  outline-offset: 4px;
+  border-radius: var(--radius-md);
+  transition: outline-color 0.4s ease;
+}

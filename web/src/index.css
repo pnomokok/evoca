@@ -3149,6 +3149,19 @@ h1, h2, h3, h4, .serif-font {
   box-shadow: var(--shadow-subtle);
 }
 
+.btn-story-back { white-space: nowrap; }
+.btn-story-back .back-short { display: none; }
+
+/* On a phone the back button names only its destination ("← Life chapters"). The long label
+   stays for screen readers, visually hidden. */
+@media (max-width: 480px) {
+  .btn-story-back { padding: 7px 12px; font-size: 13px; }
+  .btn-story-back .back-short { display: inline; }
+  .btn-story-back .back-long {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  }
+}
+
 .btn-story-back:hover {
   background: var(--bg-paper-light);
   border-color: var(--border-paper-dark);

@@ -4,6 +4,7 @@ import { apiClient } from '../../api/client';
 import { formatWhen } from '../../utils/format';
 import Avatar from '../Avatar';
 import AnswerCard from './AnswerCard';
+import FirstQuestionComposer from './FirstQuestionComposer';
 import '../../styles/journal.css';
 
 // The three steps of a question. The API only says "waiting" or "answered", so a question is on
@@ -33,6 +34,7 @@ function Journey({ answered }) {
 export default function MyQuestions({ reloadKey }) {
   const { circleData, currentViewerId, viewerReady, dataVersion, openStory } = useApp();
   const [loaded, setLoaded] = useState({ viewerId: null, questions: [], answers: {}, failed: false });
+  const [sent, setSent] = useState(0);   // bumped by the first-question composer
 
   useEffect(() => {
     if (!viewerReady) return;
@@ -50,7 +52,7 @@ export default function MyQuestions({ reloadKey }) {
         if (!cancelled) setLoaded({ viewerId: currentViewerId, questions: [], answers: {}, failed: true });
       });
     return () => { cancelled = true; };
-  }, [viewerReady, currentViewerId, dataVersion, reloadKey]);
+  }, [viewerReady, currentViewerId, dataVersion, reloadKey, sent]);
 
   const ready = loaded.viewerId === currentViewerId;
   const questions = ready ? loaded.questions : [];
@@ -71,9 +73,7 @@ export default function MyQuestions({ reloadKey }) {
       {!ready && <p className="section-desc" role="status">Loading your questions...</p>}
       {ready && loaded.failed && <p role="alert">Not available.</p>}
       {ready && !loaded.failed && questions.length === 0 && (
-        <p className="section-desc">
-          You haven't asked anything yet. Your questions and their answers will appear here.
-        </p>
+        <FirstQuestionComposer onSent={() => setSent(n => n + 1)} />
       )}
 
       <ul className="question-list" aria-label="My questions">
@@ -82,7 +82,7 @@ export default function MyQuestions({ reloadKey }) {
           const answerItem = answered ? loaded.answers[q.id] : null;
           const target = member(q.target_person_id);
           return (
-            <li key={q.id} className="question-item">
+            <li key={q.id} id={`question-${q.id}`} className="question-item">
               <div className="question-card" data-testid="question-card" data-status={answered ? 'answered' : 'waiting'}>
                 <div className="question-head">
                   {target && <Avatar person={target} size={28} />}

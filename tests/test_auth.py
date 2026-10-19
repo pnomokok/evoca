@@ -373,3 +373,32 @@ async def test_cors_preflight_allows_the_bearer_header_from_the_web_origin():
     allowed = {h.strip().lower() for h in r.headers["access-control-allow-headers"].split(",")}
     assert {"authorization", "x-circle-id", "content-type"} <= allowed
     assert "GET" in r.headers["access-control-allow-methods"]
+
+
+# ---------------------------------------------------------------------------
+# has_invite on the members list (admins only)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.anyio
+async def test_members_list_tells_admins_who_has_an_active_link(env):
+    """has_invite is true while a member has an unrevoked link, on any device; members never see it."""
+    app, ayse, elif_, fatma = env["app"], env["ayse"], env["elif_"], env["fatma"]
+
+    def flags(body):
+        return {m["id"]: m.get("has_invite") for m in body["members"]}
+
+    before = (await _call(app, "GET", "/api/circle", person=ayse)).json()
+    assert flags(before) == {fatma.id: False, elif_.id: False, ayse.id: False}
+
+    await _invite(env, fatma)
+    await _invite(env, elif_)
+    after = (await _call(app, "GET", "/api/circle", person=ayse)).json()
+    assert flags(after) == {fatma.id: True, elif_.id: True, ayse.id: False}
+
+    r = await _call(app, "DELETE", f"/api/admin/invites/{elif_.id}", person=ayse)
+    assert r.status_code == 200, r.text
+    revoked = (await _call(app, "GET", "/api/circle", person=ayse)).json()
+    assert flags(revoked)[elif_.id] is False
+
+    as_member = (await _call(app, "GET", "/api/circle", person=elif_)).json()
+    assert all("has_invite" not in m for m in as_member["members"])

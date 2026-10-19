@@ -36,8 +36,8 @@ from pydantic import BaseModel
 
 from core.clock import now_utc
 from core.db import SessionLocal
-from core.enums import LifePeriod, QuestionSource, QuestionStatus, TopicSource
-from core.models import Circle, Membership, Person, Question, SensitiveTopic
+from core.enums import LifePeriod, QuestionSource, QuestionStatus, Role, TopicSource
+from core.models import Circle, InviteLink, Membership, Person, Question, SensitiveTopic
 from core.services import auth as auth_svc
 from core.services import circles as circle_svc
 from core.services import stories as story_svc
@@ -126,7 +126,8 @@ async def post_circle(body: Annotated[Any, Body()] = None):
 async def get_circle(
     viewer: Viewer = Depends(panel_viewer),
 ):
-    """Return circle info and full member list, matching GET_circle.json."""
+    """Return circle info and full member list, matching GET_circle.json.
+    For an admin each member also has has_invite: an active personal link exists."""
     with SessionLocal() as db:
         person_id, circle_id = _resolve_panel_viewer(viewer.person_id, db, viewer.circle_id)
 
@@ -146,17 +147,25 @@ async def get_circle(
             .filter(Membership.circle_id == circle_id)
             .all()
         )
+        is_admin = viewer_membership is not None and viewer_membership.role == Role.admin
+        invited = {
+            pid for (pid,) in db.query(InviteLink.person_id)
+            .filter(InviteLink.circle_id == circle_id, InviteLink.revoked_at.is_(None))
+        } if is_admin else set()
         members = []
         for m in memberships:
             p = db.get(Person, m.person_id)
             if p:
-                members.append({
+                member = {
                     "id": p.id,
                     "name": p.name,
                     "birth_year": p.birth_year,
                     "role": m.role,
                     "relation_to_center": m.relation_to_center,
-                })
+                }
+                if is_admin:
+                    member["has_invite"] = p.id in invited
+                members.append(member)
 
         return {
             "circle": {

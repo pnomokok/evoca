@@ -6,6 +6,7 @@ import FamilyTreeCard from './FamilyTreeCard';
 import FamilyTreeModal from './FamilyTreeModal';
 import BlobPhoto from './BlobPhoto';
 import AnswerCard from './AnswerCard';
+import GettingStarted from './GettingStarted';
 import { periodLabel, periodYears } from '../../utils/periods';
 import { formatDuration, formatWhen } from '../../utils/format';
 
@@ -24,7 +25,7 @@ const PERIOD_PROMPTS = {
 
 // onOpenAskModal(period, prompt): a chapter's own question (null for the center, who does not ask).
 export default function FamilyDashboard({ onOpenAskModal }) {
-  const { openStory, navigate, circleData, currentViewerId, viewerReady, centerPersonId, dataVersion } = useApp();
+  const { openStory, navigate, circleData, currentViewerId, viewerReady, centerPersonId, dataVersion, isSignedIn } = useApp();
   // Loaded data is keyed by viewer; another viewer's feed is never shown.
   const [loaded, setLoaded] = useState({ viewerId: null, feedItems: [], lifeline: null });
   const [isTreeModalOpen, setIsTreeModalOpen] = useState(false);
@@ -80,6 +81,8 @@ export default function FamilyDashboard({ onOpenAskModal }) {
 
   return (
     <div className="album-dashboard">
+      {/* A new family (signed in, no stories yet) starts with its first steps. */}
+      {isSignedIn && isCurrent && storyCount === 0 && <GettingStarted />}
       <div className="hero-two-column-wrapper">
         {/* Left card: welcome and the newest story */}
         <section className="hero-left-card welcome-memory-card" aria-labelledby="hero-heading">

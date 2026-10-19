@@ -159,6 +159,9 @@ export default function CreateFamilyWizard({ onClose, onCreated }) {
         </div>
         <CopyLink url={link} label="Your personal link" />
         <p className="section-desc" style={{ margin: '12px 0 0' }}>Save this link to open your family on another device.</p>
+        <p className="section-desc" style={{ margin: '6px 0 0' }}>
+          Lost it? You can make a new link anytime in Family settings → Members.
+        </p>
         <div className="dialog-action-bar">
           <button type="button" className="editorial-btn primary" onClick={onClose} autoFocus>
             <Check size={15} />

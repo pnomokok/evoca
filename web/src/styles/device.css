@@ -246,6 +246,7 @@
   justify-items: center;
   gap: 2cqw;
   padding-top: 2.4cqw;
+  padding-bottom: 14px;   /* room for the Talk button's glow and breathing ring inside the screen */
 }
 
 .device-side { justify-self: start; }
@@ -354,8 +355,9 @@
   to { opacity: 1; }
 }
 
-/* Narrow screens (phones): a taller screen so captions and the button still fit. */
-@media (max-width: 540px) {
+/* Narrow, tall screens (phones): a taller screen so captions and the button still fit. A narrow
+   but short frame (the stage's device pane on a low window) keeps the 16:10 screen, which fits it. */
+@media (max-width: 540px) and (max-aspect-ratio: 3/4) {
   .device-screen { aspect-ratio: 4 / 5; padding: 7cqw 6cqw 4cqw; }
   .device-time { font-size: 24cqw; }
   .device-reason, .device-status-line, .device-privacy p { font-size: 8cqw; }

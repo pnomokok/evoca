@@ -374,7 +374,9 @@ export function AppProvider({ children, initialTab = 'landing', initialPanelSubT
       loading,
       toast,
       showToast,
-      refreshData: loadInitialData
+      refreshData: loadInitialData,
+      // Load again and let every page reload its own data (as after a stage change).
+      reloadAll: () => loadInitialData().then(() => setDataVersion(v => v + 1))
     }}>
       {children}
     </AppContext.Provider>

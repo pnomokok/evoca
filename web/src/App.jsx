@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { AppProvider } from './context/AppContext';
 import { useApp } from './context/useApp';
 import { apiClient } from './api/client';
@@ -13,6 +13,9 @@ import CreateFamilyWizard from './components/CreateFamilyWizard';
 import StageView from './components/StageView';
 import DemoEntryModal from './components/DemoEntryModal';
 import PersonPicker from './components/PersonPicker';
+import AnswerNotice from './components/panel/AnswerNotice';
+import { useNewAnswers } from './components/panel/useNewAnswers';
+import { focusLater } from './utils/focusLater';
 import { Info, AlertCircle, BookOpen } from 'lucide-react';
 import './styles/navigation.css';
 
@@ -32,6 +35,29 @@ function Toast() {
       <span>{toast.message}</span>
     </div>
   );
+}
+
+// Opens one of the viewer's answered questions in My questions.
+function useOpenAnswer() {
+  const { navigate, reloadAll } = useApp();
+  return useCallback((questionId) => {
+    navigate({ tab: 'panel', subTab: 'questions' });
+    reloadAll();   // the list may not know about the answer yet
+    focusLater(`question-${questionId}`);
+  }, [navigate, reloadAll]);
+}
+
+// In the archive (outside the stage): a toast when an answer to one of my questions appears.
+function AnswerToast() {
+  const { circleData, currentViewerId, centerPersonId, dataVersion } = useApp();
+  const openAnswer = useOpenAnswer();
+  const me = circleData?.me?.id === currentViewerId ? circleData.me : null;
+  const { notice, dismiss } = useNewAnswers({
+    circleId: circleData?.circle?.id, personId: currentViewerId,
+    enabled: Boolean(me) && me.role !== 'center', reloadKey: dataVersion
+  });
+  const centerFirst = circleData?.members?.find(m => m.id === centerPersonId)?.name?.split(' ')[0] || '';
+  return <AnswerNotice notice={notice} centerFirst={centerFirst} onOpen={openAnswer} onDismiss={dismiss} />;
 }
 
 // The landing page; its demo buttons open the demo modal, which leads to the stage or the person picker.
@@ -79,6 +105,7 @@ function MainContent() {
         <main className="view-viewport">
           <FamilyPanel />
         </main>
+        <AnswerToast />
       </>}
 
       {/* The device is an object, not a web page: no product header. Signed in (only the center gets
@@ -103,6 +130,18 @@ function MainContent() {
 // One pane of the stage: the device as the center person, or the family panel on a phone.
 function EmbedContent() {
   const { activeTab } = useApp();
+  const openAnswer = useOpenAnswer();
+  // The stage's phone banner asks the panel to open an answer (StageView); same origin only.
+  useEffect(() => {
+    if (activeTab === 'device') return undefined;
+    const onMessage = (e) => {
+      if (e.origin === window.location.origin && e.data?.type === 'evoca-open-answer' && e.data.questionId) {
+        openAnswer(e.data.questionId);
+      }
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [activeTab, openAnswer]);
   if (activeTab === 'device') {
     return (
       <div className="app-container embed-device-view">
@@ -147,6 +186,7 @@ function FullApp() {
   const restartApp = useCallback((tab, toast = null) => {
     const path = tab === 'home' ? '/archive/journal' : '/';
     if (window.location.pathname !== path) window.history.pushState(null, '', path);
+    window.scrollTo(0, 0);   // a new family's journal opens at its top (Getting started), not mid-page
     setStart(s => ({ key: s.key + 1, home: tab === 'home', toast }));
   }, []);
   const openCreateFamily = useCallback(() => setCreating(true), []);

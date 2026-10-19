@@ -618,7 +618,7 @@ session's circle), otherwise the same 403 as a non-member. Without it, the viewe
 | `GET /api/invites/{token}` | Join page | No auth. `{circle_name, person_name, role}` for an active link; the same 404 for a revoked, wrong or unknown token. |
 | `POST /api/invites/{token}/accept` | Join page | No auth. Makes a sign-in session: `{session_token, person_id, circle_id}`. The link stays usable until revoked; same 404 as above. |
 | `POST /api/auth/logout` | Panel, device | Revokes the current session (bearer only; 401 otherwise). |
-| `GET /api/circle` | Panel | The circle, "me" and members. |
+| `GET /api/circle` | Panel | The circle, "me" and members; for an admin each member also has `has_invite` (an active personal link exists). |
 | `GET /api/questions/mine` | Panel | The viewer's own questions, only `waiting` or `answered`: declined questions and questions on a topic the elder refused look `waiting`. `answered` only once the viewer can see the answer's story. An unanswered question that matches a current family topic is not listed, whatever its status. |
 | `GET /api/demo/clock`, `POST /api/demo/advance`, `POST /api/demo/reset` | Demo controls | Only with `EVOCA_DEMO_MODE=1` (otherwise 404). `advance {hours}` (1-72) moves the demo clock and runs the publisher and invitation scheduler at once. `reset` rebuilds the database from the seed, and only if it is `data/demo.db`. |
 
