@@ -373,3 +373,27 @@ def test_duplicate_rows_keep_the_index_off_and_are_not_deleted(tmp_path):
     with eng.connect() as conn:
         assert conn.execute(text("SELECT count(*) FROM invitation")).scalar() == 2
     eng.dispose()
+
+
+# ---------------------------------------------------------------------------
+# Same rule as the opening: reactions on a story that touches a sensitive topic
+# ---------------------------------------------------------------------------
+
+def test_reaction_on_a_sensitive_story_does_not_count(w, monkeypatch):
+    """The opening will not tell that reaction (get_session_context), so the device
+    must not say "Elif reacted to your story", and Elif's waiting question wins."""
+    from core.services.session_tools import get_session_context_data
+    w.db.add(SensitiveTopic(circle_id=w.circle.id, text="the umbrella accident", added_by=w.fatma.id))
+    w.db.commit()
+    _react(w, w.elif_, title="The Umbrella")
+    _question(w, "What was your first job?")
+    assert get_session_context_data(w.db, w.fatma.id, w.circle.id).undelivered_reactions == []
+    assert _reason(w, monkeypatch) == "Elif has a question for you"
+
+
+def test_reaction_on_another_story_still_counts_next_to_a_sensitive_one(w, monkeypatch):
+    w.db.add(SensitiveTopic(circle_id=w.circle.id, text="the umbrella accident", added_by=w.fatma.id))
+    w.db.commit()
+    _react(w, w.elif_, title="The Umbrella")
+    _react(w, w.elif_, title="Picking Cherries")
+    assert _reason(w, monkeypatch) == "Elif reacted to your story"

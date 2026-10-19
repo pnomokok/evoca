@@ -121,6 +121,18 @@ class SessionContextResult:
     reaction_lines: list[ReactionLineItem] = field(default_factory=list)
 
 
+def circle_topic_texts(db: DbSession, circle_id: str) -> list[str]:
+    return [t.text for t in db.query(SensitiveTopic).filter(SensitiveTopic.circle_id == circle_id)]
+
+
+def story_touches_topic(story: Story, topic_texts: list[str]) -> bool:
+    """A story whose title or summary matches a sensitive topic. Its reactions
+    are not told in the opening and do not count for the invitation reason
+    (core/services/invitations.py), so the two always agree."""
+    text = f"{story.title} {story.ai_summary or ''}"
+    return any(_matches_sensitive_topic(text, t) for t in topic_texts)
+
+
 def get_session_context_data(
     db: DbSession,
     viewer_id: str,
@@ -184,11 +196,10 @@ def get_session_context_data(
     # Build a story-id → title lookup (filtered by can_see). A story that
     # touches a sensitive topic is left out too: its reactions stay undelivered
     # rather than have the opening say its title (reaction_lines are said as given).
-    topic_texts = [t.text for t in db.query(SensitiveTopic).filter(SensitiveTopic.circle_id == circle_id)]
+    topic_texts = circle_topic_texts(db, circle_id)
     visible_story_map: dict[str, str] = {}
     for s in center_stories:
-        touches_topic = any(_matches_sensitive_topic(f"{s.title} {s.ai_summary or ''}", t) for t in topic_texts)
-        if can_see(db, viewer_id, s) and not touches_topic:
+        if can_see(db, viewer_id, s) and not story_touches_topic(s, topic_texts):
             visible_story_map[s.id] = s.title
 
     # Build a person-id → (name, relation) lookup for reactors

@@ -347,6 +347,16 @@ async def test_member_rules(cw):
                  {"name": "X", "birth_year": 2000, "relation_to_center": "son", "role": "center"}):
         assert (await _req(app, "POST", url, creator, body)).status_code == 400
     assert (await _req(app, "PATCH", f"{url}/{member}", creator, {"role": "center"})).status_code == 400
+    # Birth year is optional for a member: missing, null or "" is accepted; a given one is checked.
+    for body in ({"name": "Nur", "relation_to_center": "niece"},
+                 {"name": "Ece", "birth_year": None, "relation_to_center": "niece"},
+                 {"name": "Su", "birth_year": "", "relation_to_center": "niece"}):
+        r = await _req(app, "POST", url, creator, body)
+        assert r.status_code == 200, r.text
+        assert r.json()["birth_year"] is None
+    for bad in (1800, 2999, "1990", True):
+        r = await _req(app, "POST", url, creator, {"name": "Z", "birth_year": bad, "relation_to_center": "son"})
+        assert r.status_code == 400 and "birth_year" in r.json()["detail"]
     assert (await _req(app, "PATCH", f"{url}/{cw['elif_'].id}", creator, {"role": "admin"})).status_code == 404
 
     # The center: never removed or changed.

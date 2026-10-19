@@ -46,6 +46,7 @@ from core.models import Session as OrmSession
 from core.services.chat_tools import playlist_ranges
 from core.services.sessions import end_session, start_session
 from server.agents.archivist_agent import ArchivistAgent, answer_check_llm, archivist_llm
+from server import archive_runs
 from server.agents.chat_agent import ChatAgent, chat_llm, privacy_check_llm, split_sentences
 from server.auth import Viewer, viewer_dependency
 from server.mcp_bridge import MCPBridge
@@ -318,8 +319,18 @@ async def _finish(live: LiveSession, store: SessionStore, background_tasks: Back
             live.session_id, len(unmarked), ", ".join(unmarked),
         )
     else:
-        background_tasks.add_task(_run_archivist, live.session_id, live.owner_id, live.agent._circle_id)
+        # Registered before the response, so a demo clock move right after the
+        # goodbye waits for this run (server/archive_runs.py).
+        archive_runs.begin(live.agent._circle_id)
+        background_tasks.add_task(_archive_and_release, live.session_id, live.owner_id, live.agent._circle_id)
     return ended_at
+
+
+async def _archive_and_release(session_id: str, person_id: str, circle_id: str) -> None:
+    try:
+        await _run_archivist(session_id, person_id, circle_id)
+    finally:
+        archive_runs.end(circle_id)
 
 
 async def _run_archivist(session_id: str, person_id: str, circle_id: str) -> None:

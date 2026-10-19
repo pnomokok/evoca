@@ -25,6 +25,8 @@ other services, and commit their own writes.
 
 from __future__ import annotations
 
+import re
+
 from typing import Any
 
 from sqlalchemy.orm import Session as DbSession
@@ -142,6 +144,34 @@ def _duration_ms(ranges: list[dict[str, Any]]) -> int:
     return sum(r["end_ms"] - r["start_ms"] for r in ranges)
 
 
+def _bare(token: str) -> str:
+    return re.sub(r"[^\w']", "", token.replace("’", "'").lower())
+
+
+def _punctuated(words: list[dict[str, Any]], transcript: str) -> str:
+    """The words' own tokens from the segment's transcript, with their punctuation and
+    capitals ("garden. Every"), and nothing between or around them that no word covers
+    beyond punctuation. Same alignment as the web client (StoryView punctuateWords)."""
+    tokens = (transcript or "").split()
+    out: list[str] = []
+    t = 0
+    for w in words:
+        want = _bare(w.get("w", ""))
+        end = len(tokens) if not out else min(t + 4, len(tokens))
+        for k in range(t, end):
+            if want and _bare(tokens[k]) == want:
+                shown = tokens[k]
+                t = k + 1
+                while t < len(tokens) and not _bare(tokens[t]):
+                    shown += " " + tokens[t]
+                    t += 1
+                out.append(shown)
+                break
+        else:
+            out.append(w.get("w", ""))
+    return " ".join(out)
+
+
 def _transcript(db: DbSession, ranges: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Non-private segments inside the (already cut) audio ranges, words clipped to them."""
     items: list[dict[str, Any]] = []
@@ -173,10 +203,10 @@ def _transcript(db: DbSession, ranges: list[dict[str, Any]]) -> list[dict[str, A
             if inside:
                 text = seg.transcript
             else:
-                # Only words timed inside the ranges; a partly overlapping segment
-                # without word timings shows nothing (its text may belong to
-                # another story).
-                text = " ".join(w.get("w", "") for w in words)
+                # Only words timed inside the ranges, punctuated from the transcript;
+                # a partly overlapping segment without word timings shows nothing
+                # (its text may belong to another story).
+                text = _punctuated(words, seg.transcript)
             if not text and not words:
                 continue
             speaker = db.get(Person, seg.speaker_id) if seg.speaker_id else None

@@ -511,3 +511,23 @@ async def test_retelling_of_invisible_original_looks_like_an_original(world):
     assert original.id not in json.dumps(body)
     teller_view = (await _req(world["app"], "GET", f"/api/stories/{retelling.id}", world["ali"])).json()
     assert teller_view["kind"] == "retelling" and teller_view["original_story_id"] == original.id
+
+
+
+# ---------------------------------------------------------------------------
+# Transcript punctuation for a story that covers part of a segment
+# ---------------------------------------------------------------------------
+
+def test_partial_segment_text_keeps_punctuation_but_only_its_own_words():
+    from core.services.stories import _punctuated
+    transcript = "When I was little, we had a tree in the garden. Every summer we climbed it; secret part."
+    words = [{"w": "garden"}, {"w": "Every"}, {"w": "summer"}]
+    assert _punctuated(words, transcript) == "garden. Every summer"
+    assert _punctuated([{"w": "climbed"}, {"w": "it"}], transcript) == "climbed it;"
+    # Tokens between or after the in-range words are never copied, only punctuation of their own.
+    assert _punctuated([{"w": "garden"}, {"w": "summer"}], transcript) == "garden. summer"
+    assert "secret" not in _punctuated([{"w": "climbed"}, {"w": "it"}], transcript)
+    # A word the transcript does not have is shown as it is; nothing else is added.
+    assert _punctuated([{"w": "garden"}, {"w": "orchard"}], transcript) == "garden. orchard"
+    # Curly apostrophes match straight ones.
+    assert _punctuated([{"w": "don't"}], "I don’t know.") == "don’t"

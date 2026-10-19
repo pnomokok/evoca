@@ -113,6 +113,7 @@ async def test_endpoints_are_404_without_demo_mode(demo, monkeypatch):
         assert (await c.get("/api/demo/clock")).status_code == 404
         assert (await c.post("/api/demo/advance", json={"hours": 24})).status_code == 404
         assert (await c.post("/api/demo/reset")).status_code == 404
+        assert (await c.get("/api/demo/status")).status_code == 404
     with Session() as db:
         assert db.get(DemoClock, 1) is None
         assert db.query(Person).count() == 4
@@ -161,7 +162,8 @@ async def test_advance_publishes_and_invites_and_moves_the_clock(demo):
         clock_body = (await c.get("/api/demo/clock")).json()
     expected = _base() + timedelta(hours=24)
     assert datetime.fromisoformat(body["now"]) == expected
-    assert body == clock_body == {"now": expected.isoformat(), "offset_hours": 24.0}
+    assert body == {"now": expected.isoformat(), "offset_hours": 24.0, "archive_wait": "none"}
+    assert clock_body == {"now": expected.isoformat(), "offset_hours": 24.0}
 
     with Session() as db:
         assert db.get(Story, pending.id).status == StoryStatus.published
@@ -439,3 +441,73 @@ async def test_reseeding_demo_keeps_other_databases_photos_and_still_serves_its_
     async with _client(app) as c:
         r = await c.get(f"/api/photos/{photo_id}", headers={"X-Person-Id": elif_id})
     assert r.status_code == 200 and r.headers["content-type"].startswith("image/jpeg")
+
+
+# ---------------------------------------------------------------------------
+# Advance waits for the archivist (server/archive_runs.py)
+# ---------------------------------------------------------------------------
+
+def _demo_circle_id(Session) -> str:
+    with Session() as db:
+        return db.query(Circle).filter(Circle.is_demo.is_(True)).one().id
+
+
+@pytest.mark.anyio
+async def test_status_says_only_whether_the_archivist_runs(demo):
+    app, Session, *_ = demo
+    from server import archive_runs
+    circle_id = _demo_circle_id(Session)
+    async with _client(app) as c:
+        assert (await c.get("/api/demo/status")).json() == {"archiving": False}
+        archive_runs.begin(circle_id)
+        try:
+            assert (await c.get("/api/demo/status")).json() == {"archiving": True}
+        finally:
+            archive_runs.end(circle_id)
+        assert (await c.get("/api/demo/status")).json() == {"archiving": False}
+
+
+@pytest.mark.anyio
+async def test_advance_waits_for_the_archivist_before_moving_the_clock(demo):
+    """Goodbye then +1 day at once: the clock moves only after the story is saved,
+    so the story's 24-hour window starts before the move and one press publishes it."""
+    import time
+    import anyio
+    from server import archive_runs
+    app, Session, *_ = demo
+    circle_id = _demo_circle_id(Session)
+    saved_at = {}
+
+    async def archivist():
+        await anyio.sleep(0.6)
+        with Session() as db:
+            saved_at["clock_rows"] = db.get(DemoClock, 1)
+        archive_runs.end(circle_id)
+
+    archive_runs.begin(circle_id)
+    async with anyio.create_task_group() as tg:
+        tg.start_soon(archivist)
+        t0 = time.monotonic()
+        async with _client(app) as c:
+            body = (await c.post("/api/demo/advance", json={"hours": 24})).json()
+        waited = time.monotonic() - t0
+    assert body["archive_wait"] == "done" and body["offset_hours"] == 24.0
+    assert waited >= 0.5
+    # When the archivist finished, the clock had not moved yet.
+    assert saved_at["clock_rows"] is None or saved_at["clock_rows"].offset_seconds == 0
+
+
+@pytest.mark.anyio
+async def test_advance_goes_ahead_after_the_wait_times_out(demo, monkeypatch):
+    import server.routers.demo as demo_r
+    from server import archive_runs
+    app, Session, *_ = demo
+    circle_id = _demo_circle_id(Session)
+    monkeypatch.setattr(demo_r, "ARCHIVE_WAIT_S", 0.3)
+    archive_runs.begin(circle_id)
+    try:
+        async with _client(app) as c:
+            body = (await c.post("/api/demo/advance", json={"hours": 24})).json()
+    finally:
+        archive_runs.end(circle_id)
+    assert body["archive_wait"] == "timed_out" and body["offset_hours"] == 24.0

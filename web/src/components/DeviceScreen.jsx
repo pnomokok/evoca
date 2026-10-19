@@ -162,7 +162,8 @@ export default function DeviceScreen() {
         const items = (life?.periods || [])
           .flatMap(p => p.stories || [])
           .filter(s => s?.photo_url && !seen.has(s.photo_url) && seen.add(s.photo_url))
-          .map(s => ({ path: s.photo_url, caption: s.photo_caption || '' }));
+          // The device shows the story's title, never the uploader's caption (written about her, not to her).
+          .map(s => ({ path: s.photo_url, caption: s.title || '' }));
         setPhotoItems(items);
       })
       .catch(() => { if (!cancelled) setPhotoItems([]); });

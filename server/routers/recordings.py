@@ -34,6 +34,7 @@ from core.enums import SessionStart, StoryStatus
 from core.models import Membership, Person, Story
 from core.services import stories as story_svc
 from core.services.sessions import add_segment, end_session, start_session
+from server import archive_runs
 from server.agents.archivist_agent import ArchivistAgent, answer_check_llm, archivist_llm
 from server.mcp_bridge import MCPBridge
 from server.routers.device import _get_stt, _whisper_prompt
@@ -92,6 +93,7 @@ async def post_recording(
             end_session(db, session_id)
             db.commit()
 
+    archive_runs.begin(circle_id)    # released when the archivist is done (server/archive_runs.py)
     background_tasks.add_task(_process_recording, session_id, person_id, circle_id,
                               pcm, access, stt)
     return {"session_id": session_id, "started_by": SessionStart.panel_recording.value,
@@ -140,6 +142,16 @@ def _hide_all(session_id: str, person_id: str) -> None:
 
 
 async def _process_recording(
+    session_id: str, person_id: str, circle_id: str, pcm: bytes, access: str, stt: STT,
+) -> None:
+    """Transcribe and archive, then release the circle's archive run."""
+    try:
+        await _transcribe_and_archive(session_id, person_id, circle_id, pcm, access, stt)
+    finally:
+        archive_runs.end(circle_id)
+
+
+async def _transcribe_and_archive(
     session_id: str, person_id: str, circle_id: str, pcm: bytes, access: str, stt: STT,
 ) -> None:
     """Transcribe the recording, store it as one Segment and archive it."""

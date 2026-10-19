@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import PhotoCaption from './PhotoCaption';
 import { useApp } from '../../context/useApp';
 import { apiClient } from '../../api/client';
 import { Play, ChevronRight, ChevronLeft, ArrowRight } from 'lucide-react';
@@ -112,7 +113,7 @@ export default function FamilyDashboard({ onOpenAskModal }) {
                 />
                 {featuredStory.photo_url && featuredStory.photo_caption && (
                   <figcaption className="photo-caption">
-                    <span>{featuredStory.photo_caption}</span>
+                    <PhotoCaption caption={featuredStory.photo_caption} addedBy={featuredStory.photo_added_by} />
                   </figcaption>
                 )}
               </figure>
@@ -259,7 +260,7 @@ export default function FamilyDashboard({ onOpenAskModal }) {
                     />
                     {story.photo_url && story.photo_caption && (
                       <figcaption className="photo-caption">
-                        <span>{story.photo_caption}</span>
+                        <PhotoCaption caption={story.photo_caption} addedBy={story.photo_added_by} />
                       </figcaption>
                     )}
                   </figure>

@@ -227,8 +227,8 @@ export default function MembersSection() {
           />
           <input
             className="archival-input-select"
-            aria-label="Birth year"
-            placeholder="Birth year"
+            aria-label="Birth year (optional)"
+            placeholder="Birth year (optional)"
             type="number"
             inputMode="numeric"
             value={newMember.birth_year}

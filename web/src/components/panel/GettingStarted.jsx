@@ -3,7 +3,7 @@ import { useApp } from '../../context/useApp';
 import { apiClient } from '../../api/client';
 import { dismissGettingStarted, gettingStartedDismissed } from '../../utils/inviteLinks';
 import { focusLater } from '../../utils/focusLater';
-import { Check, X } from 'lucide-react';
+import { Check, ChevronRight, X } from 'lucide-react';
 
 // A new family's first steps, at the top of the journal until the first story arrives
 // (FamilyDashboard shows it only signed in, with no stories). Admins see all four steps,
@@ -95,8 +95,11 @@ export default function GettingStarted() {
           <li key={s.key} className={s.done ? 'done' : ''} data-testid={`getting-started-${s.key}`}>
             <span className="getting-started-mark" aria-hidden="true">{s.done ? <Check size={14} /> : i + 1}</span>
             <button type="button" className="getting-started-step" onClick={s.go}>
-              {s.label}
-              {s.done && <span className="sr-only"> (done)</span>}
+              <span>
+                {s.label}
+                {s.done && <span className="sr-only"> (done)</span>}
+              </span>
+              <ChevronRight size={16} aria-hidden="true" className="getting-started-chevron" />
             </button>
           </li>
         ))}

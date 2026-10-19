@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import PhotoCaption from './PhotoCaption';
 import { useApp } from '../../context/useApp';
 import { apiClient } from '../../api/client';
 import {
@@ -16,16 +17,25 @@ import {
 import { PERIOD_LABELS, periodLabel, periodYears } from '../../utils/periods';
 import { formatDuration } from '../../utils/format';
 import BlobPhoto from './BlobPhoto';
+import Avatar from '../Avatar';
 
+// Life chapters of one person: the storyteller by default, or any family member ("Whose life"),
+// each from GET /api/lifeline/{person_id}. Asking about a chapter is for the storyteller's only.
 export default function LifelineView({ onOpenAskModal }) {
-  const { openStory, showToast, centerPersonId, currentViewerId, viewerReady, dataVersion } = useApp();
+  const { openStory, showToast, centerPersonId, currentViewerId, viewerReady, dataVersion, circleData } = useApp();
+  const [chosenPersonId, setChosenPersonId] = useState(null);
   // Loaded data is keyed by viewer and person; data for another viewer is never shown.
   const [loaded, setLoaded] = useState({ key: null, data: null, failed: false });
   const [editingStoryId, setEditingStoryId] = useState(null);
   const [selectedPeriodTarget, setSelectedPeriodTarget] = useState('');
   const [activeFilter, setActiveFilter] = useState('all'); // 'all' | 'stories' | 'gaps'
 
-  const targetPersonId = centerPersonId;
+  const members = circleData?.members || [];
+  // The storyteller first, then everyone else as the circle lists them.
+  const people = [...members.filter(m => m.id === centerPersonId), ...members.filter(m => m.id !== centerPersonId)];
+  const targetPersonId = (chosenPersonId && members.some(m => m.id === chosenPersonId)) ? chosenPersonId : centerPersonId;
+  const isCenterLife = targetPersonId === centerPersonId;
+  const targetMember = members.find(m => m.id === targetPersonId);
   const loadKey = `${currentViewerId}:${targetPersonId}`;
 
   const loadLifeline = useCallback(async () => {
@@ -110,8 +120,30 @@ export default function LifelineView({ onOpenAskModal }) {
     return true;
   });
 
+  const switcher = people.length > 1 && (
+    <nav className="whose-life" aria-label="Whose life">
+      <span className="whose-life-label">Whose life</span>
+      <div className="whose-life-people">
+        {people.map(m => (
+          <button
+            key={m.id}
+            type="button"
+            className={`whose-life-person ${m.id === targetPersonId ? 'active' : ''}`}
+            onClick={() => setChosenPersonId(m.id)}
+            aria-pressed={m.id === targetPersonId}
+            title={m.name}
+          >
+            <Avatar person={m} size={40} ring={m.id === targetPersonId} />
+            <span>{m.name?.split(' ')[0]}</span>
+          </button>
+        ))}
+      </div>
+    </nav>
+  );
+
   return (
     <div className="lifeline-archive-page">
+      {switcher}
       <header className="lifeline-archive-hero">
         <div className="lifeline-hero-top-row">
           <div className="lifeline-elder-profile">
@@ -134,7 +166,7 @@ export default function LifelineView({ onOpenAskModal }) {
               >
                 {person?.name?.charAt(0) || '?'}
               </div>
-              <span className="elder-portrait-badge">Storyteller</span>
+              <span className="elder-portrait-badge">{isCenterLife ? 'Storyteller' : (targetMember?.relation_to_center || 'Family')}</span>
             </div>
 
             <div className="elder-narrative-meta">
@@ -257,7 +289,7 @@ export default function LifelineView({ onOpenAskModal }) {
                                 fallback={{ title: story.title, period: periodObj.period, teller: story.teller?.name }}
                               />
                               {story.photo_caption && (
-                                <figcaption className="photo-caption"><span>{story.photo_caption}</span></figcaption>
+                                <figcaption className="photo-caption"><PhotoCaption caption={story.photo_caption} addedBy={story.photo_added_by} /></figcaption>
                               )}
                             </figure>
                           )}
@@ -375,10 +407,12 @@ export default function LifelineView({ onOpenAskModal }) {
                       <div className="gap-eyebrow">STILL UNTOLD</div>
                       <h3 className="gap-invitation-title">{periodTitle}</h3>
                       <p className="gap-invitation-text">
-                        No stories from this chapter yet. A question in the next morning chat could bring the first one.
+                        {isCenterLife
+                          ? 'No stories from this chapter yet. A question in the next morning chat could bring the first one.'
+                          : `No stories about ${firstName} in this chapter yet.`}
                       </p>
 
-                      {onOpenAskModal && (
+                      {onOpenAskModal && isCenterLife && (
                         <div className="gap-action-buttons-row">
                           <button
                             type="button"

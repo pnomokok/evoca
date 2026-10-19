@@ -201,7 +201,8 @@ def add_member(
     """Add a new person to the circle as a member or an admin."""
     require_admin(db, viewer_id, circle_id)
     name = clean_name(name, "name")
-    birth_year = clean_birth_year(birth_year, "birth_year")
+    # Optional for a member: empty means unknown; a given year is still checked.
+    birth_year = None if birth_year in (None, "") else clean_birth_year(birth_year, "birth_year")
     relation = clean_name(relation_to_center, "relation_to_center")
     role_ = _clean_role(role_)
     person = Person(name=name, birth_year=birth_year)
