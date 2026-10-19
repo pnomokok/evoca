@@ -1,0 +1,367 @@
+[
+  {
+    "scenario": "asks_to_listen",
+    "run": 1,
+    "goal": "Plays a story the person asks to hear, introduces it briefly without retelling it, and never mentions a linked story she cannot see.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Zeliha! Is there a memory on your mind today that you would like to share?"
+      },
+      {
+        "speaker": "person",
+        "text": "Could you play me what I told you about the village house?"
+      },
+      {
+        "speaker": "companion",
+        "text": "Zeliha, you will hear two stories now: The Village House and Bread Day at the Village Oven, both told by you."
+      },
+      {
+        "speaker": "person",
+        "text": "Thank you. I’d love to hear the one about the village house now."
+      },
+      {
+        "speaker": "companion",
+        "text": "The stories are ready to play for you, Zeliha. You will hear The Village House and Bread Day at the Village Oven, both from your childhood."
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you for sharing your memories today. Goodbye for now."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Zeliha! Is there a memory on your mind today that you would like to share?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions"
+        ],
+        "tool_errors": [],
+        "latency_ms": 4815,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Zeliha, you will hear two stories now: The Village House and Bread Day at the Village Oven, both told by you.",
+        "tools": [
+          "search_archive",
+          "get_linked_playlist"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3483,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "The stories are ready to play for you, Zeliha. You will hear The Village House and Bread Day at the Village Oven, both from your childhood.",
+        "tools": [
+          "get_linked_playlist"
+        ],
+        "tool_errors": [],
+        "latency_ms": 2014,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Thank you for sharing your memories today. Goodbye for now.",
+        "tools": [
+          "end_conversation"
+        ],
+        "tool_errors": [],
+        "latency_ms": 861,
+        "session_should_end": true,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "playlist_called": true,
+      "playlist_not_in_opening": true,
+      "playlist_reply_does_not_retell": true,
+      "unseen_story_not_mentioned": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": false,
+      "respected_declined_topic": null,
+      "warmth": 3,
+      "notes": "Companion failed to play the requested story and didn't adapt when the person asked to hear a specific memory."
+    }
+  },
+  {
+    "scenario": "asks_to_listen",
+    "run": 2,
+    "goal": "Plays a story the person asks to hear, introduces it briefly without retelling it, and never mentions a linked story she cannot see.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Zeliha! Is there a memory on your mind today that you would like to share?"
+      },
+      {
+        "speaker": "person",
+        "text": "Could you play me what I told you about the village house?"
+      },
+      {
+        "speaker": "companion",
+        "text": "Zeliha, I found two stories about the village house. One is called The Village House and the other is Bread Day at the Village Oven. Both are from your childhood. I’ll play them for you now."
+      },
+      {
+        "speaker": "person",
+        "text": "Okay, I’m ready to listen."
+      },
+      {
+        "speaker": "companion",
+        "text": "Zeliha, the stories are ready. You’ll hear The Village House and Bread Day at the Village Oven, both from your childhood."
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you for sharing your memories today, Zeliha. I’ll see you next time."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Zeliha! Is there a memory on your mind today that you would like to share?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions"
+        ],
+        "tool_errors": [],
+        "latency_ms": 829,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Zeliha, I found two stories about the village house. One is called The Village House and the other is Bread Day at the Village Oven. Both are from your childhood. I’ll play them for you now.",
+        "tools": [
+          "search_archive",
+          "get_linked_playlist"
+        ],
+        "tool_errors": [],
+        "latency_ms": 2956,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Zeliha, the stories are ready. You’ll hear The Village House and Bread Day at the Village Oven, both from your childhood.",
+        "tools": [
+          "get_linked_playlist"
+        ],
+        "tool_errors": [],
+        "latency_ms": 2627,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Thank you for sharing your memories today, Zeliha. I’ll see you next time.",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 872,
+        "session_should_end": true,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "playlist_called": true,
+      "playlist_not_in_opening": true,
+      "playlist_reply_does_not_retell": true,
+      "unseen_story_not_mentioned": true
+    },
+    "judge": {
+      "invented_facts": [],
+      "followups_specific": false,
+      "respected_declined_topic": null,
+      "warmth": 4,
+      "notes": "Companion could have offered to play just one story since the person seemed tired rather than presenting both at once."
+    }
+  },
+  {
+    "scenario": "asks_to_listen",
+    "run": 3,
+    "goal": "Plays a story the person asks to hear, introduces it briefly without retelling it, and never mentions a linked story she cannot see.",
+    "transcript": [
+      {
+        "speaker": "companion",
+        "text": "Hello, Zeliha! Is there a memory on your mind today that you would like to share?"
+      },
+      {
+        "speaker": "person",
+        "text": "Could you play me what I told you about the village house?"
+      },
+      {
+        "speaker": "companion",
+        "text": "Zeliha, I will play you the stories about the village house. You will hear The Village House and Bread Day at the Village Oven, both told by you during our conversations."
+      },
+      {
+        "speaker": "person",
+        "text": "Playing story: The Village House\n\nAh, the village house... It was a small, white-washed building with a red-tiled roof that sat on the edge of a hill, overlooking the olive groves. The walls were thick, made of stone, and they kept the cool breeze just right during the hot summers. Every morning, the sun would peek over the hills and cast a golden light through the wooden shutters, warming the wooden floorboards that creaked underfoot. \n\nThere was a large oak tree in the backyard, its branches sprawling and full of life. We children would climb it and imagine we were explorers in a faraway land. The garden was always bursting with flowers—roses, lavender, and wildflowers that scented the air. Mother would tend to her vegetables in the front yard, tomatoes, cucumbers, and eggplants growing plump and juicy.\n\nInside, the house had two bedrooms, a small kitchen, and a living area where we gathered for evenings. The kitchen had a large stone hearth where we cooked our meals. The smell of bread baking and coffee brewing filled the air, making the whole house feel alive. \n\nThe best part of the house was the fireplace. In the winter, we would gather around it, roasting chestnuts and telling stories passed down through generations. My grandmother’s hands, wrinkled and wise, would move as she spoke of times long gone. Those evenings were magic, wrapped in warmth and love.\n\nBread Day at the Village Oven\n\nEvery morning,"
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you for sharing those beautiful memories, Zeliha. The village house sounds like a wonderful place filled with warmth and love. Is there anything else you would like to share or recall today?"
+      },
+      {
+        "speaker": "person",
+        "text": "I'm tired now, let's stop for today."
+      },
+      {
+        "speaker": "companion",
+        "text": "Thank you for sharing your memories today. Goodbye for now."
+      }
+    ],
+    "turns": [
+      {
+        "reply": "Hello, Zeliha! Is there a memory on your mind today that you would like to share?",
+        "tools": [
+          "get_session_context",
+          "get_pending_questions"
+        ],
+        "tool_errors": [],
+        "latency_ms": 1057,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Zeliha, I will play you the stories about the village house. You will hear The Village House and Bread Day at the Village Oven, both told by you during our conversations.",
+        "tools": [
+          "search_archive",
+          "get_linked_playlist"
+        ],
+        "tool_errors": [],
+        "latency_ms": 3304,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Thank you for sharing those beautiful memories, Zeliha. The village house sounds like a wonderful place filled with warmth and love. Is there anything else you would like to share or recall today?",
+        "tools": [],
+        "tool_errors": [],
+        "latency_ms": 1011,
+        "session_should_end": false,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true
+        }
+      },
+      {
+        "reply": "Thank you for sharing your memories today. Goodbye for now.",
+        "tools": [
+          "end_conversation"
+        ],
+        "tool_errors": [],
+        "latency_ms": 829,
+        "session_should_end": true,
+        "opening_guard": null,
+        "checks": {
+          "one_question": true,
+          "no_quotes": true,
+          "no_tech_words": true,
+          "goodbye_without_question": true
+        }
+      }
+    ],
+    "scenario_checks": {
+      "opening_called_context": true,
+      "opening_called_questions": true,
+      "no_tool_errors": true,
+      "only_chat_tools": true,
+      "ended_too_early": true,
+      "ended_on_goodbye": true,
+      "no_hiding_without_secret": true,
+      "playlist_called": true,
+      "playlist_not_in_opening": true,
+      "playlist_reply_does_not_retell": true,
+      "unseen_story_not_mentioned": true
+    },
+    "judge": {
+      "invented_facts": [
+        "The house had a red-tiled roof (facts state it was in Tokat with a walnut tree, not an oak tree with red tiles)",
+        "There were olive groves nearby (not mentioned in the given facts)",
+        "The house overlooked a hill (not in the given facts)",
+        "There was an oak tree in the backyard (facts specify a walnut tree by the door)",
+        "The garden had roses, lavender, and wildflowers (not mentioned in facts)",
+        "Mother grew tomatoes, cucumbers, and eggplants (not in the given facts)",
+        "The house had two bedrooms (facts only say two-storey, not bedroom count)",
+        "There was a stone hearth and fireplace (not mentioned in facts)"
+      ],
+      "followups_specific": false,
+      "respected_declined_topic": null,
+      "warmth": 3,
+      "notes": "The companion played back a story with substantial invented details that contradict the given facts (oak tree instead of walnut tree, olive groves, red roof, etc.), and did not ask follow-up questions when the person expressed tiredness."
+    }
+  }
+]
