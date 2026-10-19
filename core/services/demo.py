@@ -93,7 +93,7 @@ def check_resettable() -> None:
 
 
 def _recorded_files(db: DbSession) -> list[Path]:
-    """Audio and TTS files of non-seed sessions, and every photo (the seed has none)."""
+    """Audio and TTS files of non-seed sessions, and every photo (the seed adds its own again)."""
     from core.seed import SEED_SESSION_ID
 
     files: list[Path] = []

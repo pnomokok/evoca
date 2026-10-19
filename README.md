@@ -248,6 +248,8 @@ TODO: the web client buttons come with the unmerged web client; on `main` only t
 
 ## Try it
 
+The demo family is fictional. Its story photos and the landing page images are AI-generated (TODO(tool)).
+
 TODO: rewrite after the web client's demo entry and guided tour are merged. Current flow:
 
 1. As **Elif** (granddaughter), ask Grandma a question.

@@ -373,3 +373,12 @@
   border-radius: var(--radius-md);
   transition: outline-color 0.4s ease;
 }
+
+/* The answer's photo caption, under the story title. */
+.answer-photo-caption {
+  margin: 4px 0 0;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 14px;
+  color: var(--text-charcoal-muted);
+}

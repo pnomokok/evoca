@@ -137,6 +137,7 @@ export default function AnswerCard({ item, showQuestion = true }) {
           <p className="answer-asked">You asked: “{item.question.text}”</p>
         )}
         <h3 className="answer-title">{a.story_title}</h3>
+        {a.photo_url && a.photo_caption && <p className="answer-photo-caption">{a.photo_caption}</p>}
 
         {pieces.length > 0 && (
           <div className="answer-player">

@@ -270,7 +270,10 @@ async def test_reset_restores_the_seed_and_deletes_recorded_files(demo, tmp_path
     assert seed_audio.exists() and outside.exists() and outside_db.exists()
     with Session() as db:
         assert [s.id for s in db.query(OrmSession).all()] == [seed.SEED_SESSION_ID]
-        assert db.query(StoryPhoto).count() == 0
+        # Only the seed's own photos are back, and their files are there.
+        photos = db.query(StoryPhoto).all()
+        assert sorted(p.caption for p in photos) == sorted(c for *_, c in seed.SEED_PHOTOS)
+        assert all(Path(p.path).exists() for p in photos)
         assert db.query(Story).filter(Story.status == StoryStatus.pending).count() == 1
 
 
