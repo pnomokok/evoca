@@ -48,7 +48,7 @@ export default function JoinPage({ token, onDone }) {
     <div className="app-container join-page">
       <main className="view-viewport">
         <section className="side-archival-card join-card" aria-live="polite">
-          <span className="brand-monogram">E</span>
+          <img className="brand-mark" src="/evoca-mark.svg" alt="" />
           {phase === 'loading' && <p className="section-desc" role="status">Opening your link...</p>}
 
           {(phase === 'ready' || phase === 'joining') && invite && <>

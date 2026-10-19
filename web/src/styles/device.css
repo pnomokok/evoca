@@ -76,6 +76,18 @@
     linear-gradient(180deg, rgba(20, 17, 13, 0.1) 25%, rgba(20, 17, 13, 0.82) 100%);
 }
 
+/* A quiet Evoca mark in the corner of the idle screen. */
+.device-mark {
+  position: absolute;
+  bottom: 3cqw;
+  right: 3.6cqw;
+  width: 20px;
+  height: auto;
+  opacity: 0.55;
+  z-index: 2;
+  pointer-events: none;
+}
+
 .device-screen > .device-main,
 .device-screen > .device-controls {
   position: relative;

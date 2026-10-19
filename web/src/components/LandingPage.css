@@ -979,19 +979,19 @@ html {
   gap: 12px;
 }
 
+/* The mark on an ivory tile: its darkest oval would vanish on the dark footer. */
 .footer-monogram {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-sm);
-  background: var(--accent-terracotta);
-  color: #fff;
+  background: #FAFAF7;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-serif);
-  font-weight: 700;
-  font-size: 16px;
+  flex: none;
 }
+
+.footer-monogram img { width: 26px; height: auto; }
 
 .footer-brand-name {
   font-family: var(--font-serif);
