@@ -207,6 +207,13 @@
 /* "Who do you want to be?" */
 .modal-sheet.archival-dialog.person-picker { max-width: 680px; }
 
+.person-picker-note {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-helper);
+  color: var(--text-charcoal-faint);
+  text-align: center;
+}
+
 .person-picker-grid {
   list-style: none;
   padding: 0;

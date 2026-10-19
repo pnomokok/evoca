@@ -141,6 +141,16 @@
   margin-top: 1cqw;
 }
 
+/* The idle photo's caption, quietly under the date. */
+.device-photo-caption {
+  margin: 1.4cqw 0 0;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: max(13px, 2.4cqw);
+  color: var(--device-text);
+  opacity: 0.85;
+}
+
 .state-invitation .device-date {
   display: none;
 }

@@ -236,15 +236,15 @@ async def test_reset_restores_the_seed_and_deletes_recorded_files(demo, tmp_path
                           started_at=BASE_NOW, ended_at=BASE_NOW)
         db.add(sess); db.flush()
         story = db.query(Story).first()
-        Path("data/photos").mkdir(parents=True, exist_ok=True)
-        db.add(StoryPhoto(story_id=story.id, path="data/photos/p1.jpg", uploaded_by=fatma.id))
-        # Paths outside data/audio, data/tts and data/photos are never deleted.
+        Path("data/photos-demo").mkdir(parents=True, exist_ok=True)
+        db.add(StoryPhoto(story_id=story.id, path="data/photos-demo/p1.jpg", uploaded_by=fatma.id))
+        # Paths outside data/audio, data/tts and data/photos-demo are never deleted.
         db.add(OrmSession(circle_id=circle_id, kind=SessionKind.solo, started_by=SessionStart.spontaneous,
                           participant_ids=[fatma.id], audio_path="data/audio/../keep.db",
                           started_at=BASE_NOW, ended_at=BASE_NOW))
         db.add(StoryPhoto(story_id=story.id, path=str(tmp_path / "keep.txt"), uploaded_by=fatma.id))
         db.commit()
-        files = [Path("data/audio/recorded.wav"), Path(f"data/tts/{sess.id}_1.mp3"), Path("data/photos/p1.jpg")]
+        files = [Path("data/audio/recorded.wav"), Path(f"data/tts/{sess.id}_1.mp3"), Path("data/photos-demo/p1.jpg")]
     Path("data/tts").mkdir(parents=True, exist_ok=True)
     for f in files:
         f.write_bytes(b"x")
@@ -270,7 +270,10 @@ async def test_reset_restores_the_seed_and_deletes_recorded_files(demo, tmp_path
     assert seed_audio.exists() and outside.exists() and outside_db.exists()
     with Session() as db:
         assert [s.id for s in db.query(OrmSession).all()] == [seed.SEED_SESSION_ID]
-        assert db.query(StoryPhoto).count() == 0
+        # Only the seed's own photos are back, and their files are there.
+        photos = db.query(StoryPhoto).all()
+        assert sorted(p.caption for p in photos) == sorted(c for *_, c in seed.SEED_PHOTOS)
+        assert all(Path(p.path).exists() for p in photos)
         assert db.query(Story).filter(Story.status == StoryStatus.pending).count() == 1
 
 
@@ -393,3 +396,46 @@ async def test_seed_reaction_is_history_not_news(demo, monkeypatch):
         light = (await c.get("/api/device/invitation", headers={"X-Person-Id": fatma_id})).json()
     assert light["active"] is True
     assert light["invitation"]["reason"] == REASON_DEFAULT
+
+
+# ---------------------------------------------------------------------------
+# Photos: one folder per database
+# ---------------------------------------------------------------------------
+
+def test_photo_folder_follows_the_database():
+    from core.db import _default_path
+    from core.services.photos import photo_dir_for
+    assert photo_dir_for(_default_path) == Path("data") / "photos"
+    assert photo_dir_for(Path("data") / "demo.db") == Path("data") / "photos-demo"
+    assert photo_dir_for(Path("data") / "browser.db") == Path("data") / "photos-browser"
+
+
+@pytest.mark.anyio
+async def test_reseeding_demo_keeps_other_databases_photos_and_still_serves_its_own(demo, monkeypatch):
+    """A demo reseed sweeps only data/photos-demo: files of the default database
+    (data/photos) and of browser.db (data/photos-browser) stay, and the seed's
+    photos are served after a reseed."""
+    app, Session, *_ = demo
+    from core.services.photos import photo_dir
+    assert photo_dir() == Path("data") / "photos-demo"
+    others = [Path("data/photos/default-db-photo.jpg"), Path("data/photos-browser/browser-db-photo.jpg")]
+    for f in others:
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_bytes(b"another database's photo")
+    stray = Path("data/photos-demo/left-from-before.jpg")
+    stray.write_bytes(b"orphan")
+
+    seed.reset_and_seed(force=True)
+
+    assert all(f.exists() for f in others)
+    assert not stray.exists()
+    with Session() as db:
+        photos = db.query(StoryPhoto).all()
+        elif_id = db.query(Person).filter(Person.name.like("Elif%")).one().id
+        mulberry = db.query(Story).filter(Story.title == "The Mulberry Tree").one().id
+        photo_id = next(p.id for p in photos if p.story_id == mulberry)
+    assert {Path(p.path).parent for p in photos} == {Path("data/photos-demo")}
+    assert sorted(f.name for f in Path("data/photos-demo").iterdir()) == sorted(Path(p.path).name for p in photos)
+    async with _client(app) as c:
+        r = await c.get(f"/api/photos/{photo_id}", headers={"X-Person-Id": elif_id})
+    assert r.status_code == 200 and r.headers["content-type"].startswith("image/jpeg")

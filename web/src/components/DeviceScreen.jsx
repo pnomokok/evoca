@@ -114,7 +114,7 @@ export default function DeviceScreen() {
   // "This stays between us": shown for a few seconds after a turn that kept something private.
   const [privacyMoment, setPrivacyMoment] = useState(false);
   // Photos of stories the center person can see, for the idle screen.
-  const [photoPaths, setPhotoPaths] = useState([]);
+  const [photoItems, setPhotoItems] = useState([]);
   const [photo, setPhoto] = useState({ path: null, src: null });
   const [photoTick, setPhotoTick] = useState(0);
   const getPlayer = useAudioElement();
@@ -158,18 +158,20 @@ export default function DeviceScreen() {
     apiClient.getLifeline(centerPersonId, centerPersonId)
       .then(life => {
         if (cancelled) return;
-        const paths = (life?.periods || [])
+        const seen = new Set();
+        const items = (life?.periods || [])
           .flatMap(p => p.stories || [])
-          .map(s => s?.photo_url)
-          .filter((u, i, all) => u && all.indexOf(u) === i);
-        setPhotoPaths(paths);
+          .filter(s => s?.photo_url && !seen.has(s.photo_url) && seen.add(s.photo_url))
+          .map(s => ({ path: s.photo_url, caption: s.photo_caption || '' }));
+        setPhotoItems(items);
       })
-      .catch(() => { if (!cancelled) setPhotoPaths([]); });
+      .catch(() => { if (!cancelled) setPhotoItems([]); });
     return () => { cancelled = true; };
   }, [viewerReady, centerPersonId, dataVersion]);
 
   // One photo at a time, a different one each minute; fetched as the center person.
-  const photoPath = photoPaths.length ? photoPaths[photoTick % photoPaths.length] : null;
+  const photoItem = photoItems.length ? photoItems[photoTick % photoItems.length] : null;
+  const photoPath = photoItem?.path || null;
   useEffect(() => {
     if (!photoPath) return;
     let cancelled = false;
@@ -445,6 +447,7 @@ export default function DeviceScreen() {
                 )}
                 <div className="device-time" data-testid="device-time" data-now={nowIso || ''}>{timeLabel}</div>
                 <div className="device-date">{dateLabel}</div>
+                {showPhoto && photoItem?.caption && <p className="device-photo-caption">{photoItem.caption}</p>}
                 {deviceError && <p className="device-error" role="alert">{deviceError}</p>}
               </div>
             )}

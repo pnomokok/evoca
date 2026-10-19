@@ -12,6 +12,9 @@ Coverage:
   - a database seeded before the fixed seed session id is still recognised
   - a fresh seed's story ranges play (GET /api/audio, 200) and match the
     segment timings; the range over the private part is refused
+  - seed photos: Mulberry and Tailor have photo_url and caption for Elif; the
+    pending Workshop (Ayşe only) shows Elif nothing; stored files have no EXIF;
+    reseeding leaves no orphan files; a missing photo file does not break it
 """
 
 from __future__ import annotations
@@ -26,8 +29,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 import core.seed as seed
+from PIL import Image
+
+from core.services import photos as photo_svc
+from core.services.stories import NotFound, build_story
 from core.enums import SessionKind, SessionStart
-from core.models import Base, Circle, Invitation, Person, Question, Segment, Session as OrmSession, Story
+from core.models import (
+    Base, Circle, Invitation, Person, Question, Segment, Session as OrmSession, Story, StoryPhoto,
+)
 from core.services.invitations import invitation_reason
 
 
@@ -44,6 +53,7 @@ def seed_db(tmp_path, monkeypatch):
     monkeypatch.setattr(seed, "SessionLocal", Sess)
     monkeypatch.setattr(seed, "init_db", lambda: Base.metadata.create_all(bind=eng))
     monkeypatch.setattr(seed, "AUDIO_DIR", tmp_path / "audio")   # never the repo's data/audio
+    monkeypatch.setattr(photo_svc, "PHOTO_DIR", tmp_path / "photos")   # nor its data/photos
     yield Sess
     eng.dispose()
 
@@ -160,3 +170,84 @@ async def test_fresh_seed_story_ranges_play(seed_db, tmp_path, monkeypatch):
         r = await c.get(f"/api/audio/{sess.id}?start={private.start_ms}&end={private.end_ms}",
                         headers={"x-person-id": elif_.id})
         assert r.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# Seed photos
+# ---------------------------------------------------------------------------
+
+def _people(Sess) -> dict[str, str]:
+    with Sess() as db:
+        return {p.name.split()[0]: p.id for p in db.query(Person).all()}
+
+
+def _story_id(Sess, title: str) -> str:
+    with Sess() as db:
+        return db.query(Story).filter(Story.title == title).one().id
+
+
+def test_seeded_stories_have_their_photos(seed_db):
+    assert seed.main([]) == 0
+    people = _people(seed_db)
+    with seed_db() as db:
+        mulberry = build_story(db, people["Elif"], _story_id(seed_db, "The Mulberry Tree"))
+        tailor = build_story(db, people["Elif"], _story_id(seed_db, "The Tailor's Shop"))
+        workshop_id = _story_id(seed_db, "Father's Workshop")
+        assert mulberry["photo_url"] and mulberry["photo_caption"] == "Mom in the village garden, around 1956"
+        assert tailor["photo_url"] and tailor["photo_caption"] == "Mom at the tailor's shop, late 1960s"
+        # The pending Workshop is for Ayşe only: Elif sees neither the story nor its photo.
+        with pytest.raises(NotFound):
+            build_story(db, people["Elif"], workshop_id)
+        workshop = build_story(db, people["Ayşe"], workshop_id)
+        assert workshop["photo_caption"] == "Her father's workshop, 1950s"
+        photo_id = workshop["photo_url"].rsplit("/", 1)[-1]
+        with pytest.raises(NotFound):
+            photo_svc.photo_file(db, people["Elif"], photo_id)
+
+
+def test_seed_photo_files_have_no_metadata(seed_db, tmp_path):
+    assert seed.main([]) == 0
+    files = sorted((tmp_path / "photos").iterdir())
+    assert len(files) == 3
+    for f in files:
+        with Image.open(f) as im:
+            assert im.format == "JPEG"
+            assert not im.getexif() and "exif" not in im.info and "icc_profile" not in im.info
+            assert max(im.size) <= photo_svc.MAX_SIDE
+
+
+def test_reseeding_leaves_no_orphan_photo_files(seed_db, tmp_path):
+    photos = tmp_path / "photos"
+    photos.mkdir()
+    (photos / "left-from-an-old-database.jpg").write_bytes(b"old")
+    keep_outside = tmp_path / "not-a-photo.jpg"
+    keep_outside.write_bytes(b"other directory")
+    assert seed.main([]) == 0
+    assert seed.main([]) == 0
+    with seed_db() as db:
+        referenced = {Path(p.path).name for p in db.query(StoryPhoto).all()}
+    assert {f.name for f in photos.iterdir()} == referenced and len(referenced) == 3
+    assert keep_outside.exists()
+
+
+def test_a_missing_seed_photo_is_skipped(seed_db, tmp_path, monkeypatch, caplog):
+    assets = tmp_path / "assets"
+    assets.mkdir()
+    (assets / "mulberry.jpg").write_bytes((seed.SEED_PHOTOS_DIR / "mulberry.jpg").read_bytes())
+    monkeypatch.setattr(seed, "SEED_PHOTOS_DIR", assets)
+    assert seed.main([]) == 0
+    assert "tailor.jpg is missing" in caplog.text
+    with seed_db() as db:
+        assert db.query(StoryPhoto).count() == 1
+
+
+def test_seed_never_deletes_in_the_default_photos_folder(seed_db, tmp_path, monkeypatch, caplog):
+    """data/photos belongs to the default database: orphans there are logged, never deleted."""
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(photo_svc, "PHOTO_DIR", Path("data") / "photos")
+    keep = Path("data/photos/uploaded-under-evoca-db.jpg")
+    keep.parent.mkdir(parents=True)
+    keep.write_bytes(b"a real upload")
+    assert seed.main([]) == 0
+    assert keep.exists()
+    assert "belong to no story; kept" in caplog.text

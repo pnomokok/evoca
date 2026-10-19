@@ -76,6 +76,7 @@ export default function PersonPicker({ onClose }) {
           );
         })}
       </ul>
+      <p className="person-picker-note">Demo family: fictional people, AI-generated photos.</p>
     </Modal>
   );
 }

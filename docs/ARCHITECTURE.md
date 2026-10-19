@@ -398,8 +398,9 @@ StorySubject:                                     # PK (story_id, person_id)
   story_id, person_id, period: LifePeriod,
   period_source: PeriodSource, corrected_by | None
 
+# One photos folder per database: data/photos for data/evoca.db, else data/photos-<db stem>; seed cleanup never deletes in data/photos.
 StoryPhoto:                                       # one per story; a new one replaces the old (file deleted)
-  id, story_id, path,                             # data/photos/<uuid>.jpg, never a user-given name
+  id, story_id, path,                             # <photos folder>/<uuid>.jpg, never a user-given name
   caption | None,                                 # at most 120 characters
   uploaded_by, created_at
 

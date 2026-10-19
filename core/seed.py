@@ -16,12 +16,22 @@ core/seed_assets/ (made once with Polly by scripts/make_seed_audio.py). The
 WAV is copied to data/audio/<session_id>.wav, relative to the working
 directory, which is where the audio endpoint reads it; run the seed from the
 same directory as the backend. No AWS call is made here.
+
+Photos: the stories' photos come from core/seed_assets/photos/ and are added
+through the photo service (core/services/photos.py, as an upload by Ayşe), so
+they are re-encoded and stripped of metadata like any upload. A missing file
+is skipped with a warning. Seeding wipes the database, so afterwards every
+file in this database's photos folder (photo_svc.photo_dir()) that no
+StoryPhoto row references is deleted, in that folder only. In data/photos, the
+default database's folder, orphans are only logged, never deleted. The demo family is fictional and its photos are
+AI-generated (README, "Try it").
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import logging
 import os
 import shutil
 import sys
@@ -64,9 +74,13 @@ from core.models import (
     SensitiveTopic,
     Story,
     StoryLink,
+    StoryPhoto,
     StorySubject,
 )
+from core.services import photos as photo_svc
 from core.services.invitations import invitation_reason
+
+log = logging.getLogger(__name__)
 
 _CIRCLE_TZ = ZoneInfo("Europe/Istanbul")
 
@@ -78,6 +92,59 @@ LEGACY_SEED_AUDIO_PATH = "data/audio/session_demo.m4a"
 SEED_ASSETS = Path(__file__).parent / "seed_assets"
 # Where the backend's audio endpoint reads session audio (server/wav_writer.py).
 AUDIO_DIR = Path("data") / "audio"
+
+# Story photos (story title -> file in seed_assets/photos, caption). spare_radio.jpg
+# there is not seeded: it is kept for uploading live in the demo video.
+SEED_PHOTOS_DIR = SEED_ASSETS / "photos"
+SEED_PHOTOS = (
+    ("The Mulberry Tree", "mulberry.jpg", "Mom in the village garden, around 1956"),
+    ("The Tailor's Shop", "tailor.jpg", "Mom at the tailor's shop, late 1960s"),
+    ("Father's Workshop", "workshop.jpg", "Her father's workshop, 1950s"),
+)
+
+
+def _add_seed_photos(uploader_id: str, story_ids: dict[str, str]) -> int:
+    """Add each seed photo through the photo service (re-encoded, metadata
+    stripped, as the uploader). A missing file or a failed upload is logged
+    and skipped. Returns how many were added."""
+    added = 0
+    for title, filename, caption in SEED_PHOTOS:
+        path = SEED_PHOTOS_DIR / filename
+        if not path.is_file():
+            log.warning("Seed photo %s is missing; %r gets no photo.", path.as_posix(), title)
+            continue
+        with SessionLocal() as db:
+            try:
+                photo_svc.set_photo(db, uploader_id, story_ids[title], path.read_bytes(), caption)
+                added += 1
+            except Exception as exc:  # the seed must not fail on a photo
+                log.warning("Seed photo %s could not be added to %r: %s", filename, title, exc)
+    return added
+
+
+def _remove_orphan_photos() -> int:
+    """Delete files in this database's photos folder that no StoryPhoto row
+    references. Only that folder's own files are touched; in data/photos (the
+    default database) they are logged and kept. Returns how many were deleted."""
+    photo_dir = photo_svc.photo_dir()
+    if not photo_dir.is_dir():
+        return 0
+    with SessionLocal() as db:
+        kept = {Path(p.path).resolve() for p in db.query(StoryPhoto).all() if p.path}
+    orphans = [f for f in photo_dir.iterdir() if f.is_file() and f.resolve() not in kept]
+    if photo_svc.is_default_photo_dir(photo_dir):
+        if orphans:
+            log.warning("%d photo files in %s belong to no story; kept (default database folder).",
+                        len(orphans), photo_dir.as_posix())
+        return 0
+    removed = 0
+    for f in orphans:
+        try:
+            f.unlink()
+            removed += 1
+        except OSError as exc:
+            log.warning("Could not delete orphan photo %s: %s", f, exc)
+    return removed
 
 
 class SeedRefused(RuntimeError):
@@ -396,6 +463,11 @@ def reset_and_seed(force: bool = False) -> None:
         db.add(invitation)
 
         db.commit()
+        ayse_id = ayse.id
+        story_ids = {s.title: s.id for s in (story_mulberry, story_tailor, story_pending)}
+
+    photos_added = _add_seed_photos(ayse_id, story_ids)
+    orphans = _remove_orphan_photos()
 
     print("Seed complete.")
     print("  Circle  : The Yilmaz Family")
@@ -404,6 +476,7 @@ def reset_and_seed(force: bool = False) -> None:
     print(f"  Today   : {today_str} (circle timezone: Europe/Istanbul)")
     print(f"  Database: {os.environ.get('EVOCA_DB_PATH', 'data/evoca.db')}")
     print(f"  Audio   : {audio_path.as_posix()}")
+    print(f"  Photos  : {photos_added} added, {orphans} old photo files removed")
 
 
 def main(argv: list[str] | None = None) -> int:

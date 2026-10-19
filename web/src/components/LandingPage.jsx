@@ -114,8 +114,8 @@ export default function LandingPage({ isSignedIn, onTryDemo, onCreateFamily, onO
       <section className="landing-hero" id="hero">
         <div className="hero-bg-container">
           <img
-            src="/images/grandmother_talking_kitchen_table.png"
-            alt="Grandmother speaking warmly at a sunlit kitchen table"
+            src="/images/hero_kitchen_talk.webp"
+            alt="Fatma talking to her Evoca device at the kitchen table, a glass of tea beside her"
             className="hero-bg-image"
           />
           <div className="hero-bg-overlay"></div>
@@ -191,8 +191,8 @@ export default function LandingPage({ isSignedIn, onTryDemo, onCreateFamily, onO
             <div className="problem-image-column">
               <div className="problem-image-card">
                 <img
-                  src="/images/elder_hands_kitchen_table.webp"
-                  alt="Candid close-up of grandmother's hands on a kitchen table"
+                  src="/images/hands_old_photo.webp"
+                  alt="Fatma's hands resting on an old black-and-white family photo, next to a glass of tea"
                 />
                 <div className="problem-card-caption">
                   Kitchen conversations preserved with voice authenticity and natural rhythm.
@@ -303,8 +303,8 @@ export default function LandingPage({ isSignedIn, onTryDemo, onCreateFamily, onO
 
               <div className="world-image-box">
                 <img
-                  src="/images/elderly_woman_smiling_window.webp"
-                  alt="Elder smiling warmly by her window"
+                  src="/images/elder_listening_window.webp"
+                  alt="Fatma smiling with her eyes closed in her armchair by the window, the Evoca device on the sill"
                 />
               </div>
 
@@ -339,8 +339,8 @@ export default function LandingPage({ isSignedIn, onTryDemo, onCreateFamily, onO
 
               <div className="world-image-box">
                 <img
-                  src="/images/family_member_listening_phone.webp"
-                  alt="Family member listening to an audio message on her phone"
+                  src="/images/elif_listening_phone.webp"
+                  alt="Elif smiling on an evening tram, listening to her grandmother's story on her phone"
                 />
               </div>
 
