@@ -74,6 +74,17 @@ export function findTourTargets(names) {
   return [];
 }
 
+// Nothing covers the element: the topmost element at its centre is the element itself or inside it
+// (a fixed bar over it, or a centre outside the viewport, fails).
+export function isUncovered(el) {
+  const r = el.getBoundingClientRect();
+  const x = r.left + r.width / 2;
+  const y = r.top + r.height / 2;
+  if (x < 0 || y < 0 || x >= window.innerWidth || y >= window.innerHeight) return false;
+  const hit = document.elementFromPoint(x, y);
+  return Boolean(hit) && (hit === el || el.contains(hit));
+}
+
 // The union of the elements' boxes in this document's viewport, rounded; null for none.
 export function unionRect(elements) {
   if (!elements.length) return null;
@@ -87,9 +98,10 @@ export function unionRect(elements) {
 
 const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-// In a stage pane: finds the target the stage asked for, scrolls it into view (centred) when it
-// appears, and sends its box to the stage, again whenever it moves (resize, scroll, layout changes).
-// The stage draws the spotlight and places the card.
+// In a stage pane: finds the target the stage asked for, scrolls it into view (centred, clear of the
+// fixed bars by its scroll margin) when it appears, and sends its box to the stage with whether
+// nothing covers it, again whenever it moves (resize, scroll, layout changes). The stage draws the
+// spotlight and places the card only for a visible target.
 export function usePaneTourTarget() {
   const targets = usePaneTourTargets();
   const key = usePaneTourKey();
@@ -98,6 +110,7 @@ export function usePaneTourTarget() {
     const pane = apiClient.embed.kind;
     let current = [];
     let lastSent = '';
+    const scrolled = new WeakSet();   // elements already scrolled into view once
     let frame = 0;
     const resize = typeof ResizeObserver === 'function' ? new ResizeObserver(() => schedule()) : null;
     const measure = () => {
@@ -106,15 +119,20 @@ export function usePaneTourTarget() {
       const fresh = found.filter(el => !current.includes(el));
       current.filter(el => !found.includes(el)).forEach(el => { el.classList.remove('tour-target'); resize?.unobserve(el); });
       fresh.forEach(el => { el.classList.add('tour-target'); resize?.observe(el); });
-      if (fresh.length && !current.length) {
-        fresh[0].scrollIntoView({ block: 'center', inline: 'nearest', behavior: reducedMotion() ? 'auto' : 'smooth' });
-      }
       current = found;
       const rect = unionRect(found);
-      const message = JSON.stringify(rect);
+      const visible = found.length > 0 && found.every(isUncovered);
+      // Not visible (new, re-rendered, or behind a bar): scroll it into view, once per element.
+      if (found.length && !visible && !scrolled.has(found[0])) {
+        found.forEach(el => scrolled.add(el));
+        // Several elements (play and reactions): from the top of the group when it fits, else centred.
+        const fits = rect.height < window.innerHeight - 140;
+        found[0].scrollIntoView({ block: found.length > 1 && fits ? 'start' : 'center', inline: 'nearest', behavior: reducedMotion() ? 'auto' : 'smooth' });
+      }
+      const message = JSON.stringify([rect, visible]);
       if (message !== lastSent) {
         lastSent = message;
-        sendTour({ kind: 'rect', pane, key, rect });
+        sendTour({ kind: 'rect', pane, key, rect, visible });
       }
     };
     function schedule() {
@@ -136,7 +154,7 @@ export function usePaneTourTarget() {
       window.removeEventListener('scroll', schedule, true);
       stopHello();
       current.forEach(el => el.classList.remove('tour-target'));
-      sendTour({ kind: 'rect', pane, key, rect: null });
+      sendTour({ kind: 'rect', pane, key, rect: null, visible: false });
     };
   }, [key, targets]);
 }

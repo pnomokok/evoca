@@ -80,7 +80,7 @@ function TracePanel({ turns }) {
   );
 
   return (
-    <section className={`trace-panel ${last ? '' : 'empty'}`} data-testid="trace-panel" aria-label="What Evoca did" data-tour="trace">
+    <section className={`trace-panel ${last ? '' : 'empty'}`} data-testid="trace-panel" aria-label="What Evoca did">
       <div className="trace-head">
         <span>What Evoca did · MCP tools</span>
         <span>{last ? `turn ${turns.length}` : 'no tool calls yet'}</span>
@@ -235,12 +235,15 @@ export default function DeviceScreen() {
 
   useEffect(() => () => clearTimeout(privacyTimerRef.current), []);
 
-  // The guided tour asks before it resets the demo: is a conversation running here?
+  // The guided tour asks before it resets the demo whether a conversation is running here, and its
+  // "Say goodbye for me" ends one the same way the Goodbye button does.
+  const goodbyeRef = useRef(null);
   useEffect(() => listenForTour(m => {
     if (m.kind === 'ask-session') {
       const open = Boolean(sessionRef.current.id || sessionRef.current.starting);
       sendTour({ kind: 'event', name: open ? 'session_open' : 'session_closed' });
     }
+    if (m.kind === 'goodbye') goodbyeRef.current?.();
   }), []);
 
   const addTurn = (turn) => {
@@ -361,6 +364,8 @@ export default function DeviceScreen() {
       showToast("Couldn't close the conversation properly.", "error");
     }
   };
+
+  useEffect(() => { goodbyeRef.current = handleGoodbye; });
 
   // Submit a spoken turn (POST /api/device/turn multipart: audio + session_id, no text field).
   // beforeReply: a sample answer still playing; the reply waits for it.
@@ -572,7 +577,7 @@ export default function DeviceScreen() {
                   onPointerLeave={() => isRecording && stopRecording()}
                   disabled={busy || isPlayingAudio || sampling}
                   aria-label={isRecording ? 'Listening, let go to finish' : 'Hold to speak'}
-                  data-tour={canSample ? undefined : 'answer'}
+                  data-tour={showSample ? undefined : 'answer'}
                 >
                   <span className="device-ring" aria-hidden="true" />
                   <Mic size={30} />

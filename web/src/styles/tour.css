@@ -15,11 +15,16 @@
   pointer-events: none;
   opacity: 0;
   box-shadow: 0 0 0 200vmax rgba(24, 21, 17, 0.5);
-  transition: left 0.45s cubic-bezier(0.22, 1, 0.36, 1), top 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-    width 0.45s cubic-bezier(0.22, 1, 0.36, 1), height 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease;
+  transition: opacity 0.3s ease;
 }
 
 .tour-spotlight.on { opacity: 1; }
+
+/* From the previous step's target (still on screen) to the new one; otherwise it fades in in place. */
+.tour-spotlight.glide {
+  transition: left 0.45s cubic-bezier(0.22, 1, 0.36, 1), top 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.45s cubic-bezier(0.22, 1, 0.36, 1), height 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease;
+}
 
 .tour-spotlight::after {
   content: '';
@@ -51,7 +56,12 @@
   font-family: var(--font-sans);
 }
 
+.tour-card { transition: opacity 0.25s ease; }
 .tour-card:focus { outline: none; }
+
+/* Before the tour runs (confirm, starting over): low in the middle. */
+.tour-card.intro { left: 50%; bottom: 24px; transform: translateX(-50%); }
+.tour-card.intro.docked { left: 16px; right: 16px; bottom: 12px; transform: none; }
 .tour-card:focus-visible { outline: 2px solid var(--accent-terracotta); outline-offset: 2px; }
 
 .tour-card.end { width: 380px; }
@@ -162,7 +172,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tour-spotlight { transition: opacity 0.2s ease; }
+  .tour-spotlight, .tour-spotlight.glide { transition: opacity 0.2s ease; }
   .tour-spotlight::after { animation: none; }
 }
 

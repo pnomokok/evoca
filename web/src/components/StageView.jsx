@@ -32,9 +32,7 @@ export default function StageView() {
   const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
-    if (apiClient.tourSeen) return;
-    apiClient.markTourSeen();
-    startTour();
+    if (!apiClient.tourSeen) startTour();
   }, [startTour]);
 
   const members = circleData?.members || [];
@@ -132,7 +130,6 @@ export default function StageView() {
         <GuidedTour
           key={tourRun.run}
           skipReset={tourRun.skipReset}
-          notice={notice}
           centerId={ready ? centerPersonId : null}
           askerId={ready ? asker.id : null}
           onExplore={() => setPickerOpen(true)}
