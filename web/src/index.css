@@ -2249,6 +2249,8 @@ h1, h2, h3, h4, .serif-font {
 
   /* "+": Ask a question or Record a memory, in a small sheet above the bar. */
   .mobile-add { position: relative; display: flex; }
+  /* Nothing asked yet: the composer is the way to ask, and the "+" would cover its Send. */
+  .app-container:has(.first-question-composer) .mobile-add { display: none; }
 
   .mobile-add-plus {
     width: 40px;

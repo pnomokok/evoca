@@ -427,7 +427,7 @@ export default function DeviceScreen() {
   // POST /api/device/turn as a recording would, so speech-to-text and the companion run for real.
   const playSample = async () => {
     const url = SAMPLE_ANSWERS[sampleIndex];
-    if (!url || phase !== 'active' || busy || isRecording || isPlayingAudio || sampling) return;
+    if (!url || !sampleReady) return;
     primeChime();
     setSampling(true);
     let blob;
@@ -500,15 +500,15 @@ export default function DeviceScreen() {
   const showPhoto = Boolean(photoSrc) && screenState === 'idle';
   const showTrace = turns.length > 0 || Boolean(apiClient.embed);
 
-  // The sample answers belong to the tour's question: offered only on the tour's answer step, and only
-  // when that question was asked in this session; otherwise a note there says why.
+  // The sample answers belong to the tour's question: only on the tour's answer step (step 4), and
+  // only when that question was asked in this session; otherwise a note in the same place says why.
+  // Either stays on screen for the whole step (the button is only disabled meanwhile), so the tour's
+  // spotlight never moves.
   const tourQuestionAsked = turns.some(t => (t.cards || []).some(c => c.type === 'question' && isSuggestedQuestion(c.text)));
   const canSample = tourQuestionAsked && sampleIndex < SAMPLE_ANSWERS.length;
-  const showSample = tourAnswerStep && canSample && !busy && !isRecording && !isPlayingAudio && !sampling;
-  const showSampleNote = tourAnswerStep && !tourQuestionAsked && !isRecording && !sampling
-    && turns.some(t => (t.cards || []).some(c => c.type === 'question'));
-  // The tour rings Goodbye too once the next sample is the goodbye, or after two spoken answers.
-  const ringGoodbye = canSample ? sampleIndex >= SAMPLE_ANSWERS.length - 1 : turns.length > 2;
+  const showSample = tourAnswerStep && phase === 'active' && tourQuestionAsked;
+  const sampleReady = canSample && !busy && !isRecording && !isPlayingAudio && !sampling;
+  const showSampleNote = tourAnswerStep && phase === 'active' && !tourQuestionAsked;
 
   return (
     <div className={`device-stack ${apiClient.embed ? 'embedded' : ''}`}>
@@ -577,23 +577,23 @@ export default function DeviceScreen() {
                   onPointerLeave={() => isRecording && stopRecording()}
                   disabled={busy || isPlayingAudio || sampling}
                   aria-label={isRecording ? 'Listening, let go to finish' : 'Hold to speak'}
-                  data-tour={showSample ? undefined : 'answer'}
+                  data-tour="answer"
                 >
                   <span className="device-ring" aria-hidden="true" />
                   <Mic size={30} />
                   <span className="device-talk-label">{isRecording ? 'Listening' : 'Hold'}</span>
                 </button>
                 {showSample && (
-                  <button type="button" className="device-quiet-btn sample" onClick={playSample} data-tour="answer">
+                  <button type="button" className="device-quiet-btn sample" onClick={playSample} disabled={!sampleReady} data-tour="answer">
                     Use a sample answer
                   </button>
                 )}
                 {showSampleNote && (
-                  <p className="device-sample-note">Sample answers fit the suggested question. Answer with your voice.</p>
+                  <p className="device-sample-note" data-tour="answer">Sample answers fit the suggested question. Answer with your voice.</p>
                 )}
                 <div className="device-side right">
                   {!isRecording && !sampling && (
-                    <button type="button" className="device-quiet-btn" onClick={handleGoodbye} data-tour={ringGoodbye ? 'answer' : undefined}>
+                    <button type="button" className="device-quiet-btn" onClick={handleGoodbye}>
                       Goodbye
                     </button>
                   )}
@@ -606,7 +606,7 @@ export default function DeviceScreen() {
                 onClick={handleTalk}
                 disabled={phase === 'starting' || !viewerReady || !centerPersonId}
                 aria-label="Talk: Alexa, what's new?"
-                data-tour={phase === 'starting' ? undefined : 'talk'}
+                data-tour="talk"
               >
                 <span className="device-ring" aria-hidden="true" />
                 <span className="device-talk-label big">Talk</span>

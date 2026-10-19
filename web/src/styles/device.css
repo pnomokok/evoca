@@ -339,6 +339,8 @@
 
 .device-quiet-btn:hover { background: rgba(251, 243, 228, 0.16); }
 
+.device-quiet-btn.sample:disabled { opacity: 0.45; cursor: default; }
+
 /* Why there is no sample answer: the question asked is not the tour's (stage only). */
 .device-sample-note {
   grid-column: 1 / -1;

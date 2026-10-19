@@ -2,38 +2,35 @@
    THE GUIDED TOUR on "Watch the loop" (components/GuidedTour.jsx): a card on the stage,
    and the soft pulsing ring each pane puts on the element a step is about (utils/tour.js).
    ========================================================================== */
-/* The spotlight: a soft scrim over the stage with a rounded cut-out around the target (a huge
-   shadow), a warm edge and a slow glow. It moves smoothly between steps and never takes a click. */
-.tour-spotlight {
+/* The spotlight: a soft scrim over the stage with a rounded cut-out for each target of the step (an
+   SVG mask), each with the same warm edge and slow glow. It fades in once the targets are measured
+   and never takes a click. */
+.tour-scrim {
   position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
   z-index: 1250;
-  left: 50%;
-  top: 50%;
-  width: 0;
-  height: 0;
-  border-radius: 16px;
   pointer-events: none;
   opacity: 0;
-  box-shadow: 0 0 0 200vmax rgba(24, 21, 17, 0.5);
   transition: opacity 0.3s ease;
 }
 
-.tour-spotlight.on { opacity: 1; }
+.tour-scrim.on { opacity: 1; }
+.tour-scrim > rect { fill: rgba(24, 21, 17, 0.5); }
 
-/* From the previous step's target (still on screen) to the new one; otherwise it fades in in place. */
-.tour-spotlight.glide {
-  transition: left 0.45s cubic-bezier(0.22, 1, 0.36, 1), top 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-    width 0.45s cubic-bezier(0.22, 1, 0.36, 1), height 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease;
+.tour-glow {
+  position: fixed;
+  z-index: 1251;
+  border-radius: 14px;
+  pointer-events: none;
+  border: 2px solid rgba(240, 178, 140, 0.95);
+  animation: tourFadeIn 0.3s ease both, tourGlow 2s ease-out 0.3s infinite;
 }
 
-.tour-spotlight::after {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  border-radius: inherit;
-  border: 2px solid rgba(240, 178, 140, 0.95);
-  box-shadow: 0 0 0 0 rgba(240, 178, 140, 0.55), 0 0 24px rgba(240, 178, 140, 0.45);
-  animation: tourGlow 2s ease-out infinite;
+@keyframes tourFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes tourGlow {
@@ -172,8 +169,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tour-spotlight, .tour-spotlight.glide { transition: opacity 0.2s ease; }
-  .tour-spotlight::after { animation: none; }
+  .tour-scrim { transition: none; }
+  .tour-glow { animation: none; box-shadow: 0 0 18px rgba(240, 178, 140, 0.45); }
 }
 
 /* The reset dialog's "Then start the guided tour" */

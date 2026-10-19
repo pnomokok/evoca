@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useReducer, useRef, use
 import { useApp } from '../context/useApp';
 import { apiClient } from '../api/client';
 import { listenForChanges, listenForTour, sendTour } from '../utils/stageChannel';
-import { findTourTargets, isSuggestedQuestion, isUncovered, unionRect } from '../utils/tour';
+import { boxOf, findTourTargets, isSuggestedQuestion, isUncovered } from '../utils/tour';
 import { useMediaQuery } from '../utils/useMediaQuery';
 import { X } from 'lucide-react';
 import '../styles/tour.css';
@@ -10,7 +10,7 @@ import '../styles/tour.css';
 const POLL_MS = 3000;
 const LAYOUT_MS = 200;
 const SETTLE_MS = 300;               // conditions must hold this long before the step moves on
-const MEASURE_GIVE_UP_MS = 2500;     // no visible target by then: the card shows without a spotlight
+const MEASURE_GIVE_UP_MS = 2500;     // no visible targets by then: the card shows without a spotlight
 const SESSION_REPLY_MS = 600;
 const DAY_MS = 24 * 3600_000;
 const GAP = 18;
@@ -25,25 +25,29 @@ const STEPS = [
   { text: "Press Talk. Evoca brings up Elif's question at the right moment.", done: 'conversation started' },
   { text: 'Answer as Fatma: speak, or use a sample answer. Say goodbye when you are done.', done: 'conversation ended' },
   { text: 'Evoca writes up the story and finds the part that answers Elif. The family has 24 hours to hide it before it is shared.',
-    hint: 'Then press +1 day.', dockedHint: 'Then open Demo at the top and press +1 day.', done: 'question answered' },
+    hint: 'Press +1 day.', dockedHint: 'Open Demo at the top and press +1 day.', done: 'question answered' },
   { text: "Elif hears the answer in Grandma's own voice. React to it.", done: 'reaction made' },
-  { text: 'The next morning, Grandma hears it too.', done: 'next morning opening heard' },
+  { text: 'The next morning, Grandma hears it too.', hint: 'Press Next morning, then Talk.',
+    dockedHint: 'Open Demo at the top, press Next morning, then Talk.', done: 'next morning opening heard' },
 ];
 const END = STEPS.length;
+const WRITING = 'Evoca is writing up the story...';
 const NO_ANSWER = "Evoca didn't find an answer to Elif's question in this conversation. Talk again the next morning, or skip this step.";
-const NEXT_MORNING = { place: 'strip', targets: ['next-morning', 'demo-menu'] };
 
-// What a step shows: where (a pane or the demo strip) and the data-tour names, the first present wins.
-function stepTarget(step, lightOn) {
+// Each step's one set of targets, fixed while the step shows: [{ place, names }], the card points at
+// the first. place: a pane ('panel', 'device') or the demo strip. Below 1100 px the clock buttons are
+// folded into the strip's Demo menu, so the menu button stands in for them.
+function stepTargets(step, docked) {
+  const clock = (name) => ({ place: 'strip', names: [docked ? 'demo-menu' : name] });
   switch (step) {
-    case 0: return { place: 'panel', targets: ['ask', 'ask-alt'] };
-    case 1: return NEXT_MORNING;
-    case 2: return { place: 'device', targets: ['talk'] };
-    case 3: return { place: 'device', targets: ['answer'] };
-    case 4: return { place: 'strip', targets: ['archiving', 'plus-day', 'demo-menu'] };
-    case 5: return { place: 'panel', targets: ['answer-card', 'questions-tab'] };
-    case 6: return lightOn ? { place: 'device', targets: ['talk'] } : NEXT_MORNING;
-    default: return null;
+    case 0: return [{ place: 'panel', names: ['ask'] }];
+    case 1: return [clock('next-morning')];
+    case 2: return [{ place: 'device', names: ['talk'] }];
+    case 3: return [{ place: 'device', names: ['answer'] }];      // Hold, and the sample answer or its note
+    case 4: return [clock('plus-day')];
+    case 5: return [{ place: 'panel', names: ['answer-card'] }];  // play and the reactions
+    case 6: return [clock('next-morning'), { place: 'device', names: ['talk'] }];
+    default: return [];
   }
 }
 
@@ -63,7 +67,7 @@ function flagsReducer(flags, action) {
   }
 }
 
-const NO_FACTS = { questionExists: false, answered: false, reacted: false, lightOn: false, clockMoved: false, archiving: false, now: 0 };
+const NO_FACTS = { questionExists: false, answered: false, reacted: false, clockMoved: false, lightOn: false, archiving: false, now: 0 };
 
 // Each transition in dev builds: from, to, why.
 function logTransition(from, to, reason) {
@@ -75,7 +79,6 @@ function logTransition(from, to, reason) {
 const area = (r) => Math.max(1, r.width * r.height);
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const pad = (r, p) => ({ left: r.left - p, top: r.top - p, width: r.width + 2 * p, height: r.height + 2 * p });
-const onScreen = (r) => r && r.top + r.height > 0 && r.top < window.innerHeight && r.left + r.width > 0 && r.left < window.innerWidth;
 
 function overlap(a, b) {
   if (!a || !b) return 0;
@@ -89,12 +92,12 @@ function rectOf(selector) {
   return r ? { left: r.left, top: r.top, width: r.width, height: r.height } : null;
 }
 
-// The card beside its target: each side of the target and each side of the target's pane is tried.
-// Never over the target; then the least cover of the same pane (weighted) and of the other areas (the
+// The card beside its first target: each side of that target and each side of its pane is tried.
+// Never over any target; then the least cover of the same pane (weighted) and of the other areas (the
 // other pane, the demo strip), each as a share of that area; beside beats above or below, and nearer
 // wins a tie. Beside the target, the card starts at the target's top, so the words above stay clear.
 // null when nothing fits.
-function placeBeside(target, same, others, w, h, vw, vh) {
+function placeBeside(target, spots, same, others, w, h, vw, vh) {
   const cx = target.left + target.width / 2;
   const cy = target.top + target.height / 2;
   let best = null;
@@ -108,7 +111,7 @@ function placeBeside(target, same, others, w, h, vw, vh) {
           : clamp(target.top - 10, EDGE, vh - h - EDGE);
       if (left < EDGE || left + w > vw - EDGE || top < EDGE || top + h > vh - EDGE) continue;
       const card = { left, top, width: w, height: h };
-      if (overlap(card, pad(target, PAD))) continue;
+      if (spots.some(s => overlap(card, pad(s, PAD)))) continue;
       const distance = Math.hypot(left + w / 2 - cx, top + h / 2 - cy);
       const score = (same ? 1.5 * overlap(card, same) / area(same) : 0)
         + others.reduce((sum, o) => sum + overlap(card, o) / area(o), 0)
@@ -128,17 +131,17 @@ function placeBeside(target, same, others, w, h, vw, vh) {
 // conversation is running on the device). Each step has a condition, checked on every change (stage
 // channel events from the panes, and polling the existing endpoints). The tour only moves forward:
 // once the conditions have held for a moment, it skips past every step that is already done.
-// The pane finds the step's target, scrolls it into view and sends its box once nothing covers it;
-// the stage then fades in a spotlight around it and puts the card beside it. Docked below 1100 px.
-// onExplore opens the person picker.
+// Each step has one fixed set of targets. The panes find theirs, scroll them into view and send their
+// boxes once nothing covers them; the stage then fades in a spotlight with a cut-out for each and puts
+// the card beside the first. Docked at the bottom below 1100 px. onExplore opens the person picker.
 export default function GuidedTour({ skipReset = false, centerId, askerId, onExplore }) {
   const { closeTour, startTour, openCreateFamily, demoReset } = useApp();
   const [phase, setPhase] = useState(skipReset ? 'running' : 'checking');  // checking | confirm | resetting | running
   const [facts, setFacts] = useState(NO_FACTS);
   const [flags, dispatch] = useReducer(flagsReducer, NO_FLAGS);
   const [step, setStep] = useState(0);
-  const [paneRect, setPaneRect] = useState(null);   // { key, rect, visible } from the pane, in its own viewport
-  const [layout, setLayout] = useState(null);       // { key, spot, glide, card }
+  const [paneRects, setPaneRects] = useState({});   // pane -> { key, rects, visible }, in the pane's viewport
+  const [layout, setLayout] = useState(null);       // { key, spots, card }
   const cardRef = useRef(null);
   const factsRef = useRef(facts);
   const stepRef = useRef(step);
@@ -251,33 +254,36 @@ export default function GuidedTour({ skipReset = false, centerId, askerId, onExp
 
   const running = phase === 'running';
   const current = running && step < END ? STEPS[step] : null;
-  const target = current ? stepTarget(step, facts.lightOn) : null;
-  // The key names the step's target: "<step>|<place>|<names>".
-  const key = target ? `${step}|${target.place}|${target.targets.join(',')}` : '';
+  const targets = current ? stepTargets(step, docked) : [];
+  // The key names the step's target set; it changes only with the step (or docking).
+  const key = current ? `${step}|${JSON.stringify(targets)}` : '';
   const noAnswer = step === 4 && flags.endClock != null && !facts.answered && !facts.archiving
     && facts.now - flags.endClock >= DAY_MS;
-  const hint = noAnswer ? null : (docked && current?.dockedHint) || current?.hint;
+  const writing = step === 4 && facts.archiving;
+  const text = noAnswer ? NO_ANSWER : writing ? WRITING : current?.text;
+  const hint = noAnswer || writing ? null : (docked && current?.dockedHint) || current?.hint;
 
-  // --- Tell the pane what to show; its box comes back over the channel ---
+  // --- Tell the panes their part of the set; their boxes come back over the channel ---
   useEffect(() => {
-    const [, place, names] = key.split('|');
-    const pane = place === 'device' || place === 'panel' ? place : null;
-    const message = { kind: 'targets', pane, targets: pane ? names.split(',') : [], key };
+    const set = key ? JSON.parse(key.slice(key.indexOf('|') + 1)) : [];
+    const byPane = {};
+    set.filter(t => t.place !== 'strip').forEach(t => { byPane[t.place] = [...(byPane[t.place] || []), ...t.names]; });
+    const message = { kind: 'targets', byPane, key };
     sendTour(message);
     return listenForTour(m => {
       if (m.kind === 'hello') sendTour(message);
-      if (m.kind === 'rect' && m.key === key) setPaneRect({ key, rect: m.rect, visible: m.visible });
+      if (m.kind === 'rect' && m.key === key) setPaneRects(prev => ({ ...prev, [m.pane]: { key, rects: m.rects || [], visible: m.visible } }));
     });
   }, [key]);
-  useEffect(() => () => sendTour({ kind: 'targets', pane: null, targets: [], key: '' }), []);
+  useEffect(() => () => sendTour({ kind: 'targets', byPane: {}, key: '' }), []);
 
   // Docked, a strip target is at the top of the page.
-  const onStrip = target?.place === 'strip';
+  const onStrip = targets[0]?.place === 'strip';
   useEffect(() => {
     if (docked && onStrip) window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [docked, onStrip, key]);
 
-  // --- Spotlight and card: measured again as anything moves; shown only once the target is ---
+  // --- Spotlight and card: shown once every target of the set is measured and uncovered ---
   useLayoutEffect(() => {
     if (keyStartRef.current.key !== key) keyStartRef.current = { key, at: Date.now() };
     const update = () => {
@@ -289,54 +295,51 @@ export default function GuidedTour({ skipReset = false, centerId, askerId, onExp
       const h = card.offsetHeight;
       const device = rectOf('.device-pane');
       const phone = rectOf('.stage-phone');
-      let spot = null;
-      let same = null;
-      if (target?.place === 'strip') {
-        const found = findTourTargets(target.targets);
-        if (found.length && found.every(isUncovered)) spot = unionRect(found);
-      } else if (target) {
-        same = target.place === 'device' ? device : phone;
-        const frame = rectOf(target.place === 'device' ? 'iframe.device-frame' : 'iframe.phone-frame');
-        const measured = paneRect?.key === key && paneRect.visible ? paneRect.rect : null;
-        if (frame && measured) {
-          spot = { left: frame.left + measured.left, top: frame.top + measured.top, width: measured.width, height: measured.height };
+      // One box per target, in stage coordinates; null while any part of the set is not visible.
+      let spots = [];
+      for (const t of targets) {
+        if (t.place === 'strip') {
+          const found = findTourTargets(t.names);
+          if (!found.length || !found.every(isUncovered)) { spots = null; break; }
+          spots.push(...found.map(boxOf));
+        } else {
+          const frame = rectOf(t.place === 'device' ? 'iframe.device-frame' : 'iframe.phone-frame');
+          const got = paneRects[t.place];
+          if (!frame || got?.key !== key || !got.visible || !got.rects.length) { spots = null; break; }
+          spots.push(...got.rects.map(r => ({ left: frame.left + r.left, top: frame.top + r.top, width: r.width, height: r.height })));
         }
       }
-      // The page itself scrolls (stacked panes): a target off screen, or under the docked card, comes
-      // to the middle of what is left; once per target and window size.
+      const first = spots?.[0];
+      // The page itself scrolls (stacked panes): a first target off screen, or under the docked card,
+      // comes to the middle of what is left; once per step and window size.
       const room = docked ? vh - h - 2 * EDGE : vh;
       const scrollKey = `${key}|${vw}x${vh}`;
-      if (spot && scrolledRef.current !== scrollKey && (spot.top < 0 || spot.top + spot.height > room)) {
+      if (first && scrolledRef.current !== scrollKey && (first.top < 0 || first.top + first.height > room)) {
         scrolledRef.current = scrollKey;
-        window.scrollBy({ top: spot.top - Math.max(EDGE, (room - spot.height) / 2), behavior: 'smooth' });
+        window.scrollBy({ top: first.top - Math.max(EDGE, (room - first.height) / 2), behavior: 'smooth' });
       }
       const waited = Date.now() - keyStartRef.current.at;
+      const alone = { left: (vw - w) / 2, top: vh - h - 24, arrow: null };
       setLayout(prev => {
         let next;
-        if (!target) {
-          next = { key, spot: null, card: { left: (vw - w) / 2, top: vh - h - 24, arrow: null } };
-        } else if (!spot && prev?.key === key && prev.card && !prev.kept) {
-          // The target went out of sight within the step (the pane scrolls it back): no spotlight,
-          // and the card stays without its arrow.
-          next = { key, spot: null, card: { ...prev.card, arrow: null } };
-        } else if (!spot) {
-          // A new step, not measured yet: the card waits; the previous spotlight stays (and glides on
-          // from there) only if it is still on screen, and only for a moment. After that the card
-          // shows alone rather than point at nothing.
-          const late = waited > MEASURE_GIVE_UP_MS;
-          const keep = !late && prev?.spot && onScreen(prev.spot) && (prev.key !== key || prev.kept) ? prev.spot : null;
-          next = { key, spot: keep, kept: Boolean(keep), glide: Boolean(keep), card: late ? { left: (vw - w) / 2, top: vh - h - 24, arrow: null } : null };
+        if (!current) {
+          next = { key, spots: [], card: alone };
+        } else if (!spots) {
+          // Not measured (yet), or gone out of sight within the step (a pane scrolls it back): no
+          // spotlight. The card waits, keeps its place without its arrow, or after a while shows alone.
+          const placed = prev?.key === key && prev.card ? { ...prev.card, arrow: null } : null;
+          next = { key, spots: [], card: placed || (waited > MEASURE_GIVE_UP_MS ? alone : null) };
         } else {
+          const same = targets[0].place === 'device' ? device : targets[0].place === 'panel' ? phone : null;
           const others = [device, phone, rectOf('.demo-strip-inner')].filter(r => r && r !== same);
-          const glide = prev?.key === key ? prev.glide : Boolean(prev?.spot && onScreen(prev.spot));
-          let card;
+          let cardBox;
           if (docked) {
             const top = vh - h - EDGE;
-            card = { top, arrow: spot.top + spot.height / 2 < top ? 'up' : 'down', offset: clamp(spot.left + spot.width / 2 - 16, 24, w - 24) };
+            cardBox = { top, arrow: first.top + first.height / 2 < top ? 'up' : 'down', offset: clamp(first.left + first.width / 2 - 16, 24, w - 24) };
           } else {
-            card = placeBeside(spot, same, others, w, h, vw, vh) || { left: vw - w - EDGE, top: vh - h - EDGE, arrow: null };
+            cardBox = placeBeside(first, spots, same, others, w, h, vw, vh) || { left: vw - w - EDGE, top: vh - h - EDGE, arrow: null };
           }
-          next = { key, spot, glide, card };
+          next = { key, spots, card: cardBox };
         }
         return JSON.stringify(prev) === JSON.stringify(next) ? prev : next;
       });
@@ -362,7 +365,7 @@ export default function GuidedTour({ skipReset = false, centerId, askerId, onExp
 
   // Before the tour runs (confirm, resetting) the card sits low in the middle, without a spotlight.
   const placed = running ? (layout?.key === key ? layout.card : null) : { left: null, top: null, arrow: null };
-  const spot = running && layout?.spot ? pad(layout.spot, PAD) : null;
+  const spots = running && layout?.key === key ? layout.spots.map(s => pad(s, PAD)) : [];
   const style = placed && placed.top != null ? {
     top: `${placed.top}px`,
     ...(docked ? {} : { left: `${placed.left}px` }),
@@ -387,7 +390,7 @@ export default function GuidedTour({ skipReset = false, centerId, askerId, onExp
   } else if (current) {
     label = `Guide · step ${step + 1} of ${END}`;
     body = <>
-      <p id="tour-card-text" className="tour-card-text">{noAnswer ? NO_ANSWER : current.text}</p>
+      <p id="tour-card-text" className="tour-card-text">{text}</p>
       {hint && <p className="tour-card-hint">{hint}</p>}
     </>;
     // While a conversation runs, step 4 ends it for you instead of skipping.
@@ -409,12 +412,26 @@ export default function GuidedTour({ skipReset = false, centerId, askerId, onExp
   }
 
   return <>
-    {/* The scrim with a cut-out around the target; it never takes a click. */}
-    <div
-      className={`tour-spotlight ${spot ? 'on' : ''} ${layout?.glide ? 'glide' : ''}`}
-      style={spot ? { left: `${spot.left}px`, top: `${spot.top}px`, width: `${spot.width}px`, height: `${spot.height}px` } : undefined}
-      aria-hidden="true"
-    />
+    {/* The scrim: one rounded cut-out per target (an SVG mask), each with the same glow. It never
+        takes a click. */}
+    <svg className={`tour-scrim ${spots.length ? 'on' : ''}`} aria-hidden="true">
+      <defs>
+        <mask id="tour-scrim-mask">
+          <rect x="0" y="0" width="100%" height="100%" fill="white" />
+          {spots.map((s, i) => <rect key={i} x={s.left} y={s.top} width={s.width} height={s.height} rx="14" fill="black" />)}
+        </mask>
+      </defs>
+      <rect x="0" y="0" width="100%" height="100%" mask="url(#tour-scrim-mask)" />
+    </svg>
+    {spots.map((s, i) => (
+      <div
+        key={i}
+        className="tour-glow"
+        data-tour-spot={i}
+        style={{ left: `${s.left}px`, top: `${s.top}px`, width: `${s.width}px`, height: `${s.height}px` }}
+        aria-hidden="true"
+      />
+    ))}
     <div
       ref={cardRef}
       className={className}
