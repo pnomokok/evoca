@@ -102,7 +102,7 @@ export default function MyQuestions({ reloadKey }) {
                   </button>
                 )}
               </div>
-              {answerItem && <AnswerCard item={answerItem} showQuestion={false} tourMark={q.id === tourAnswerId} />}
+              {answerItem && <AnswerCard id={`answer-${q.id}`} item={answerItem} showQuestion={false} tourMark={q.id === tourAnswerId} />}
             </li>
           );
         })}

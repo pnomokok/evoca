@@ -30,7 +30,7 @@ export default function FamilyTreeModal({
 
   return (
     <Modal onClose={onClose} labelledBy="family-tree-modal-title" sheetClassName="modal-sheet archival-dialog family-tree-modal">
-        <div className="modal-header-row">
+        <div className="modal-title-row">
           <div className="dialog-title-group">
             <span className="archival-eyebrow">Family tree</span>
             <h2 id="family-tree-modal-title" className="archival-dialog-title">

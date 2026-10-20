@@ -44,7 +44,8 @@ function useOpenAnswer() {
   return useCallback((questionId) => {
     navigate({ tab: 'panel', subTab: 'questions' });
     reloadAll();   // the list may not know about the answer yet
-    focusLater(`question-${questionId}`);
+    // The answer card itself, from its top just below the top bar (the list may reload first).
+    focusLater(`answer-${questionId}`, { block: 'start', frames: 180, fallbackId: `question-${questionId}` });
   }, [navigate, reloadAll]);
 }
 

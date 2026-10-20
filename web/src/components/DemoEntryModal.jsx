@@ -7,7 +7,7 @@ import { MonitorSmartphone, Users, X } from 'lucide-react';
 export default function DemoEntryModal({ onClose, onWatchLoop, onExplore }) {
   return (
     <Modal onClose={onClose} labelledBy="demo-entry-title" sheetStyle={{ maxWidth: '520px' }}>
-      <div className="modal-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="modal-title-row">
         <h3 id="demo-entry-title" className="archival-dialog-title" style={{ margin: 0 }}>Try the demo</h3>
         <button type="button" className="close-btn" onClick={onClose} aria-label="Close">
           <X size={18} />

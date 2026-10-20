@@ -336,6 +336,11 @@ we do about it or would do next.
   `X-Person-Id`/`X-Circle-Id` headers are trusted only in demo mode.
 - **Demo controls are open to everyone in demo mode.** Anyone on the page can move the clock or reset the demo, and
   moving past 24 hours shortens the time to hide a story; `EVOCA_DEMO_MODE` stays off outside the demo.
+- **Uncommon names can be misheard.** Speech-to-text gets the family's names as hints, but a friend's or a place's
+  unusual name can come out as another word, and the story then says what was heard (in testing, "Ayten" became
+  "died"). In the 24 hours before a story reaches the family, the teller, a person it is about, the center person or
+  an admin can hide it; the family can correct a story's life period, but not its words. Next: let the family fix a
+  transcript word.
 - **Refused topics are matched by words.** An indirect reference (asking about a sister after she refused to talk
   about her) is not caught; she can still decline, and next is semantic matching.
 - **The privacy check is a model's judgment.** An indirect request ("leave this out of the family book") can be
