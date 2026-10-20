@@ -29,8 +29,8 @@ CLIPS = {
         # Every word easy for Whisper small.en: "My friend Ayten and I" was heard as "My friend
         # died and I", and the archivist's summary then had her friend die.
         "Oh, we played hopscotch in the street with the neighbours' girls. And in winter my father "
-        "made us a wooden sled. My best friend and I raced down the hill behind the mosque until our "
-        "cheeks were red."
+        "made us a wooden sled. My best friend and I raced down the hill behind the mosque on it, "
+        "until our cheeks were red."
     ),
     "answer_2": (
         # "The sled" was heard as "This lead", and "grandson Can" as "grandson Ken"; the commas
