@@ -33,10 +33,9 @@ CLIPS = {
         "until our cheeks were red."
     ),
     "answer_2": (
-        # "The sled" was heard as "This lead", and "grandson Can" as "grandson Ken"; the commas
-        # around the name let Whisper hear it.
+        # "The sled" was heard as "This lead", and the grandson's name as "Ken" or "Kan": no name.
         "My sled was heavy, made of walnut wood. My father carved my initials on it. I kept it for "
-        "years, until my grandson, Can, broke it when he was six."
+        "years, until my little grandson broke it when he was six."
     ),
     "goodbye": "That's enough for today, dear. Goodbye.",
 }
