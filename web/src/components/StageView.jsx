@@ -5,6 +5,7 @@ import { listenForChanges } from '../utils/stageChannel';
 import AnswerNotice from './panel/AnswerNotice';
 import { useNewAnswers } from './panel/useNewAnswers';
 import GuidedTour from './GuidedTour';
+import { TOUR_ANSWER_STEP } from '../utils/tour';
 import PersonPicker from './PersonPicker';
 import '../styles/stage.css';
 
@@ -63,9 +64,17 @@ export default function StageView() {
   const { notice, dismiss } = useNewAnswers({
     circleId: circleData?.circle?.id, personId: asker?.id, enabled: Boolean(ready)
   });
-  const openAnswer = (questionId) => {
+  const openAnswer = useCallback((questionId) => {
     phoneRef.current?.contentWindow?.postMessage({ type: 'evoca-open-answer', questionId }, window.location.origin);
-  };
+  }, []);
+
+  // On the tour's listening step the banner would cover the answer card: close it and open the answer.
+  const [tourStep, setTourStep] = useState(null);
+  useEffect(() => {
+    if (tourStep !== TOUR_ANSWER_STEP || !notice) return;
+    openAnswer(notice.questionId);
+    dismiss();
+  }, [tourStep, notice, openAnswer, dismiss]);
 
   const time = phoneTime(clock?.now, circleData?.circle?.timezone);
 
@@ -133,6 +142,7 @@ export default function StageView() {
           centerId={ready ? centerPersonId : null}
           askerId={ready ? asker.id : null}
           onExplore={() => setPickerOpen(true)}
+          onStep={setTourStep}
         />
       )}
       {pickerOpen && <PersonPicker onClose={() => setPickerOpen(false)} />}

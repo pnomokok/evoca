@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useReducer, useRef, use
 import { useApp } from '../context/useApp';
 import { apiClient } from '../api/client';
 import { listenForChanges, listenForTour, sendTour } from '../utils/stageChannel';
-import { boxOf, findTourTargets, isSuggestedQuestion, isUncovered } from '../utils/tour';
+import { TOUR_ANSWER_STEP, boxOf, findTourTargets, isSuggestedQuestion, isUncovered } from '../utils/tour';
 import { useMediaQuery } from '../utils/useMediaQuery';
 import { X } from 'lucide-react';
 import '../styles/tour.css';
@@ -47,7 +47,7 @@ function stepTargets(step, docked, writing) {
     case 2: return [{ place: 'device', names: ['talk'] }];
     case 3: return [{ place: 'device', names: ['answer'] }];      // Hold, and the sample answer or its note
     case 4: return writing ? [] : [clock('plus-day')];
-    case 5: return [{ place: 'panel', names: ['answer-card'] }];  // play and the reactions
+    case TOUR_ANSWER_STEP: return [{ place: 'panel', names: ['answer-card'] }];  // play and the reactions
     case 6: return [clock('next-morning'), { place: 'device', names: ['talk'] }];
     default: return [];
   }
@@ -136,7 +136,9 @@ function placeBeside(target, spots, same, others, w, h, vw, vh) {
 // Each step has one fixed set of targets. The panes find theirs, scroll them into view and send their
 // boxes once nothing covers them; the stage then fades in a spotlight with a cut-out for each and puts
 // the card beside the first. Docked at the bottom below 1100 px. onExplore opens the person picker.
-export default function GuidedTour({ skipReset = false, centerId, askerId, onExplore }) {
+// onStep(step | null): the step showing, null while the tour is not running (the stage closes its
+// answer banner on the listening step, so it never covers the answer card).
+export default function GuidedTour({ skipReset = false, centerId, askerId, onExplore, onStep }) {
   const { closeTour, startTour, openCreateFamily, demoReset } = useApp();
   const [phase, setPhase] = useState(skipReset ? 'running' : 'checking');  // checking | confirm | resetting | running
   const [facts, setFacts] = useState(NO_FACTS);
@@ -259,6 +261,8 @@ export default function GuidedTour({ skipReset = false, centerId, askerId, onExp
   };
 
   const running = phase === 'running';
+  const shownStep = running && step < END ? step : null;
+  useEffect(() => { onStep?.(shownStep); }, [onStep, shownStep]);
   const current = running && step < END ? STEPS[step] : null;
   const noAnswer = step === 4 && flags.endClock != null && !facts.answered && !facts.archiving
     && facts.now - flags.endClock >= DAY_MS;

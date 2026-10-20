@@ -6,6 +6,8 @@ import '../styles/tour.css';
 // The guided tour on "Watch the loop" (components/GuidedTour.jsx): its suggested question and the
 // sample answers that belong to it (scripts/make_demo_audio.py, Fatma's voice).
 export const SUGGESTED_QUESTION = 'Grandma, what games did you play when you were little?';
+// The step (0-based) where Elif hears the answer and reacts; the stage closes its banner then.
+export const TOUR_ANSWER_STEP = 5;
 export const SAMPLE_ANSWERS = ['/demo-audio/answer_1.mp3', '/demo-audio/answer_2.mp3', '/demo-audio/goodbye.mp3'];
 
 const normalize = (text) => (text || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();

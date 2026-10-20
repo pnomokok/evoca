@@ -7,7 +7,7 @@ import { announceChange } from '../../utils/stageChannel';
 import { formatDuration, formatWhen } from '../../utils/format';
 import Avatar from '../Avatar';
 import BlobPhoto from './BlobPhoto';
-import { Pause, Play } from 'lucide-react';
+import { Loader2, Pause, Play } from 'lucide-react';
 import '../../styles/journal.css';
 
 const REACTIONS = [
@@ -20,7 +20,8 @@ const REACTIONS = [
 // An answer to the viewer's question (a "question_answered" feed item): the story's photo if it has one,
 // otherwise the designed card; then her voice, "Maybe give her a call.", the reactions (never counts)
 // and a link to the whole story. tourMark: the guided tour may ring its play button and reactions.
-export default function AnswerCard({ item, showQuestion = true, tourMark = false }) {
+// The play button shows at once: loading while the audio is fetched, then play.
+export default function AnswerCard({ id, item, showQuestion = true, tourMark = false }) {
   const { showToast, circleData, openStory } = useApp();
   const a = item.answer;
   const [story, setStory] = useState(null);
@@ -29,6 +30,8 @@ export default function AnswerCard({ item, showQuestion = true, tourMark = false
   const getPlayer = useAudioElement();
   // Every piece of the answer, fetched as blobs and played back to back as one recording.
   const audioRef = useRef({ urls: [], durations: [], index: 0 });
+  const [audioState, setAudioState] = useState('loading');   // loading | ready | error
+  const playWhenReady = useRef(false);
 
   // The story page gives the reactions (present, mine) and the AI summary.
   useEffect(() => {
@@ -50,6 +53,29 @@ export default function AnswerCard({ item, showQuestion = true, tourMark = false
   // docs/api-samples/GET_feed.json; older cards only have audio_url.
   const pieces = a.audio?.length ? a.audio
     : a.audio_url ? [{ url: a.audio_url, start_ms: a.start_ms, end_ms: a.end_ms }] : [];
+  const piecesKey = pieces.map(p => p.url).join('|');
+
+  // Fetch the audio as soon as the card shows, so the button can say when it is ready.
+  useEffect(() => {
+    if (!piecesKey) return undefined;
+    let cancelled = false;
+    const list = a.audio?.length ? a.audio : [{ url: a.audio_url, start_ms: a.start_ms, end_ms: a.end_ms }];
+    setAudioState('loading');
+    Promise.all(list.map(p => apiClient.fetchBlobUrl(p.url)))
+      .then(urls => {
+        if (urls.some(u => !u)) throw new Error('missing audio');
+        if (cancelled) { urls.forEach(u => URL.revokeObjectURL(u)); return; }
+        audioRef.current.urls.forEach(u => URL.revokeObjectURL(u));
+        audioRef.current = { urls, durations: list.map(p => Math.max(0, (p.end_ms ?? 0) - (p.start_ms ?? 0))), index: 0 };
+        setAudioState('ready');
+      })
+      .catch(err => {
+        if (cancelled) return;
+        console.warn('Answer audio not available:', err);
+        setAudioState('error');
+      });
+    return () => { cancelled = true; };
+  }, [piecesKey]);
   const totalMs = a.duration_ms ?? pieces.reduce((sum, p) => sum + Math.max(0, p.end_ms - p.start_ms), 0);
   const duration = formatDuration(totalMs);
   const teller = circleData?.members?.find(m => m.id === a.teller?.id) || a.teller;
@@ -75,29 +101,27 @@ export default function AnswerCard({ item, showQuestion = true, tourMark = false
     return player.play();
   };
 
-  const togglePlay = async () => {
-    const player = getPlayer();
-    if (audioRef.current.urls.length) {
-      if (!player.paused) {
-        player.pause();
-        setPlaying(false);
-      } else if (player.ended || posMs === 0) {
-        playPiece(0).then(() => setPlaying(true)).catch(err => console.warn(err));
-      } else {
-        player.play().then(() => setPlaying(true)).catch(err => console.warn(err));
-      }
-      return;
+  const startPlaying = () => playPiece(0).then(() => setPlaying(true)).catch(err => console.warn(err));
+
+  // Pressed while loading: play as soon as the audio is in.
+  useEffect(() => {
+    if (audioState === 'ready' && playWhenReady.current) {
+      playWhenReady.current = false;
+      startPlaying();
     }
-    try {
-      const urls = await Promise.all(pieces.map(p => apiClient.fetchBlobUrl(p.url)));
-      if (urls.length === 0 || urls.some(u => !u)) throw new Error('missing audio');
-      audioRef.current = { urls, durations: pieces.map(p => Math.max(0, (p.end_ms ?? 0) - (p.start_ms ?? 0))), index: 0 };
-      await playPiece(0);
-      setPlaying(true);
-    } catch (err) {
-      console.warn('Answer audio not available:', err);
+  }, [audioState]);
+
+  const togglePlay = () => {
+    if (audioState === 'loading') { playWhenReady.current = true; return; }
+    if (audioState === 'error') { showToast('This recording is not available.', 'error'); return; }
+    const player = getPlayer();
+    if (!player.paused) {
+      player.pause();
       setPlaying(false);
-      showToast('This recording is not available.', 'error');
+    } else if (player.ended || posMs === 0) {
+      startPlaying();
+    } else {
+      player.play().then(() => setPlaying(true)).catch(err => console.warn(err));
     }
   };
 
@@ -122,7 +146,7 @@ export default function AnswerCard({ item, showQuestion = true, tourMark = false
   );
 
   return (
-    <article className="answer-card" data-testid="answer-card">
+    <article id={id} className="answer-card" data-testid="answer-card">
       <div className="answer-hero">
         <BlobPhoto
           photoUrl={a.photo_url}
@@ -148,11 +172,15 @@ export default function AnswerCard({ item, showQuestion = true, tourMark = false
               type="button"
               className="answer-play"
               onClick={togglePlay}
-              aria-label={playing ? 'Pause the answer' : 'Listen to the answer'}
+              aria-label={audioState === 'loading' ? 'Loading the answer' : playing ? 'Pause the answer' : 'Listen to the answer'}
+              aria-busy={audioState === 'loading'}
+              data-state={audioState}
               data-pieces={pieces.length}
               data-tour={tourMark ? 'answer-card' : undefined}
             >
-              {playing ? <Pause size={18} /> : <Play size={18} style={{ marginLeft: 2 }} />}
+              {audioState === 'loading'
+                ? <Loader2 size={18} className="answer-play-spinner" />
+                : playing ? <Pause size={18} /> : <Play size={18} style={{ marginLeft: 2 }} />}
             </button>
             <div className="answer-progress" aria-hidden="true">
               <span style={{ width: totalMs ? `${Math.min(100, (posMs / totalMs) * 100)}%` : 0 }} />
@@ -169,27 +197,27 @@ export default function AnswerCard({ item, showQuestion = true, tourMark = false
 
         <p className="answer-call">Maybe give her a call.</p>
 
-        {story && (
-          <div className="answer-reactions" role="group" aria-label="React to this story" data-tour={tourMark ? 'answer-card' : undefined}>
-            {REACTIONS.map(r => {
-              const mine = story.reactions?.mine?.includes(r.key);
-              const present = story.reactions?.present?.includes(r.key);
-              return (
-                <button
-                  key={r.key}
-                  type="button"
-                  className={`answer-reaction ${mine ? 'mine' : ''} ${present && !mine ? 'present' : ''}`}
-                  onClick={() => toggleReaction(r.key)}
-                  aria-pressed={Boolean(mine)}
-                  title={mine ? 'Remove my reaction' : `React: ${r.label}`}
-                >
-                  <span aria-hidden="true">{r.emoji}</span>
-                  <span className="sr-only">{r.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
+        {/* Shown at once (the tour points at them); usable once the story page has loaded. */}
+        <div className="answer-reactions" role="group" aria-label="React to this story" data-tour={tourMark ? 'answer-card' : undefined}>
+          {REACTIONS.map(r => {
+            const mine = story?.reactions?.mine?.includes(r.key);
+            const present = story?.reactions?.present?.includes(r.key);
+            return (
+              <button
+                key={r.key}
+                type="button"
+                className={`answer-reaction ${mine ? 'mine' : ''} ${present && !mine ? 'present' : ''}`}
+                onClick={() => toggleReaction(r.key)}
+                disabled={!story}
+                aria-pressed={Boolean(mine)}
+                title={mine ? 'Remove my reaction' : `React: ${r.label}`}
+              >
+                <span aria-hidden="true">{r.emoji}</span>
+                <span className="sr-only">{r.label}</span>
+              </button>
+            );
+          })}
+        </div>
 
         {story && (
           <button type="button" className="editorial-btn quiet answer-open" onClick={() => openStory(a.story_id)}>
