@@ -39,8 +39,10 @@ companion ever asks it, Evoca recognises the answer and sends it to the person w
 - **Setup wizard and personal links.** A setup wizard creates the family around one elder. Each person joins with
   their own invite link: no password, no app.
 - **Members and admins.** Admins add and remove members, make links, and set the elder's chat time.
-- **Sensitive topics.** Admins list subjects the companion must never raise. A question that touches one is held
-  back, but still looks accepted to the person who asked it.
+- **Sensitive topics.** Admins list subjects the companion must never raise. A question that touches one of these
+  family topics is not sent, and the asker is told so. Only a topic Grandma refused herself is different: a
+  question about it is held back but looks accepted to the asker, and that topic is never shown to anyone in
+  the panel, not even admins.
 - **My questions.** Each question shows its journey: asked, waiting for her morning chat, answered. When the answer
   is published, the asker gets a notification that opens it.
 - **Life chapters for everyone.** Every family member has life chapters, not only the elder. A memory Elif records
