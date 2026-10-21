@@ -13,6 +13,7 @@ docs/video/captions.txt. Writes data/video/ (not committed):
 
 What the edit does, and nothing more:
 - Cuts each step out of its page recording at the times the recorder logged.
+  B9's form filling plays at 3x after each wizard screen's first 1.5 s.
   A step recorded in two parts (B9) is joined; a part listed in CUTS (B3's second exchange) is
   left out, never inside a voice.
 - Waits (the companion thinking, the archivist, the clock moving, a page loading) play at 4x, and a
@@ -75,6 +76,12 @@ BACKGROUND = "0x141110"
 # Parts of a step left out of the edit, between two of its markers (recorded, but not shown).
 # A cut never falls inside a voice: the edit stops if one would.
 CUTS = {"B3": [("exchange_2", "exchange_2_end")]}   # sample answer 2 and the companion's reply
+
+# Form filling played faster (B9's wizard): between each pair of markers, the first FORM_HOLD_S
+# play as recorded (the new screen is readable), the rest (typing, mouse moves) at FORM_SPEED.
+FORM_FILLING = {"B9": [("wizard_1", "wizard_2"), ("wizard_2", "wizard_3"), ("wizard_3", "link")]}
+FORM_SPEED = 3.0
+FORM_HOLD_S = 1.5
 
 # The frames for the report: (file name, step, marker or None for the middle, seconds after it).
 REPORT_FRAMES = [("B0", "B0", None, 0.0), ("B1", "B1", None, 0.0), ("B2", "B2", "light", 1.5),
@@ -141,6 +148,10 @@ def plan_step(step: dict[str, Any], waits: list[dict[str, Any]], audio: list[dic
         for a, b in subtract((max(w["start"], s0), min(w["end"], s1)), voices):
             if b - a >= WAIT_RULES.get(w["kind"], (1.0, 1.0))[0]:
                 fast.append((a, b, w["kind"]))
+    markers = {**wizard_markers(step, waits), **step["markers"]}
+    for a, b in FORM_FILLING.get(step["id"], []):
+        if a in markers and b in markers and markers[b] - markers[a] > FORM_HOLD_S:
+            fast.append((markers[a] + FORM_HOLD_S, markers[b], "form"))
     fast.sort()
     # Merge overlapping waits (a loading inside a clock move).
     merged: list[list[Any]] = []
@@ -155,6 +166,10 @@ def plan_step(step: dict[str, Any], waits: list[dict[str, Any]], audio: list[dic
     for a, b, kind in merged:
         if a > t:
             segments.append(Segment(t, a, 1.0))
+        if kind == "form":
+            segments.append(Segment(a, b, FORM_SPEED))
+            t = b
+            continue
         cap = WAIT_RULES.get(kind, (1.0, 1.0))[1]
         if (b - a) / SPEED <= cap:
             segments.append(Segment(a, b, SPEED))
@@ -175,6 +190,28 @@ def plan_step(step: dict[str, Any], waits: list[dict[str, Any]], audio: list[dic
         seg.out = out
         out += (seg.end - seg.start) / seg.speed
     return segments
+
+
+def wizard_markers(step: dict[str, Any], waits: list[dict[str, Any]]) -> dict[str, float]:
+    """When each wizard screen appeared, for a B9 recorded before the recorder logged it. Every
+    click is preceded by a short logged pause; a field's click is followed at once by a second
+    pause (before typing), a button's is not. The buttons, in order: Create your family, Next,
+    Next. A screen appears as its button is released (about 0.1 s after the pause)."""
+    if step["id"] != "B9" or "link" not in step["markers"] or "wizard_1" in step["markers"]:
+        return {}
+    pauses = sorted((w["start"], w["end"]) for w in waits if w["place"] == step["place"] and w["kind"] == "idle"
+                    and step["start"] <= w["start"] < step["markers"]["link"] and w["end"] - w["start"] < 0.2)
+    buttons, i = [], 0
+    while i < len(pauses):
+        end = pauses[i][1]
+        if i + 1 < len(pauses) and pauses[i + 1][0] - end < 0.2:
+            i += 2                    # a field: its click's pause, then the one before typing
+        else:
+            buttons.append(end)
+            i += 1
+    if len(buttons) < 3:
+        return {}
+    return {f"wizard_{k + 1}": end + 0.1 for k, end in enumerate(buttons[:3])}
 
 
 def to_output(segments: list[Segment], wall: float) -> float | None:

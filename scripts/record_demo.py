@@ -748,8 +748,10 @@ class Demo:
         rec.click(page.get_by_role("button", name="Create your family").first)
         field = lambda name: page.locator(f'[id="cf-{name}"]')
         submit = page.locator('[role="dialog"] button[type="submit"]')
-        for names in (["circle_name"], ["center.name", "center.birth_year"],
-                      ["creator.name", "creator.birth_year", "creator.relation_to_center"]):
+        for n, names in enumerate((["circle_name"], ["center.name", "center.birth_year"],
+                                   ["creator.name", "creator.birth_year", "creator.relation_to_center"])):
+            field(names[0]).wait_for(timeout=10_000)
+            rec.mark(f"wizard_{n + 1}")          # this wizard screen is on screen
             for name in names:
                 rec.type_into(field(name), NEW_FAMILY[name])
             rec.click(submit, before=0.25)
