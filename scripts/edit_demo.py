@@ -1,7 +1,8 @@
 """
 Edit the recording of scripts/record_demo.py into the product part of the demo video.
 
-    python scripts/edit_demo.py            # after record_demo.py; re-run after editing the captions
+    python scripts/edit_demo.py                # after record_demo.py; re-run after editing the captions
+    python scripts/edit_demo.py --layout full  # the same cut full frame, captions as an .srt instead
 
 Needs: pip install imageio-ffmpeg (ffmpeg comes with it; no system install) and Pillow.
 
@@ -10,6 +11,9 @@ docs/video/captions.txt. Writes data/video/ (not committed):
   B1.mp4 ... B8.mp4     each step without captions, with its audio, for re-editing (Clipchamp)
   product_part.mp4      the steps joined, captions burned in (H.264, 1920x1080, 30 fps, AAC)
   report/               one frame per main step, and edit.json with each step's length
+With --layout full instead of the two above:
+  product_part_full.mp4 the same cut and audio, full frame, no caption band, no captions
+  product_part_full.srt the captions, timed to it (for Clipchamp)
 
 What the edit does, and nothing more:
 - Cuts each step out of its page recording at the times the recorder logged.
@@ -21,12 +25,14 @@ What the edit does, and nothing more:
   sped up or cut, with a margin around it.
 - Rebuilds the audio from the logged timeline: every audio file the app played, placed where it
   started, at its real speed, with short fades. Nothing is replaced or added.
-- Layout: the recording at 88% on a dark background; captions (one font, white, at most two lines)
-  in their own band below it, never over the app.
+- Layout (captioned, the default): the recording at 88% on a dark background; captions (one font,
+  white, at most two lines) in their own band below it, never over the app. Full: the recording as
+  it is, and the captions in an .srt file.
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import re
 import subprocess
@@ -330,7 +336,18 @@ def read_captions() -> list[tuple[str, str, str]]:
 
 # ---------------------------------------------------------------------------------------------
 
+def srt_time(seconds: float) -> str:
+    ms = int(round(seconds * 1000))
+    return f"{ms // 3600000:02d}:{ms // 60000 % 60:02d}:{ms // 1000 % 60:02d},{ms % 1000:03d}"
+
+
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Edit the recorded demo into the product part.")
+    parser.add_argument("--layout", choices=["captioned", "full"], default="captioned",
+                        help="captioned: 88%% with a caption band (product_part.mp4); "
+                             "full: full frame, captions as .srt (product_part_full.mp4)")
+    args = parser.parse_args()
+    full = args.layout == "full"
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     except AttributeError:
@@ -407,13 +424,18 @@ def main() -> int:
         for f in files:
             inputs += ["-i", str(f)]
         n = len(files)
-        parts = ["".join(f"[{i}:v][{i}:a]" for i in range(n)) + f"concat=n={n}:v=1:a=1[cv][ca]",
-                 f"[cv]scale={APP_W}:{APP_H}:flags=lanczos,pad={W}:{H}:{APP_X}:{APP_TOP}:color={BACKGROUND}[app]"]
-        last = "app"
+        parts = ["".join(f"[{i}:v][{i}:a]" for i in range(n)) + f"concat=n={n}:v=1:a=1[cv][ca]"]
+        last = "cv"
+        if not full:
+            parts.append(f"[cv]scale={APP_W}:{APP_H}:flags=lanczos,pad={W}:{H}:{APP_X}:{APP_TOP}:color={BACKGROUND}[app]")
+            last = "app"
         timed = []
         for i, (sid, start, text) in enumerate(caps):
             same_step_next = [c[1] for c in caps[i + 1:] if c[0] == sid]
             end = same_step_next[0] if same_step_next else starts[sid] + report["steps"][sid]["seconds"]
+            timed.append({"step": sid, "from": round(start, 2), "to": round(end, 2), "text": text})
+            if full:
+                continue
             png = Path(tmp) / f"cap{i}.png"
             caption_png(text, font, png)
             k = n + i
@@ -423,18 +445,27 @@ def main() -> int:
                          f"fade=t=out:st={max(0.0, dur - 0.25):.3f}:d=0.25:alpha=1,setpts=PTS-STARTPTS+{start:.3f}/TB[c{i}]")
             parts.append(f"[{last}][c{i}]overlay=0:{BAND_Y}:eof_action=pass:repeatlast=0[o{i}]")
             last = f"o{i}"
-            timed.append({"step": sid, "from": round(start, 2), "to": round(end, 2), "text": text})
         total = offset
         parts.append(f"[{last}]fade=t=in:d={END_FADE_S},fade=t=out:st={total - END_FADE_S:.3f}:d={END_FADE_S},format=yuv420p[vout]")
         parts.append(f"[ca]afade=t=in:d={END_FADE_S},afade=t=out:st={total - END_FADE_S:.3f}:d={END_FADE_S}[aout]")
         script = Path(tmp) / "filter.txt"
         script.write_text(";\n".join(parts), encoding="utf-8")
-        product = OUT / "product_part.mp4"
+        product = OUT / ("product_part_full.mp4" if full else "product_part.mp4")
         ffmpeg([*inputs, "-filter_complex_script", str(script), "-map", "[vout]", "-map", "[aout]",
                 "-c:v", "libx264", "-preset", "medium", "-crf", "17", "-r", str(FPS),
                 "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-movflags", "+faststart", str(product)])
+    total_s = round(duration_of(product), 2)
+    if full:
+        # The captions as SubRip, wrapped as on screen (at most two lines).
+        caption_font = ImageFont.truetype(font, FONT_SIZE)
+        srt = OUT / "product_part_full.srt"
+        srt.write_text("".join(f"{i}\n{srt_time(c['from'])} --> {srt_time(c['to'])}\n{chr(10).join(wrap(c['text'], caption_font))}\n\n"
+                               for i, c in enumerate(timed, 1)), encoding="utf-8")
+        m, s = divmod(total_s, 60)
+        print(f"\nproduct_part_full.mp4: {int(m)}:{s:05.2f}  ({product})\n{srt.name}: {len(timed)} captions")
+        return 0
     report["captions"] = timed
-    report["total_s"] = round(duration_of(product), 2)
+    report["total_s"] = total_s
 
     frames = []
     for name, sid, marker, after in REPORT_FRAMES:
