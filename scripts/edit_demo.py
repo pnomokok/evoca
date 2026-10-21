@@ -18,7 +18,8 @@ What the edit does, and nothing more:
   sped up or cut, with a margin around it.
 - Rebuilds the audio from the logged timeline: every audio file the app played, placed where it
   started, at its real speed, with short fades. Nothing is replaced or added.
-- Captions: one font, white on a soft dark band at the bottom, at most two lines.
+- Layout: the recording at 88% on a dark background; captions (one font, white, at most two lines)
+  in their own band below it, never over the app.
 """
 
 from __future__ import annotations
@@ -57,10 +58,17 @@ FONT_CANDIDATES = [
     "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
 ]
-FONT_SIZE = 38
-LINE_GAP = 4
-TEXT_MAX_W = 1560
-BAND_H = 150                # the soft band: transparent at the top, darkest at the bottom
+FONT_SIZE = 36
+LINE_GAP = 2
+TEXT_MAX_W = 1680
+# The final video: the recording scaled to 88% on a dark background, with the captions in their
+# own band below it, so a caption never covers the app. The step clips stay full frame.
+APP_SCALE = 0.88
+APP_W, APP_H = int(W * APP_SCALE) // 2 * 2, int(H * APP_SCALE) // 2 * 2
+APP_X, APP_TOP = (W - APP_W) // 2, 14
+BAND_Y = APP_TOP + APP_H                # the caption band: from below the app to the bottom
+BAND_H = H - BAND_Y
+BACKGROUND = "0x141110"
 
 # The frames for the report: (step, marker or None for the middle, seconds after it).
 REPORT_FRAMES = [("B1", None, 0.0), ("B2", "light", 1.5), ("B3", "trace", 2.0),
@@ -237,16 +245,11 @@ def wrap(text: str, font: ImageFont.FreeTypeFont) -> list[str]:
 def caption_png(text: str, font_path: str, target: Path) -> None:
     font = ImageFont.truetype(font_path, FONT_SIZE)
     lines = wrap(text, font)
-    img = Image.new("RGBA", (W, BAND_H), (12, 10, 9, 0))
-    band = Image.new("L", (1, BAND_H))
-    for y in range(BAND_H):
-        k = y / (BAND_H - 1)
-        band.putpixel((0, y), int(170 * min(1.0, k * 2.2) ** 1.2))    # soft top edge, darkest below
-    img.putalpha(band.resize((W, BAND_H)))
+    img = Image.new("RGBA", (W, BAND_H), (0, 0, 0, 0))     # the band itself is the dark background
     draw = ImageDraw.Draw(img)
     line_h = int(FONT_SIZE * 1.22)
     total = len(lines) * line_h + (len(lines) - 1) * LINE_GAP
-    y = BAND_H - 30 - total
+    y = (BAND_H - total) / 2 - 2
     for line in lines:
         x = (W - font.getlength(line)) / 2
         draw.text((x, y), line, font=font, fill=(255, 255, 255, 255))
@@ -323,8 +326,9 @@ def main() -> int:
         for f in files:
             inputs += ["-i", str(f)]
         n = len(files)
-        parts = ["".join(f"[{i}:v][{i}:a]" for i in range(n)) + f"concat=n={n}:v=1:a=1[cv][ca]"]
-        last = "cv"
+        parts = ["".join(f"[{i}:v][{i}:a]" for i in range(n)) + f"concat=n={n}:v=1:a=1[cv][ca]",
+                 f"[cv]scale={APP_W}:{APP_H}:flags=lanczos,pad={W}:{H}:{APP_X}:{APP_TOP}:color={BACKGROUND}[app]"]
+        last = "app"
         timed = []
         for i, (sid, start, text) in enumerate(caps):
             same_step_next = [c[1] for c in caps[i + 1:] if c[0] == sid]
@@ -336,7 +340,7 @@ def main() -> int:
             inputs += ["-loop", "1", "-framerate", str(FPS), "-t", f"{dur:.3f}", "-i", str(png)]
             parts.append(f"[{k}:v]format=rgba,fade=t=in:st=0:d=0.25:alpha=1,"
                          f"fade=t=out:st={max(0.0, dur - 0.25):.3f}:d=0.25:alpha=1,setpts=PTS-STARTPTS+{start:.3f}/TB[c{i}]")
-            parts.append(f"[{last}][c{i}]overlay=0:{H - BAND_H}:eof_action=pass:repeatlast=0[o{i}]")
+            parts.append(f"[{last}][c{i}]overlay=0:{BAND_Y}:eof_action=pass:repeatlast=0[o{i}]")
             last = f"o{i}"
             timed.append({"step": sid, "from": round(start, 2), "to": round(end, 2), "text": text})
         total = offset

@@ -14,7 +14,7 @@ B1: Elif asks Grandma a question from her phone.
 B2: At chat time, Grandma's device lights up. No app, no typing.
 B3: A real conversation, with real follow-up questions.
 B3@trace: Behind it: Evoca's own MCP server. Every tool call, live.
-B4: Families have secrets. A topic on this list never reaches Grandma, and never reaches a model.
+B4: Families have secrets. A topic on this list is never brought up with Grandma: the companion is told to steer clear of it, and a question about it is not sent.
 B5: After the chat, a second agent writes the story and finds the part that answers Elif.
 B6: Elif hears the answer, in Grandma's own voice. Just the part that answers her.
 B7: She reacts, and adds an old photo.
