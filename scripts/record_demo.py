@@ -16,17 +16,21 @@ closed; the stage's "Use a sample answer" button belongs to the tour's answer st
 sends the device pane the tour's own "answer step" message (utils/stageChannel.js) to show it.
 
 The loop, step by step (each step is cut into its own clip by edit_demo.py):
+  B0 The landing page: "Try the demo", the demo dialog, "Watch the loop".
   B1 Elif sends the suggested question on her phone.
   B2 Next morning: the device lights up with "Elif has a question for you".
-  B3 Talk: the opening, sample answer 1, the follow-up, sample answer 2; the MCP tools panel.
+  B3 Talk: the opening, sample answer 1 (the MCP tools panel meanwhile), the follow-up, sample
+     answer 2 and its reply (recorded for the story; the edit cuts that exchange).
   B4 In the archive: Ayse's Family settings with the topic, then Can asks about it.
   B5 Back on the stage: the goodbye sample; "Evoca is writing up the story...".
   B6 +1 day: the answer banner on Elif's phone, open the answer, play it.
-  B7 Elif reacts with laugh, then adds a photo to that story.
+  B7 Elif reacts with laugh, then adds a photo with its caption to that story.
   B8 Next morning, Talk: the device tells Fatma that Elif laughed.
+  B9 Exit demo; then, in a fresh browser context, "Create your family": the wizard, the personal
+     link, the new family's journal with Getting started.
 
 Output (data/ is not committed): data/video/raw/
-  stage.webm, archive.webm   the page recordings (one per browser page)
+  stage.webm, archive.webm, family.webm   the page recordings (one per browser page)
   audio/                     every audio file the app played, as the browser received it
   timeline.json              steps, waits, markers, every audio (start, stop, file) and checks
   timeline.txt               the same, readable
@@ -56,7 +60,11 @@ WEB = "http://localhost:5173"
 API = "http://127.0.0.1:8080"
 OUT = REPO / "data" / "video" / "raw"
 DEMO_DB = REPO / "data" / "demo.db"
-PHOTO = REPO / "core" / "seed_assets" / "photos" / "spare_radio.jpg"
+PHOTO = REPO / "core" / "seed_assets" / "photos" / "spare_sled.jpg"
+PHOTO_CAPTION = "Fatma and her best friend on the sled, around 1956"
+# B9's new family (the wizard's third step, "You", is the person who creates it).
+NEW_FAMILY = {"circle_name": "The Demir Family", "center.name": "Nermin Demir", "center.birth_year": "1946",
+              "creator.name": "Selin Demir", "creator.birth_year": "1975", "creator.relation_to_center": "daughter"}
 SAMPLES = REPO / "web" / "public" / "demo-audio"
 SIZE = {"width": 1920, "height": 1080}
 
@@ -186,6 +194,8 @@ class Recorder:
         self.audio_files: dict[str, str] = {}
         self.responses: list[dict[str, Any]] = []
         self.pages: dict[str, dict[str, Any]] = {}
+        self.contexts: list[Any] = []
+        self.brisk = False          # a quick hand: shorter moves, pauses and typing (B9's form)
         self.page: Page | None = None
         self.place = ""
         self.step: dict[str, Any] | None = None
@@ -252,6 +262,17 @@ class Recorder:
 
     # -- pages ---------------------------------------------------------------------------------
 
+    def new_context(self, browser: Any) -> Any:
+        """A browser context that records video, with the cursor and the audio log; the guided
+        tour stays closed (the captions explain instead)."""
+        ctx = browser.new_context(viewport=SIZE, device_scale_factor=1, screen=SIZE, timezone_id="Europe/Istanbul",
+                                  record_video_dir=str(OUT / "video_tmp"), record_video_size=SIZE)
+        ctx.add_init_script(INIT_SCRIPT)
+        ctx.add_init_script("try { localStorage.setItem('evoca_tour_seen', '1'); } catch (e) {}")
+        ctx.expose_binding("__evocaLog", self.on_log)
+        self.contexts.append(ctx)
+        return ctx
+
     def open_page(self, ctx: Any, place: str, url: str, ready: Callable[[Page], None],
                   storage: dict[str, str] | None = None) -> Page:
         page = ctx.new_page()
@@ -305,15 +326,21 @@ class Recorder:
     def move_to(self, x: float, y: float, seconds: float | None = None) -> None:
         x0, y0 = self.cursor
         distance = ((x - x0) ** 2 + (y - y0) ** 2) ** 0.5
-        seconds = seconds if seconds is not None else min(0.7, 0.25 + distance / 2400)
-        steps = max(8, int(seconds * 40))
+        if seconds is None:
+            seconds = min(0.35, 0.15 + distance / 3000) if self.brisk else min(0.7, 0.25 + distance / 2400)
+        # Paced by the clock: each step costs two round trips to the browser, so a fixed sleep per
+        # step made a move last about three times as long as planned.
+        steps = max(6, int(seconds * 24))
+        start = time.time()
         for i in range(1, steps + 1):
             k = i / steps
             k = k * k * (3 - 2 * k)       # ease in and out
             cx, cy = x0 + (x - x0) * k, y0 + (y - y0) * k
             self.page.mouse.move(cx, cy)
             self.page.evaluate("([x, y]) => window.__recCursor(x, y)", [cx, cy])
-            self.page.wait_for_timeout(int(seconds * 1000 / steps))
+            left = start + seconds * i / steps - time.time()
+            if left > 0.005:
+                self.page.wait_for_timeout(int(left * 1000))
         self.cursor = (x, y)
 
     def point_at(self, target: Locator, dwell: float = 0.0) -> tuple[float, float]:
@@ -336,7 +363,7 @@ class Recorder:
     def click(self, target: Locator, before: float = 0.55) -> None:
         self.point_at(target)
         expect_enabled(target)
-        self.pause(before + self.rng.uniform(0, 0.2))
+        self.pause(0.12 if self.brisk else before + self.rng.uniform(0, 0.2))
         x, y = self.cursor
         self.page.evaluate("([x, y]) => window.__recRing(x, y)", [x, y])
         self.page.mouse.down()
@@ -345,10 +372,8 @@ class Recorder:
 
     def type_into(self, target: Locator, text: str) -> None:
         self.click(target, before=0.35)
-        self.pause(0.3)
-        for ch in text:
-            self.page.keyboard.type(ch)
-            self.page.wait_for_timeout(int(self.rng.uniform(22, 42)))
+        self.pause(0.1 if self.brisk else 0.3)
+        self.page.keyboard.type(text, delay=12 if self.brisk else 32)
 
     def scroll(self, dy: float, over: Locator | None = None) -> None:
         if over is not None:
@@ -449,13 +474,38 @@ class Demo:
         page.frame_locator("iframe.device-frame").locator('[data-tour="talk"]').wait_for(timeout=60_000)
         page.frame_locator("iframe.phone-frame").locator(".first-question-composer, .answer-card, main").first.wait_for(timeout=60_000)
 
+    # B0 ----------------------------------------------------------------------------------------
+    def b0(self) -> None:
+        rec = self.rec
+        rec.begin("B0", "The landing page: Try the demo, then Watch the loop")
+        rec.pause(0.8, keep=True)
+        rec.click(rec.page.get_by_role("button", name="Try the demo").first)
+        rec.page.locator(".demo-entry-option").nth(1).wait_for(timeout=10_000)
+        rec.pause(1.0, keep=True)                  # both options on screen
+        rec.click(rec.page.locator(".demo-entry-option.primary"))
+        # "Watch the loop" always opens the guided tour, which starts the demo over (new ids) and
+        # then shows its first card; it is closed with its own X (the captions explain instead).
+        close = rec.page.get_by_role("button", name="Close the guide")
+        rec.wait_region("loading", lambda: (close.wait_for(timeout=90_000), self.stage_ready(rec.page)))
+        rec.pause(0.3)
+        rec.click(close, before=0.3)
+        rec.until(lambda: close.count() == 0, "the guide to close")
+        self.load_people()
+        rec.pause(0.2, keep=True)
+        rec.end()
+
     # B1 ----------------------------------------------------------------------------------------
     def b1(self) -> None:
         rec = self.rec
         rec.begin("B1", "Elif sends the suggested question on her phone")
         rec.pause(1.2)
         box = rec.phone.locator("#first-question-text")
-        rec.type_into(box, SUGGESTED_QUESTION)
+        # The guide's first card prefills the suggested question (the guide was open in B0);
+        # Elif types it only when the box is empty.
+        if not box.input_value().strip():
+            rec.type_into(box, SUGGESTED_QUESTION)
+        else:
+            rec.point_at(box, dwell=0.8)
         rec.pause(0.6)
         rec.click(rec.phone.locator('.first-question-composer button[type="submit"]'))
         rec.until(lambda: rec.phone.locator(".first-question-composer").count() == 0
@@ -509,14 +559,18 @@ class Demo:
         rec.wait_reply_done("the opening")
         rec.page.evaluate(SAMPLE_STEP_SCRIPT)
         rec.pause(0.8)
-        self.sample(1)
+        self.sample(1, during=self.show_tools)
+        # The second exchange (sample answer 2 and its reply) is recorded, so the story has it, and
+        # edit_demo.py cuts it between these markers, never inside a voice.
+        rec.mark("exchange_2")
         rec.pause(0.5)
-        self.sample(2, during=self.show_tools)
+        self.sample(2)
+        rec.mark("exchange_2_end")
         rec.pause(0.6)
         rec.end()
 
     def show_tools(self) -> None:
-        """The MCP tools panel, while sample answer 2 plays: the newest turn's tool calls, or, when
+        """The MCP tools panel, while sample answer 1 plays: the newest turn's tool calls, or, when
         that turn made none (a plain follow-up), the opening's, under the panel's "Earlier turns"."""
         rec = self.rec
         panel = rec.device.locator('[data-testid="trace-panel"]')
@@ -629,13 +683,16 @@ class Demo:
         rec.click(add)
         rec.pause(0.6)
         rec.phone.locator("#photo-file").set_input_files(str(PHOTO))
-        rec.pause(1.0)
+        rec.pause(0.5)
+        rec.type_into(rec.phone.locator("#photo-caption"), PHOTO_CAPTION)
+        rec.pause(0.5)
         save = rec.phone.get_by_role("button", name="Save the photo")
         rec.click(save)
         rec.wait_region("loading", lambda: rec.until(lambda: save.count() == 0, "the photo to be saved"))
         rec.pause(0.5)
         photo = rec.phone.locator("figure img").first
         rec.until(lambda: photo.count() > 0 and photo.is_visible(), "the photo on the story", timeout=30)
+        rec.mark("photo")
         rec.point_at(photo, dwell=1.5)
         rec.end()
 
@@ -659,6 +716,54 @@ class Demo:
         goodbye = rec.device.locator(".device-controls button", has_text="Goodbye")
         if goodbye.count():
             goodbye.click()    # after the clip: close the session
+        # Off camera: let the archivist finish, so B9 is not recorded on a busy machine.
+        writing = rec.page.locator(".demo-archiving")
+        rec.page.wait_for_timeout(4000)
+        rec.until(lambda: writing.count() == 0, "the archivist", timeout=ARCHIVIST_TIMEOUT_S, every=0.5)
+
+    # B9 ----------------------------------------------------------------------------------------
+    def b9(self, browser: Any) -> None:
+        """Exit demo on the stage, then "Create your family" in a fresh browser context: creating a
+        family signs that browser in to it, so the demo family's context is left as it was. One
+        step in two parts (two recordings); edit_demo.py joins them."""
+        rec = self.rec
+        rec.begin("B9", "Exit demo, then Create your family")
+        rec.pause(0.6)
+        rec.click(rec.page.get_by_role("button", name="Exit demo"))
+        create = rec.page.get_by_role("button", name="Create your family").first
+        rec.wait_region("loading", lambda: create.wait_for(timeout=30_000))
+        rec.pause(0.5, keep=True)
+        rec.end()
+        # The demo family's pages are done: closing them ends their recordings (the files stay)
+        # and frees the machine for the fresh browser.
+        for c in list(rec.contexts):
+            c.close()
+
+        ctx = rec.new_context(browser)
+        page = rec.open_page(ctx, "family", f"{WEB}/",
+                             lambda p: p.get_by_role("button", name="Create your family").first.wait_for(timeout=60_000))
+        rec.begin("B9", "Create your family: wizard, personal link, Getting started")
+        rec.brisk = True
+        rec.pause(0.3)
+        rec.click(page.get_by_role("button", name="Create your family").first)
+        field = lambda name: page.locator(f'[id="cf-{name}"]')
+        submit = page.locator('[role="dialog"] button[type="submit"]')
+        for names in (["circle_name"], ["center.name", "center.birth_year"],
+                      ["creator.name", "creator.birth_year", "creator.relation_to_center"]):
+            for name in names:
+                rec.type_into(field(name), NEW_FAMILY[name])
+            rec.click(submit, before=0.25)
+        ready = page.get_by_role("heading", name="Your family is ready")
+        rec.wait_region("loading", lambda: ready.wait_for(timeout=30_000))
+        rec.mark("link")
+        rec.point_at(page.locator('[role="dialog"] input').first, dwell=1.2)
+        rec.click(page.get_by_role("button", name="Open my family"))
+        started = page.locator('[data-testid="getting-started"]')
+        rec.wait_region("loading", lambda: started.wait_for(timeout=30_000))
+        rec.mark("journal")
+        rec.point_at(started, dwell=1.4)
+        rec.brisk = False
+        rec.end()
 
     # Checks ------------------------------------------------------------------------------------
     def checks(self) -> dict[str, Any]:
@@ -769,7 +874,7 @@ def write_timeline(rec: Recorder, checks: dict[str, Any]) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Record the demo video's product part from a real run.")
     parser.add_argument("--headed", action="store_true", help="show the browser while recording")
-    parser.add_argument("--until", default="B8", help="stop after this step (to try a part of the loop)")
+    parser.add_argument("--until", default="B9", help="stop after this step (to try a part of the loop)")
     args = parser.parse_args()
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -806,16 +911,13 @@ def main() -> int:
                                     args=["--autoplay-policy=no-user-gesture-required", "--hide-scrollbars",
                                           "--mute-audio",
                                           "--disable-features=HardwareMediaKeyHandling,GlobalMediaControls,MediaSessionService"])
-        ctx = browser.new_context(viewport=SIZE, device_scale_factor=1, screen=SIZE,
-                                  record_video_dir=str(video_tmp), record_video_size=SIZE)
-        ctx.add_init_script(INIT_SCRIPT)
-        # The guided tour stays closed: the captions explain instead.
-        ctx.add_init_script("try { localStorage.setItem('evoca_tour_seen', '1'); } catch (e) {}")
-        ctx.expose_binding("__evocaLog", rec.on_log)
+        ctx = rec.new_context(browser)
         try:
-            rec.open_page(ctx, "stage", f"{WEB}/demo/loop", demo.stage_ready)
-            steps = [("B1", demo.b1), ("B2", demo.b2), ("B3", demo.b3), ("B4", lambda: demo.b4(ctx)),
-                     ("B5", demo.b5), ("B6", demo.b6), ("B7", demo.b7), ("B8", demo.b8)]
+            rec.open_page(ctx, "stage", f"{WEB}/",
+                          lambda p: p.get_by_role("button", name="Try the demo").first.wait_for(timeout=60_000))
+            steps = [("B0", demo.b0), ("B1", demo.b1), ("B2", demo.b2), ("B3", demo.b3), ("B4", lambda: demo.b4(ctx)),
+                     ("B5", demo.b5), ("B6", demo.b6), ("B7", demo.b7), ("B8", demo.b8),
+                     ("B9", lambda: demo.b9(browser))]
             for step_id, run in steps:
                 run()
                 if step_id == args.until:
@@ -833,7 +935,8 @@ def main() -> int:
                 rec.end()
         finally:
             videos = {place: info["page"].video for place, info in rec.pages.items()}
-            ctx.close()
+            for c in rec.contexts:
+                c.close()
             browser.close()
         for place, video in videos.items():
             # The context is closed, so each recording is complete on disk.

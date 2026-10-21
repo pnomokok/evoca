@@ -4,12 +4,14 @@
 #   <step>  B1 ... B8
 #   <when>  where the caption starts; leave it out for the start of the step. Either a marker the
 #           recording logged in that step, or seconds into the step as edited (for example @4.5).
-#           Markers: B2 light · B3 opening, sample_1, reply_1, sample_2, trace, reply_2 ·
-#           B4 can, answered · B5 sample_3, reply_3, writing · B6 banner, play · B8 light, opening
+#           Markers: B2 light · B3 opening, sample_1, trace, reply_1 · B4 can, answered ·
+#           B5 sample_3, reply_3, writing · B6 banner, play · B7 photo · B8 light, opening ·
+#           B9 link, journal
 # A caption shows until the next caption of the same step, or the end of the step.
 # At most two lines on screen; long text wraps by itself. Lines starting with # are ignored.
 # Edit, then re-run: python scripts/edit_demo.py
 
+B0: One click from the home page into a family's day.
 B1: Elif asks Grandma a question from her phone.
 B2: At chat time, Grandma's device lights up. No app, no typing.
 B3: A real conversation, with real follow-up questions.
@@ -19,3 +21,4 @@ B5: After the chat, a second agent writes the story and finds the part that answ
 B6: Elif hears the answer, in Grandma's own voice. Just the part that answers her.
 B7: She reacts, and adds an old photo.
 B8: The next morning, Grandma hears it too. The loop keeps going.
+B9: Any family can start: set it up, and send each person their own link.

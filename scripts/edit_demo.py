@@ -13,6 +13,8 @@ docs/video/captions.txt. Writes data/video/ (not committed):
 
 What the edit does, and nothing more:
 - Cuts each step out of its page recording at the times the recorder logged.
+  A step recorded in two parts (B9) is joined; a part listed in CUTS (B3's second exchange) is
+  left out, never inside a voice.
 - Waits (the companion thinking, the archivist, the clock moving, a page loading) play at 4x, and a
   long one keeps only its start and end (the middle is cut). A moment when any audio plays is never
   sped up or cut, with a margin around it.
@@ -70,9 +72,15 @@ BAND_Y = APP_TOP + APP_H                # the caption band: from below the app t
 BAND_H = H - BAND_Y
 BACKGROUND = "0x141110"
 
-# The frames for the report: (step, marker or None for the middle, seconds after it).
-REPORT_FRAMES = [("B1", None, 0.0), ("B2", "light", 1.5), ("B3", "trace", 2.0),
-                 ("B4", "answered", 1.5), ("B6", "play", 3.0), ("B8", "opening", 3.0)]
+# Parts of a step left out of the edit, between two of its markers (recorded, but not shown).
+# A cut never falls inside a voice: the edit stops if one would.
+CUTS = {"B3": [("exchange_2", "exchange_2_end")]}   # sample answer 2 and the companion's reply
+
+# The frames for the report: (file name, step, marker or None for the middle, seconds after it).
+REPORT_FRAMES = [("B0", "B0", None, 0.0), ("B1", "B1", None, 0.0), ("B2", "B2", "light", 1.5),
+                 ("B3", "B3", "trace", 2.0), ("B4", "B4", "answered", 1.5), ("B6", "B6", "play", 3.0),
+                 ("B7", "B7", "photo", 1.0), ("B8", "B8", "opening", 3.0),
+                 ("B9_link", "B9", "link", 1.0), ("B9", "B9", "journal", 1.2)]
 
 
 def ffmpeg(args: list[str]) -> None:
@@ -118,6 +126,13 @@ def subtract(span: tuple[float, float], holes: list[tuple[float, float]]) -> lis
 
 def plan_step(step: dict[str, Any], waits: list[dict[str, Any]], audio: list[dict[str, Any]]) -> list[Segment]:
     s0, s1 = step["start"], step["end"]
+    cuts = [(step["markers"][a], step["markers"][b]) for a, b in CUTS.get(step["id"], [])
+            if a in step["markers"] and b in step["markers"]]
+    for c0, c1 in cuts:
+        for a in audio:
+            a1 = a["end"] or s1
+            if a["start"] < c1 and a1 > c0 and not (c0 <= a["start"] and a1 <= c1):
+                raise SystemExit(f"{step['id']}: the cut {c0 - s0:.1f}-{c1 - s0:.1f} s would fall inside a voice ({a['file']})")
     voices = [(a["start"] - AUDIO_MARGIN_S[0], (a["end"] or s1) + AUDIO_MARGIN_S[1]) for a in audio]
     fast: list[tuple[float, float, str]] = []
     for w in waits:
@@ -150,6 +165,11 @@ def plan_step(step: dict[str, Any], waits: list[dict[str, Any]], audio: list[dic
         t = b
     if s1 > t:
         segments.append(Segment(t, s1, 1.0))
+    if cuts:
+        kept = []
+        for seg in segments:
+            kept += [Segment(a, b, seg.speed) for a, b in subtract((seg.start, seg.end), cuts)]
+        segments = kept
     out = 0.0
     for seg in segments:
         seg.out = out
@@ -284,29 +304,54 @@ def main() -> int:
 
     report: dict[str, Any] = {"steps": {}}
     starts: dict[str, float] = {}
-    plans: dict[str, list[Segment]] = {}
+    # Per step, its parts: (the recorded part, its segments, where it starts in the step's clip).
+    # A step is usually one part; B9 has two (the stage, then a fresh browser).
+    plans: dict[str, list[tuple[dict[str, Any], list[Segment], float]]] = {}
     files: list[Path] = []
     offset = 0.0
-    for step in timeline["steps"]:
-        sid = step["id"]
-        clip = timeline["clips"][step["place"]]
-        audio = [a for a in timeline["audio"] if a["step"] == sid and a["place"] == step["place"]]
-        segments = plan_step(step, timeline["waits"], audio)
+    order = list(dict.fromkeys(s["id"] for s in timeline["steps"]))
+    for sid in order:
+        parts = [s for s in timeline["steps"] if s["id"] == sid]
         target = OUT / f"{sid}.mp4"
-        info = render_step(step, clip, segments, audio, target)
-        info["recorded_s"] = round(step["end"] - step["start"], 1)
+        infos, part_files, plans[sid], local = [], [], [], 0.0
+        for k, step in enumerate(parts):
+            clip = timeline["clips"][step["place"]]
+            audio = [a for a in timeline["audio"] if a["step"] == sid and a["place"] == step["place"]
+                     and step["start"] <= a["start"] <= step["end"]]
+            segments = plan_step(step, timeline["waits"], audio)
+            part_file = target if len(parts) == 1 else OUT / f"{sid}_part{k + 1}.mp4"
+            info = render_step(step, clip, segments, audio, part_file)
+            plans[sid].append((step, segments, local))
+            local += info["seconds"]
+            infos.append(info)
+            part_files.append(part_file)
+        if len(parts) > 1:
+            listing = OUT / f"{sid}_parts.txt"
+            listing.write_text("".join(f"file '{f.name}'\n" for f in part_files), encoding="utf-8")
+            ffmpeg(["-f", "concat", "-safe", "0", "-i", str(listing), "-c", "copy", "-movflags", "+faststart", str(target)])
+            for f in [listing, *part_files]:
+                f.unlink()
+        info = {"seconds": round(duration_of(target), 2), "audio": [a for i in infos for a in i["audio"]],
+                "sped_up": [w for i in infos for w in i["sped_up"]],
+                "recorded_s": round(sum(s["end"] - s["start"] for s in parts), 1)}
         report["steps"][sid] = info
-        plans[sid] = segments
         starts[sid] = offset
         offset += info["seconds"]
         files.append(target)
         print(f"{sid}: {info['seconds']:6.2f} s (recorded {info['recorded_s']} s), audio {len(info['audio'])}", flush=True)
 
+    def marker_at(sid: str, name: str) -> float | None:
+        """Where a step's marker lands in that step's clip; None if missing or cut."""
+        for step, segments, local in plans.get(sid, []):
+            if name in step["markers"]:
+                at = to_output(segments, step["markers"][name])
+                return None if at is None else local + at
+        return None
+
     # Captions: each from its marker (or the step's start) to the next caption or the step's end.
-    steps_by_id = {s["id"]: s for s in timeline["steps"]}
     caps = []
     for sid, when, text in read_captions():
-        if sid not in steps_by_id:
+        if sid not in plans:
             print(f"Caption for {sid} skipped: no such step in the recording")
             continue
         if not when:
@@ -314,8 +359,7 @@ def main() -> int:
         elif re.fullmatch(r"\d+(\.\d+)?", when):
             at = float(when)
         else:
-            wall = steps_by_id[sid]["markers"].get(when)
-            local = to_output(plans[sid], wall) if wall else None
+            local = marker_at(sid, when)
             if local is None:
                 raise SystemExit(f"Caption {sid}@{when}: no such marker in the recording")
             at = local
@@ -356,13 +400,12 @@ def main() -> int:
     report["total_s"] = round(duration_of(product), 2)
 
     frames = []
-    for sid, marker, after in REPORT_FRAMES:
+    for name, sid, marker, after in REPORT_FRAMES:
         if sid not in starts:
             continue
-        wall = steps_by_id[sid]["markers"].get(marker) if marker else None
-        local = to_output(plans[sid], wall) if wall else None
+        local = marker_at(sid, marker) if marker else None
         at = starts[sid] + (local + after if local is not None else report["steps"][sid]["seconds"] / 2)
-        target = REPORT / f"frame_{sid}.png"
+        target = REPORT / f"frame_{name}.png"
         ffmpeg(["-ss", f"{at:.2f}", "-i", str(product), "-frames:v", "1", str(target)])
         frames.append({"step": sid, "at": round(at, 2), "file": str(target.relative_to(REPO))})
     report["frames"] = frames

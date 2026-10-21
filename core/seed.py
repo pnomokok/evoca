@@ -93,7 +93,7 @@ SEED_ASSETS = Path(__file__).parent / "seed_assets"
 # Where the backend's audio endpoint reads session audio (server/wav_writer.py).
 AUDIO_DIR = Path("data") / "audio"
 
-# Story photos (story title -> file in seed_assets/photos, caption). spare_radio.jpg
+# Story photos (story title -> file in seed_assets/photos, caption). spare_sled.jpg
 # there is not seeded: it is kept for uploading live in the demo video.
 SEED_PHOTOS_DIR = SEED_ASSETS / "photos"
 SEED_PHOTOS = (
