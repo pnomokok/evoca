@@ -2,7 +2,7 @@
 
 **A voice-first family memory. Grandma just talks; the whole family listens, asks and remembers with her.**
 
-> > Demo video: https://youtu.be/7WM3eeoaroE · The product part is recorded from a real run by scripts/record_demo.py; only waits are shortened.
+> > Demo video: https://youtu.be/IUdmVVsMhZ4 · The product part is recorded from a real run by scripts/record_demo.py; only waits are shortened.
 > Track: Alexa+ (self-hosted MCP server + simulated device) · Mini challenge: AWS Builder · MIT licensed
 
 ![The demo stage: on the left Fatma's living room device with its light on and "Elif has a question for you"; on the right Elif's phone showing her question waiting for Fatma's morning chat.](docs/images/stage.webp)
