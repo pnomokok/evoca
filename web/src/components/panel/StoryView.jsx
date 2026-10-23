@@ -37,6 +37,14 @@ const REACTIONS = [
   { key: 'pray', emoji: '🙏', label: 'Grateful' }
 ];
 
+// Who can see a story, for a viewer who cannot change it (docs/ARCHITECTURE.md, access levels).
+const ACCESS_LABELS = {
+  circle: 'Family circle',
+  private: 'Only the teller',
+  selected: 'Selected people',
+  all_family: 'All my family',
+};
+
 // Lay audio pieces end to end: each piece gets its offset in the continuous getPlayer().
 function buildTimeline(ranges) {
   let offset = 0;
@@ -496,7 +504,7 @@ export default function StoryView() {
           ) : (
             <span className="story-access-tag">
               {story.access?.type === 'private' ? <Lock size={14} /> : <Users size={14} />}
-              <span>{story.access?.type === 'private' ? 'Only the teller' : 'Family circle'}</span>
+              <span>{ACCESS_LABELS[story.access?.type] || 'Family circle'}</span>
             </span>
           )}
 
