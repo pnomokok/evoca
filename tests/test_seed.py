@@ -33,7 +33,7 @@ from PIL import Image
 
 from core.services import photos as photo_svc
 from core.services.stories import NotFound, build_story
-from core.enums import SessionKind, SessionStart
+from core.enums import SessionKind, SessionStart, StoryStatus
 from core.models import (
     Base, Circle, Invitation, Person, Question, Segment, Session as OrmSession, Story, StoryPhoto,
 )
@@ -76,9 +76,9 @@ def _add_recorded_session(Sess) -> str:
 def test_seed_empty_database_and_reseed(seed_db):
     assert seed.main([]) == 0
     assert seed.find_recorded_sessions() == []
-    assert seed.main([]) == 0  # only the seed's own session exists
+    assert seed.main([]) == 0  # only the seed's own sessions exist
     with seed_db() as db:
-        assert db.query(OrmSession).count() == 1
+        assert sorted(s.id for s in db.query(OrmSession).all()) == sorted(seed.SEED_SESSION_IDS)
 
 
 def test_seeded_invitation_reason_is_the_schedulers(seed_db):
@@ -117,7 +117,7 @@ def test_seed_force_wipes_recorded_session(seed_db):
     assert seed.main(["--force"]) == 0
     with seed_db() as db:
         assert db.get(OrmSession, recorded_id) is None
-        assert db.query(OrmSession).count() == 1
+        assert sorted(s.id for s in db.query(OrmSession).all()) == sorted(seed.SEED_SESSION_IDS)
 
 
 def test_legacy_seed_session_is_still_recognised(seed_db):
@@ -149,7 +149,7 @@ async def test_fresh_seed_story_ranges_play(seed_db, tmp_path, monkeypatch):
         elif_ = db.query(Person).filter(Person.name.startswith("Elif")).one()
         segments = {(s.start_ms, s.end_ms): s for s in
                     db.query(Segment).filter(Segment.session_id == sess.id)}
-        stories = db.query(Story).filter(Story.sources != []).all()
+        stories = [st for st in db.query(Story).all() if st.sources and st.sources[0]["session_id"] == sess.id]
         private = next(s for s in segments.values() if s.is_private)
     assert {st.title for st in stories} == {"The Mulberry Tree", "The Tailor's Shop"}
 
@@ -170,6 +170,25 @@ async def test_fresh_seed_story_ranges_play(seed_db, tmp_path, monkeypatch):
         r = await c.get(f"/api/audio/{sess.id}?start={private.start_ms}&end={private.end_ms}",
                         headers={"x-person-id": elif_.id})
         assert r.status_code == 403
+
+
+def test_fathers_workshop_has_its_own_seed_session(seed_db):
+    seed.main([])
+    with seed_db() as db:
+        people = {p.name.split()[0]: p.id for p in db.query(Person).all()}
+        story = db.query(Story).filter(Story.title == "Father's Workshop").one()
+        assert story.status == StoryStatus.pending
+        assert story.access == {"type": "selected", "person_ids": [people["Ayşe"]]}
+        (src,) = story.sources
+        assert src["session_id"] == seed.SEED_SESSION_2_ID
+        sess = db.get(OrmSession, seed.SEED_SESSION_2_ID)
+        assert Path(sess.audio_path).exists()
+        (seg,) = db.query(Segment).filter(Segment.session_id == sess.id).all()
+        assert (seg.start_ms, seg.end_ms) == (src["start_ms"], src["end_ms"])
+        assert seg.speaker_id == people["Fatma"] and not seg.is_private and "sawdust" in seg.transcript
+        # The first session's timings are untouched: the other stories still point at it.
+        others = {s.sources[0]["session_id"] for s in db.query(Story).filter(Story.title != story.title)}
+        assert others == {seed.SEED_SESSION_ID}
 
 
 # ---------------------------------------------------------------------------

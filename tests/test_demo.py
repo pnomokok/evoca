@@ -224,10 +224,32 @@ class _Live:
 
 
 @pytest.mark.anyio
+async def test_fathers_workshop_plays_for_ayse_and_is_hidden_from_elif_and_can(demo, monkeypatch):
+    app, Session, _, _ = demo
+    import server.routers.audio as audio_r
+    monkeypatch.setattr(audio_r, "SessionLocal", Session)
+    with Session() as db:
+        people = {p.name.split()[0]: p.id for p in db.query(Person).all()}
+        story = db.query(Story).filter(Story.title == "Father's Workshop").one()
+    (src,) = story.sources
+    audio = f"/api/audio/{src['session_id']}?start={src['start_ms']}&end={src['end_ms']}"
+    async with _client(app) as c:
+        r = await c.get(f"/api/stories/{story.id}", headers={"x-person-id": people["Ayşe"]})
+        assert r.status_code == 200 and r.json()["audio"]
+        r = await c.get(audio, headers={"x-person-id": people["Ayşe"]})
+        assert r.status_code == 200 and r.headers["content-type"] == "audio/wav"
+        for who in ("Elif", "Can"):
+            r = await c.get(f"/api/stories/{story.id}", headers={"x-person-id": people[who]})
+            assert r.status_code == 404, who
+            r = await c.get(audio, headers={"x-person-id": people[who]})
+            assert r.status_code == 403, who
+
+
+@pytest.mark.anyio
 async def test_reset_restores_the_seed_and_deletes_recorded_files(demo, tmp_path):
     app, Session, store, _ = demo
-    seed_audio = Path("data") / "audio" / f"{seed.SEED_SESSION_ID}.wav"
-    assert seed_audio.exists()
+    seed_audio = [Path("data") / "audio" / f"{sid}.wav" for sid in seed.SEED_SESSION_IDS]
+    assert all(f.exists() for f in seed_audio)
 
     # A recorded session with audio, a TTS reply and a photo on a seed story.
     with Session() as db:
@@ -269,9 +291,9 @@ async def test_reset_restores_the_seed_and_deletes_recorded_files(demo, tmp_path
 
     assert len(store) == 0 and live.closed
     assert not any(f.exists() for f in files)
-    assert seed_audio.exists() and outside.exists() and outside_db.exists()
+    assert all(f.exists() for f in seed_audio) and outside.exists() and outside_db.exists()
     with Session() as db:
-        assert [s.id for s in db.query(OrmSession).all()] == [seed.SEED_SESSION_ID]
+        assert sorted(s.id for s in db.query(OrmSession).all()) == sorted(seed.SEED_SESSION_IDS)
         # Only the seed's own photos are back, and their files are there.
         photos = db.query(StoryPhoto).all()
         assert sorted(p.caption for p in photos) == sorted(c for *_, c in seed.SEED_PHOTOS)

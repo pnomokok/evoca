@@ -37,6 +37,14 @@ const REACTIONS = [
   { key: 'pray', emoji: '🙏', label: 'Grateful' }
 ];
 
+// Who can see a story, for a viewer who cannot change it (docs/ARCHITECTURE.md, access levels).
+const ACCESS_LABELS = {
+  circle: 'Family circle',
+  private: 'Only the teller',
+  selected: 'Selected people',
+  all_family: 'All my family',
+};
+
 // Lay audio pieces end to end: each piece gets its offset in the continuous getPlayer().
 function buildTimeline(ranges) {
   let offset = 0;
@@ -450,6 +458,10 @@ export default function StoryView() {
   const tellerFirst = story.teller?.name?.split(' ')[0] || '';
   const playlistItems = data.playlist?.items || [];
   const storyMode = mode === 'story';
+  // A story with no audio source (none recorded yet) shows no player and no empty transcript;
+  // "Listen from the start" still uses the player while it plays.
+  const showPlayer = (story.audio || []).length > 0 || !storyMode;
+  const showTranscript = transcript.length > 0;
   // Anyone who sees the story may add a photo; replacing one is for the teller, a subject or an admin.
   const canReplacePhoto = Boolean(currentViewerId) && (
     story.teller?.id === currentViewerId
@@ -496,7 +508,7 @@ export default function StoryView() {
           ) : (
             <span className="story-access-tag">
               {story.access?.type === 'private' ? <Lock size={14} /> : <Users size={14} />}
-              <span>{story.access?.type === 'private' ? 'Only the teller' : 'Family circle'}</span>
+              <span>{ACCESS_LABELS[story.access?.type] || 'Family circle'}</span>
             </span>
           )}
 
@@ -674,6 +686,7 @@ export default function StoryView() {
 
       <div className="story-two-column-showcase">
         <div className="story-listen-column">
+          {showPlayer && (
           <section className="bespoke-audio-station" aria-label="Story audio player">
             <div className="station-top-bar">
               <div className="station-left">
@@ -753,7 +766,9 @@ export default function StoryView() {
               </div>
             </div>
           </section>
+          )}
 
+          {showTranscript && (
           <section className="story-transcript-parchment" aria-label="Transcript">
             <div className="transcript-parchment-header">
               <div className="parchment-title-group">
@@ -768,9 +783,6 @@ export default function StoryView() {
             </div>
 
             <div className="transcript-spoken-content">
-              {transcript.length === 0 && (
-                <p className="fallback-transcript-text">No transcript yet.</p>
-              )}
               {transcript.map((seg) => (
                 <p key={seg.segment_id} className="transcript-piece" style={{ marginBottom: '14px' }}>
                   {showSpeakers && seg.speaker?.name && (
@@ -799,6 +811,7 @@ export default function StoryView() {
               ))}
             </div>
           </section>
+          )}
         </div>
 
         <aside className="story-side-showcase" aria-label="About this story">

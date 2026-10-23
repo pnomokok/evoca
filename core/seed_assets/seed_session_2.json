@@ -1,0 +1,212 @@
+{
+ "voices": {
+  "center": "Kendra",
+  "agent": "Joanna"
+ },
+ "segments": [
+  {
+   "speaker": "center",
+   "is_private": false,
+   "transcript": "My father had a small carpentry workshop behind our house. I used to sit on a stool and watch him plane the wooden boards. The whole place smelled of fresh sawdust. Even now, that smell makes me feel safe.",
+   "start_ms": 300,
+   "end_ms": 14237,
+   "words": [
+    {
+     "w": "My",
+     "start_ms": 306,
+     "end_ms": 489
+    },
+    {
+     "w": "father",
+     "start_ms": 490,
+     "end_ms": 944
+    },
+    {
+     "w": "had",
+     "start_ms": 945,
+     "end_ms": 1116
+    },
+    {
+     "w": "a",
+     "start_ms": 1117,
+     "end_ms": 1166
+    },
+    {
+     "w": "small",
+     "start_ms": 1167,
+     "end_ms": 1538
+    },
+    {
+     "w": "carpentry",
+     "start_ms": 1539,
+     "end_ms": 2143
+    },
+    {
+     "w": "workshop",
+     "start_ms": 2144,
+     "end_ms": 2802
+    },
+    {
+     "w": "behind",
+     "start_ms": 2803,
+     "end_ms": 3318
+    },
+    {
+     "w": "our",
+     "start_ms": 3319,
+     "end_ms": 3483
+    },
+    {
+     "w": "house",
+     "start_ms": 3484,
+     "end_ms": 4403
+    },
+    {
+     "w": "I",
+     "start_ms": 4404,
+     "end_ms": 4533
+    },
+    {
+     "w": "used",
+     "start_ms": 4534,
+     "end_ms": 4913
+    },
+    {
+     "w": "to",
+     "start_ms": 4914,
+     "end_ms": 5022
+    },
+    {
+     "w": "sit",
+     "start_ms": 5023,
+     "end_ms": 5310
+    },
+    {
+     "w": "on",
+     "start_ms": 5311,
+     "end_ms": 5493
+    },
+    {
+     "w": "a",
+     "start_ms": 5494,
+     "end_ms": 5546
+    },
+    {
+     "w": "stool",
+     "start_ms": 5547,
+     "end_ms": 5966
+    },
+    {
+     "w": "and",
+     "start_ms": 5967,
+     "end_ms": 6173
+    },
+    {
+     "w": "watch",
+     "start_ms": 6174,
+     "end_ms": 6508
+    },
+    {
+     "w": "him",
+     "start_ms": 6509,
+     "end_ms": 6676
+    },
+    {
+     "w": "plane",
+     "start_ms": 6677,
+     "end_ms": 7023
+    },
+    {
+     "w": "the",
+     "start_ms": 7024,
+     "end_ms": 7084
+    },
+    {
+     "w": "wooden",
+     "start_ms": 7085,
+     "end_ms": 7489
+    },
+    {
+     "w": "boards",
+     "start_ms": 7490,
+     "end_ms": 8473
+    },
+    {
+     "w": "The",
+     "start_ms": 8474,
+     "end_ms": 8605
+    },
+    {
+     "w": "whole",
+     "start_ms": 8606,
+     "end_ms": 8871
+    },
+    {
+     "w": "place",
+     "start_ms": 8872,
+     "end_ms": 9366
+    },
+    {
+     "w": "smelled",
+     "start_ms": 9367,
+     "end_ms": 9819
+    },
+    {
+     "w": "of",
+     "start_ms": 9820,
+     "end_ms": 9919
+    },
+    {
+     "w": "fresh",
+     "start_ms": 9920,
+     "end_ms": 10270
+    },
+    {
+     "w": "sawdust",
+     "start_ms": 10271,
+     "end_ms": 11377
+    },
+    {
+     "w": "Even",
+     "start_ms": 11378,
+     "end_ms": 11680
+    },
+    {
+     "w": "now",
+     "start_ms": 11681,
+     "end_ms": 12343
+    },
+    {
+     "w": "that",
+     "start_ms": 12344,
+     "end_ms": 12550
+    },
+    {
+     "w": "smell",
+     "start_ms": 12551,
+     "end_ms": 12916
+    },
+    {
+     "w": "makes",
+     "start_ms": 12917,
+     "end_ms": 13249
+    },
+    {
+     "w": "me",
+     "start_ms": 13250,
+     "end_ms": 13385
+    },
+    {
+     "w": "feel",
+     "start_ms": 13386,
+     "end_ms": 13746
+    },
+    {
+     "w": "safe",
+     "start_ms": 13747,
+     "end_ms": 14237
+    }
+   ]
+  }
+ ]
+}
