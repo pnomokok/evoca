@@ -7,7 +7,8 @@ import DemoControls from './DemoControls';
 import PersonPicker from './PersonPicker';
 import Avatar from './Avatar';
 import { useDemoArchiving } from '../utils/useDemoArchiving';
-import { ChevronDown, Compass, LogOut, MonitorSmartphone } from 'lucide-react';
+import { useShowMcpCalls } from '../utils/mcpCalls';
+import { ChevronDown, Code2, Compass, LogOut, MonitorSmartphone } from 'lucide-react';
 
 // The demo layer: one thin strip above the product on every demo page (never on the landing page,
 // never when signed in). The only place to switch person, open the stage, move the clock or leave the demo.
@@ -20,6 +21,7 @@ export default function DemoStrip() {
   const panelRef = useRef(null);
   // Compact strip: the controls (and their "writing up" line) are folded away, so it shows here too.
   const archiving = useDemoArchiving(!wide && !panelOpen);
+  const [showMcpCalls, setShowMcpCalls] = useShowMcpCalls();
   const closePanel = useCallback(() => setPanelOpen(false), []);
   useDismiss(panelOpen, panelRef, closePanel);
 
@@ -53,6 +55,18 @@ export default function DemoStrip() {
       <Compass size={14} />
       <span>Guide</span>
     </button>
+    {onStage && (
+      <button
+        type="button"
+        className={`demo-strip-btn ${showMcpCalls ? 'active' : ''}`}
+        onClick={() => setShowMcpCalls(!showMcpCalls)}
+        aria-pressed={showMcpCalls}
+        title="The MCP tools Evoca calls for each turn, under the device"
+      >
+        <Code2 size={14} />
+        <span>Show MCP calls</span>
+      </button>
+    )}
     <DemoControls inline={onStage || !wide} />
     <button type="button" className="demo-strip-btn quiet" onClick={() => go(LANDING)}>
       <LogOut size={13} />

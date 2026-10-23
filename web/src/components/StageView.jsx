@@ -7,6 +7,7 @@ import { useNewAnswers } from './panel/useNewAnswers';
 import GuidedTour from './GuidedTour';
 import { TOUR_ANSWER_STEP } from '../utils/tour';
 import PersonPicker from './PersonPicker';
+import { useShowMcpCalls } from '../utils/mcpCalls';
 import '../styles/stage.css';
 
 const CLOCK_REFRESH_MS = 30_000;
@@ -31,6 +32,7 @@ export default function StageView() {
   const phoneRef = useRef(null);
   const [clock, setClock] = useState(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [showMcpCalls] = useShowMcpCalls();
 
   useEffect(() => {
     if (!apiClient.tourSeen) startTour();
@@ -79,7 +81,7 @@ export default function StageView() {
   const time = phoneTime(clock?.now, circleData?.circle?.timezone);
 
   return (
-    <div className={`stage-page ${tourRun ? 'tour-open' : ''}`}>
+    <div className={`stage-page ${tourRun ? 'tour-open' : ''} ${showMcpCalls ? '' : 'mcp-hidden'}`}>
       <main className="stage" aria-label="Watch the loop">
         <section className="stage-pane device-pane">
           <p className="stage-label">

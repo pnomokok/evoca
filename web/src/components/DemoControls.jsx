@@ -4,6 +4,7 @@ import { apiClient } from '../api/client';
 import Modal from './Modal';
 import { formatDemoClock, hoursToNextMorning } from '../utils/demoClock';
 import { useDemoArchiving } from '../utils/useDemoArchiving';
+import { listenForChanges } from '../utils/stageChannel';
 import { AlertTriangle, ChevronDown, Clock } from 'lucide-react';
 
 const CLOCK_REFRESH_MS = 60_000;
@@ -12,7 +13,7 @@ const CLOCK_REFRESH_MS = 60_000;
 // Rendered only in demo mode: a 404 from the clock hides it.
 // inline: the stage's bar, with every action as a visible button instead of a menu.
 export default function DemoControls({ inline = false }) {
-  const { circleData, demoAdvance, demoReset, showToast, isSignedIn, activeTab, navigate, startTour } = useApp();
+  const { circleData, demoAdvance, demoReset, showToast, isSignedIn, activeTab, navigate, startTour, dataVersion } = useApp();
   const [clock, setClock] = useState(null);
   const [demoMode, setDemoMode] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -28,10 +29,16 @@ export default function DemoControls({ inline = false }) {
   ), []);
 
   useEffect(() => {
-    loadClock();
     const timer = setInterval(loadClock, CLOCK_REFRESH_MS);
     return () => clearInterval(timer);
   }, [loadClock]);
+
+  // Read the clock again at once after a reset or a clock move: here (the guide's or this strip's
+  // Reset; dataVersion changes once it is done) or in another pane of the stage.
+  useEffect(() => { loadClock(); }, [loadClock, dataVersion]);
+  useEffect(() => listenForChanges(reason => {
+    if (reason === 'reset' || reason === 'clock') loadClock();
+  }), [loadClock]);
 
   // The archivist is writing up a story: moving the clock now waits for it (POST /api/demo/advance).
   const archiving = useDemoArchiving(demoMode);
@@ -75,6 +82,15 @@ export default function DemoControls({ inline = false }) {
       ? `Moved ahead: ${label}. The story was still being written up; it may need another move.`
       : `Moved ahead: ${label}`
   ));
+
+  // "Next morning" measures from the clock as it is now, read again first: the demo may have been
+  // reset (by the API, too) since the clock shown was read.
+  const nextMorning = async () => {
+    const fresh = await apiClient.getDemoClock().catch(() => null);
+    if (fresh) setClock(fresh);
+    const hours = hoursToNextMorning((fresh || clock)?.now, circleData?.circle?.chat_time, timeZone);
+    if (hours != null) advance(hours, 'next morning');
+  };
   const busyLabel = archiving ? 'Waiting for the story...' : 'Moving time...';
   const writing = archiving && (
     <span className="demo-archiving" role="status" data-tour="archiving">
@@ -137,7 +153,7 @@ export default function DemoControls({ inline = false }) {
         <button
           type="button"
           className="stage-btn"
-          onClick={() => advance(nextMorningHours, 'next morning')}
+          onClick={nextMorning}
           disabled={busy || nextMorningHours == null}
           title={circleData?.circle?.chat_time ? `To ${circleData.circle.chat_time} tomorrow, the family's chat time` : undefined}
           data-tour="next-morning"
@@ -176,7 +192,7 @@ export default function DemoControls({ inline = false }) {
           <button
             type="button"
             role="menuitem"
-            onClick={() => advance(nextMorningHours, 'next morning')}
+            onClick={nextMorning}
             disabled={nextMorningHours == null}
             title={circleData?.circle?.chat_time ? `To ${circleData.circle.chat_time} tomorrow, the family's chat time` : undefined}
             data-tour="next-morning"

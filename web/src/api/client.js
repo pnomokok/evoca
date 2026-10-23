@@ -130,6 +130,15 @@ class EvocaApiClient {
     writeStorage('evoca_tour_seen', '1');
   }
 
+  // The stage shows the device's MCP calls panel only when someone turned it on ("Show MCP calls").
+  get showMcpCalls() {
+    return readStorage('evoca_show_mcp_calls') === '1';
+  }
+
+  setShowMcpCalls(on) {
+    writeStorage('evoca_show_mcp_calls', on ? '1' : null);
+  }
+
   // Signed in: only the bearer token (the session fixes person and circle).
   // Demo: X-Person-Id, the given person (the device acts as the center) or the picked viewer.
   getHeaders(customHeaders = {}, overridePersonId = null) {

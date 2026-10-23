@@ -307,7 +307,7 @@ three minutes:
 
 1. Elif asks Grandma a question on her phone.
 2. "Next morning" moves the demo clock to chat time, and the device's light comes on.
-3. Talk: Evoca brings up Elif's question; the MCP tools it calls appear below the device.
+3. Talk: Evoca brings up Elif's question; "Show MCP calls" in the demo strip shows the MCP tools it calls below the device.
 4. Fatma answers, then says goodbye.
 5. The archivist writes up the story and finds the part that answers Elif; "+1 day" passes the 24 hours the family
    has to hide it.
@@ -361,7 +361,7 @@ we do about it or would do next.
 - **More languages:** the data model already stores each person's language; multilingual speech-to-text and Polly
   voices would let a grandmother tell her stories in her own language.
 - Real Alexa+ devices once third-party tools open.
-- When an elder passes away, the circle becomes a memorial archive; private parts stay private forever.
+- When an elder passes away, the circle becomes a memorial archive; what she kept private stays private forever.
 
 ## Team
 
