@@ -284,6 +284,10 @@ To change defaults (Regions, voice, models), copy `.env.example` to `.env`; `run
 The first start downloads the speech-to-text model (Whisper small.en, about 460 MB, into `data/hf-cache`) and can
 take a few minutes.
 
+On Windows, if activating the venv fails with "running scripts is disabled", run
+`Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` first. The first start may print Hugging Face warnings
+about symlinks and unauthenticated requests; they are harmless.
+
 **The demo strip** (demo mode only) runs along the top of every demo page:
 
 - **Person picker** ("Viewing as Elif"): open the archive as any family member.

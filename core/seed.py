@@ -9,11 +9,12 @@ docs/ARCHITECTURE.md.  All text is English.
 
 Safety: the seed deletes the whole database. It refuses to run when the
 database contains any Session the seed did not create (recognised by the
-seed session's fixed id), unless --force is passed.
+seed sessions' fixed ids), unless --force is passed.
 
-Audio: the seed session's audio and segment timings come from
-core/seed_assets/ (made once with Polly by scripts/make_seed_audio.py). The
-WAV is copied to data/audio/<session_id>.wav, relative to the working
+Audio: the seed sessions' audio and segment timings come from
+core/seed_assets/ (made once with Polly by scripts/make_seed_audio.py): the
+first holds The Mulberry Tree and The Tailor's Shop, the second Father's
+Workshop. Each WAV is copied to data/audio/<session_id>.wav, relative to the working
 directory, which is where the audio endpoint reads it; run the seed from the
 same directory as the backend. No AWS call is made here.
 
@@ -84,9 +85,11 @@ log = logging.getLogger(__name__)
 
 _CIRCLE_TZ = ZoneInfo("Europe/Istanbul")
 
-# The session the seed creates has a fixed id, so the seed can tell seeded
-# data from real recordings. Databases seeded before it had this audio_path.
-SEED_SESSION_ID = "00000000-5eed-4000-8000-000000000001"
+# The sessions the seed creates have fixed ids, so the seed can tell seeded
+# data from real recordings. Databases seeded before them had this audio_path.
+SEED_SESSION_ID = "00000000-5eed-4000-8000-000000000001"     # The Mulberry Tree, The Tailor's Shop
+SEED_SESSION_2_ID = "00000000-5eed-4000-8000-000000000002"   # Father's Workshop
+SEED_SESSION_IDS = (SEED_SESSION_ID, SEED_SESSION_2_ID)
 LEGACY_SEED_AUDIO_PATH = "data/audio/session_demo.m4a"
 
 SEED_ASSETS = Path(__file__).parent / "seed_assets"
@@ -159,7 +162,7 @@ def find_recorded_sessions() -> list[tuple[str, str, int]]:
         rows = (
             db.query(Session.id, Session.started_at, func.count(Segment.id))
             .outerjoin(Segment, Segment.session_id == Session.id)
-            .filter(Session.id != SEED_SESSION_ID)
+            .filter(Session.id.notin_(SEED_SESSION_IDS))
             .filter((Session.audio_path.is_(None)) | (Session.audio_path != LEGACY_SEED_AUDIO_PATH))
             .group_by(Session.id)
             .order_by(Session.started_at)
@@ -312,6 +315,43 @@ def reset_and_seed(force: bool = False) -> None:
                 raise RuntimeError("seed_session.json changed: a story source is private or not Fatma's")
 
         # ------------------------------------------------------------------
+        # A second, short session (about 40 minutes ago): Father's Workshop, in Fatma's own words.
+        # Its own audio, so the first session's timings stay as they are.
+        # ------------------------------------------------------------------
+        audio_path_2 = AUDIO_DIR / f"{SEED_SESSION_2_ID}.wav"
+        shutil.copyfile(SEED_ASSETS / "seed_session_2.wav", audio_path_2)
+        session_2 = Session(
+            id=SEED_SESSION_2_ID,
+            circle_id=circle.id,
+            kind=SessionKind.solo,
+            started_by=SessionStart.spontaneous,
+            participant_ids=[fatma.id],
+            audio_path=audio_path_2.as_posix(),
+            started_at=(now - timedelta(minutes=45)).isoformat(),
+            ended_at=(now - timedelta(minutes=40)).isoformat(),
+        )
+        db.add(session_2)
+        db.flush()
+        timings_2 = json.loads((SEED_ASSETS / "seed_session_2.json").read_text(encoding="utf-8"))
+        segments_2 = [
+            Segment(
+                session_id=session_2.id,
+                speaker_id=fatma.id if seg["speaker"] == "center" else None,
+                start_ms=seg["start_ms"],
+                end_ms=seg["end_ms"],
+                transcript=seg["transcript"],
+                words=seg["words"],
+                is_private=seg["is_private"],
+            )
+            for seg in timings_2["segments"]
+        ]
+        db.add_all(segments_2)
+        db.flush()
+        seg_workshop = segments_2[0]
+        if seg_workshop.is_private or seg_workshop.speaker_id != fatma.id:
+            raise RuntimeError("seed_session_2.json changed: the story source is private or not Fatma's")
+
+        # ------------------------------------------------------------------
         # Stories
         # Note: the Hatice segment is private; no story is derived from it.
         # ------------------------------------------------------------------
@@ -370,7 +410,8 @@ def reset_and_seed(force: bool = False) -> None:
                 "Fatma describes her father's carpentry workshop and the smell of "
                 "fresh sawdust that she still associates with safety."
             ),
-            sources=[],
+            sources=[{"session_id": session_2.id, "start_ms": seg_workshop.start_ms,
+                      "end_ms": seg_workshop.end_ms}],
             place=None,
             stated_year=None,
             access={"type": AccessType.selected, "person_ids": [ayse.id]},
@@ -475,7 +516,7 @@ def reset_and_seed(force: bool = False) -> None:
     print(f"  Stories : {story_mulberry.title!r}, {story_tailor.title!r}, {story_pending.title!r}")
     print(f"  Today   : {today_str} (circle timezone: Europe/Istanbul)")
     print(f"  Database: {os.environ.get('EVOCA_DB_PATH', 'data/evoca.db')}")
-    print(f"  Audio   : {audio_path.as_posix()}")
+    print(f"  Audio   : {audio_path.as_posix()}, {audio_path_2.as_posix()}")
     print(f"  Photos  : {photos_added} added, {orphans} old photo files removed")
 
 

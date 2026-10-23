@@ -1,18 +1,24 @@
 """
-Generate the seed session's audio once, with Polly (needs AWS credentials).
+Generate the seed sessions' audio once, with Polly (needs AWS credentials).
 
-    python scripts/make_seed_audio.py
+    python scripts/make_seed_audio.py                   # every seed session
+    python scripts/make_seed_audio.py seed_session_2    # only the named ones
 
-Writes core/seed_assets/seed_session.wav (16 kHz, mono, 16-bit PCM) and
-core/seed_assets/seed_session.json: every segment's speaker, transcript,
+For each session, writes core/seed_assets/<name>.wav (16 kHz, mono, 16-bit PCM)
+and core/seed_assets/<name>.json: every segment's speaker, transcript,
 start_ms/end_ms in the WAV and word timings from Polly speech marks. core.seed
 only copies these files, so seeding works without AWS. Re-run this script only
-when a seed line changes, and commit both files.
+for a session whose lines change (its stories' ranges follow its timings), and
+commit both files.
+
+  seed_session    The Mulberry Tree, the private Hatice part, The Tailor's Shop.
+  seed_session_2  Father's Workshop (the pending story Ayşe sees).
 """
 
 from __future__ import annotations
 
 import io
+import sys
 import json
 import os
 import wave
@@ -28,7 +34,7 @@ GAP_MS = 500       # silence between segments
 CENTER_VOICE = "Kendra"   # Fatma
 AGENT_VOICE = "Joanna"    # the companion (server/speech.py's default)
 
-# (speaker, private, transcript), in the order they were said.
+# Each session: (speaker, private, transcript), in the order they were said.
 SEGMENTS = [
     ("center", False,
      "When I was a little girl in the village, we had a big mulberry tree in the garden. "
@@ -42,17 +48,25 @@ SEGMENTS = [
      "I worked at the tailor's shop in our neighbourhood. I learned to sew by hand, and I still "
      "remember the hum of the old Singer machine and the smell of fresh cotton on warm afternoons."),
 ]
+SEGMENTS_2 = [
+    # "Watch him plane the wood" was heard by Whisper small.en as "watch him play in the wood":
+    # "plane the wooden boards" is heard exactly.
+    ("center", False,
+     "My father had a small carpentry workshop behind our house. I used to sit on a stool and watch "
+     "him plane the wooden boards. The whole place smelled of fresh sawdust. Even now, that smell "
+     "makes me feel safe."),
+]
+SESSIONS = {"seed_session": SEGMENTS, "seed_session_2": SEGMENTS_2}
 
 
 def _ms_to_bytes(ms: int) -> int:
     return ms * SAMPLE_RATE // 1000 * 2
 
 
-def main() -> None:
-    polly = boto3.Session(region_name=os.environ.get("POLLY_REGION", "eu-north-1")).client("polly")
+def build(polly, name: str, lines: list[tuple[str, bool, str]]) -> None:
     pcm = bytearray(b"\x00" * _ms_to_bytes(LEAD_MS))
     segments = []
-    for speaker, private, text in SEGMENTS:
+    for speaker, private, text in lines:
         voice = CENTER_VOICE if speaker == "center" else AGENT_VOICE
         audio = polly.synthesize_speech(Text=text, OutputFormat="pcm", SampleRate=str(SAMPLE_RATE),
                                         VoiceId=voice, Engine="standard")["AudioStream"].read()
@@ -77,17 +91,27 @@ def main() -> None:
         wf.setsampwidth(2)
         wf.setframerate(SAMPLE_RATE)
         wf.writeframes(bytes(pcm))
-    (ASSETS / "seed_session.wav").write_bytes(buf.getvalue())
-    (ASSETS / "seed_session.json").write_text(
+    (ASSETS / f"{name}.wav").write_bytes(buf.getvalue())
+    (ASSETS / f"{name}.json").write_text(
         json.dumps({"voices": {"center": CENTER_VOICE, "agent": AGENT_VOICE}, "segments": segments},
                    indent=1, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
     total_ms = len(pcm) // 2 * 1000 // SAMPLE_RATE
-    print(f"Wrote {ASSETS / 'seed_session.wav'} ({total_ms} ms, {len(buf.getvalue()) // 1024} KB) and seed_session.json")
+    print(f"Wrote {ASSETS / (name + '.wav')} ({total_ms} ms, {len(buf.getvalue()) // 1024} KB) and {name}.json")
     for s in segments:
         print(f"  {s['speaker']:6} {s['start_ms']:>6}-{s['end_ms']:<6} private={s['is_private']}  {s['transcript'][:50]}")
 
 
+def main(names: list[str]) -> None:
+    unknown = set(names) - set(SESSIONS)
+    if unknown:
+        raise SystemExit(f"Unknown session(s): {', '.join(sorted(unknown))}; choose from {', '.join(SESSIONS)}")
+    polly = boto3.Session(region_name=os.environ.get("POLLY_REGION", "eu-north-1")).client("polly")
+    for name, lines in SESSIONS.items():
+        if not names or name in names:
+            build(polly, name, lines)
+
+
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])

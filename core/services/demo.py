@@ -95,10 +95,10 @@ def check_resettable() -> None:
 
 def _recorded_files(db: DbSession) -> list[Path]:
     """Audio and TTS files of non-seed sessions, and every photo (the seed adds its own again)."""
-    from core.seed import SEED_SESSION_ID
+    from core.seed import SEED_SESSION_IDS
 
     files: list[Path] = []
-    for sess in db.query(OrmSession).filter(OrmSession.id != SEED_SESSION_ID).all():
+    for sess in db.query(OrmSession).filter(OrmSession.id.notin_(SEED_SESSION_IDS)).all():
         if sess.audio_path:
             files.append(Path(sess.audio_path))
         files.extend((Path("data") / "tts").glob(f"{sess.id}_*"))
