@@ -24,6 +24,9 @@
   /* Typography */
   --font-serif: 'Newsreader', Georgia, 'Times New Roman', serif;
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  /* The "Evoca" wordmark only, as in the logo file: Source Sans Pro, now named Source Sans 3. */
+  --font-wordmark: 'Source Sans 3', 'Source Sans Pro', -apple-system, 'Segoe UI', sans-serif;
+  --font-wordmark-weight: 350;
 
   /* Shadows */
   --shadow-subtle: 0 3px 12px rgba(48, 47, 41, 0.05);
@@ -166,9 +169,9 @@ h1, h2, h3, h4, .serif-font {
 }
 
 .brand-name {
-  font-family: var(--font-serif);
+  font-family: var(--font-wordmark);
   font-size: 21px;
-  font-weight: 600;
+  font-weight: var(--font-wordmark-weight);
   color: var(--text-charcoal);
   line-height: 1.1;
 }
