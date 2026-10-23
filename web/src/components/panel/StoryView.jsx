@@ -458,6 +458,10 @@ export default function StoryView() {
   const tellerFirst = story.teller?.name?.split(' ')[0] || '';
   const playlistItems = data.playlist?.items || [];
   const storyMode = mode === 'story';
+  // A story with no audio source (none recorded yet) shows no player and no empty transcript;
+  // "Listen from the start" still uses the player while it plays.
+  const showPlayer = (story.audio || []).length > 0 || !storyMode;
+  const showTranscript = transcript.length > 0;
   // Anyone who sees the story may add a photo; replacing one is for the teller, a subject or an admin.
   const canReplacePhoto = Boolean(currentViewerId) && (
     story.teller?.id === currentViewerId
@@ -682,6 +686,7 @@ export default function StoryView() {
 
       <div className="story-two-column-showcase">
         <div className="story-listen-column">
+          {showPlayer && (
           <section className="bespoke-audio-station" aria-label="Story audio player">
             <div className="station-top-bar">
               <div className="station-left">
@@ -761,7 +766,9 @@ export default function StoryView() {
               </div>
             </div>
           </section>
+          )}
 
+          {showTranscript && (
           <section className="story-transcript-parchment" aria-label="Transcript">
             <div className="transcript-parchment-header">
               <div className="parchment-title-group">
@@ -776,9 +783,6 @@ export default function StoryView() {
             </div>
 
             <div className="transcript-spoken-content">
-              {transcript.length === 0 && (
-                <p className="fallback-transcript-text">No transcript yet.</p>
-              )}
               {transcript.map((seg) => (
                 <p key={seg.segment_id} className="transcript-piece" style={{ marginBottom: '14px' }}>
                   {showSpeakers && seg.speaker?.name && (
@@ -807,6 +811,7 @@ export default function StoryView() {
               ))}
             </div>
           </section>
+          )}
         </div>
 
         <aside className="story-side-showcase" aria-label="About this story">
