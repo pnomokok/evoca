@@ -29,6 +29,17 @@ The loop, step by step (each step is cut into its own clip by edit_demo.py):
   B9 Exit demo; then, in a fresh browser context, "Create your family": the wizard, the personal
      link, the new family's journal with Getting started.
 
+With --part 2 (the second product part, docs/video/captions_2.txt, scripts/edit_demo_2.py) the same
+steps plus three more, recorded in this order: B0-B3 (B3 turns on "Show MCP calls" first), B5 (the
+device's Goodbye), B6-B8, B4, then
+  B10 Who sees what: Ayse in the person picker; her Life chapters show Father's Workshop (pending,
+      only for her); its story page and the "Selected people" tag.
+  B11 Elif's "Record memory": the dialog, Record, about 3 s of the timer and the level meter, Stop.
+      The microphone is Chromium's fake one, playing a short clip (nothing is saved).
+  B12 Elif's Life chapters: Fatma's chapters, one of her stories and back, the "Whose life" switcher
+      to Elif's chapters, and back to Fatma's.
+  B9 (last, so B12 is still the demo family). The output goes to data/video/raw_2/.
+
 Output (data/ is not committed): data/video/raw/
   stage.webm, archive.webm, family.webm   the page recordings (one per browser page)
   audio/                     every audio file the app played, as the browser received it
@@ -58,7 +69,7 @@ from playwright.sync_api import Frame, FrameLocator, Locator, Page, sync_playwri
 REPO = Path(__file__).resolve().parent.parent
 WEB = "http://localhost:5173"
 API = "http://127.0.0.1:8080"
-OUT = REPO / "data" / "video" / "raw"
+OUT = REPO / "data" / "video" / "raw"          # --part 2: raw_2
 DEMO_DB = REPO / "data" / "demo.db"
 PHOTO = REPO / "core" / "seed_assets" / "photos" / "spare_sled.jpg"
 PHOTO_CAPTION = "Fatma and her best friend on the sled, around 1956"
@@ -72,6 +83,9 @@ SUGGESTED_QUESTION = "Grandma, what games did you play when you were little?"   
 TOPIC = "1972 separation from Hatice"
 TOPIC_QUESTION = "What happened with Hatice in 1972?"
 TOPIC_WORDS = ["hatice", "1972", "separation"]
+
+# The fake microphone's clip for B11 (--part 2): a sample answer, as the WAV Chromium wants.
+FAKE_MIC_SOURCE = SAMPLES / "answer_2.mp3"
 
 STEP_TIMEOUT_S = 180
 ARCHIVIST_TIMEOUT_S = 300
@@ -203,6 +217,14 @@ class Recorder:
         self.ids: dict[str, str] = {}
         self.notes: list[str] = []
         self.rng = random.Random(7)
+        self.part = 1
+
+    def box(self, name: str, target: Locator) -> None:
+        """Note where something is on screen (page pixels), for the editor's zoom (--part 2)."""
+        if self.step is not None:
+            b = target.bounding_box()
+            if b:
+                self.step.setdefault("boxes", {})[name] = b
 
     # -- logging -------------------------------------------------------------------------------
 
@@ -478,7 +500,7 @@ class Demo:
     def b0(self) -> None:
         rec = self.rec
         rec.begin("B0", "The landing page: Try the demo, then Watch the loop")
-        rec.pause(0.8, keep=True)
+        rec.pause(2.0 if rec.part == 2 else 0.8, keep=True)
         rec.click(rec.page.get_by_role("button", name="Try the demo").first)
         rec.page.locator(".demo-entry-option").nth(1).wait_for(timeout=10_000)
         rec.pause(1.0, keep=True)                  # both options on screen
@@ -551,6 +573,13 @@ class Demo:
         rec = self.rec
         rec.begin("B3", "Talk: opening, sample answer 1, follow-up, sample answer 2")
         rec.pause(0.6)
+        if rec.part == 2:
+            mcp = rec.page.get_by_role("button", name="Show MCP calls")
+            if mcp.get_attribute("aria-pressed") != "true":
+                rec.click(mcp)
+                rec.until(lambda: rec.device.locator('[data-testid="trace-panel"]').count() > 0, "the MCP calls panel")
+            rec.mark("mcp_on")
+            rec.pause(0.8)
         clicked = time.time()
         rec.click(rec.device.locator('[data-tour="talk"]'))
         rec.wait_region("thinking", lambda: rec.until(
@@ -580,8 +609,9 @@ class Demo:
             rec.until(lambda: rows.count() > 0, "the earlier tool calls")
         rec.point_at(rows.first)
         rec.mark("trace")
+        rec.box("trace", panel)
         rec.move_to(rec.cursor[0] + 120, rec.cursor[1] + 24 * max(0, min(rows.count(), 6) - 1), seconds=1.4)
-        rec.pause(1.4, keep=True)
+        rec.pause(2.6 if rec.part == 2 else 1.4, keep=True)
         earlier = panel.locator("details.trace-earlier[open] summary")
         if earlier.count():
             rec.click(earlier, before=0.2)    # fold it again, so the panel does not grow under the captions
@@ -624,10 +654,16 @@ class Demo:
         rec.use("stage")
         rec.begin("B5", "Goodbye sample; Evoca is writing up the story")
         rec.pause(0.8)
-        self.sample(3)
-        rec.page.evaluate(SAMPLE_STEP_END_SCRIPT)
         goodbye = rec.device.locator(".device-controls button", has_text="Goodbye")
-        if rec.device.locator('[data-tour="talk"] .device-talk-label.big').count() == 0 and goodbye.count():
+        if rec.part == 2:
+            # The device's own Goodbye ends the chat (the second part keeps this step short).
+            rec.page.evaluate(SAMPLE_STEP_END_SCRIPT)
+            rec.click(goodbye)
+            rec.mark("goodbye")
+        else:
+            self.sample(3)
+            rec.page.evaluate(SAMPLE_STEP_END_SCRIPT)
+        if rec.part == 1 and rec.device.locator('[data-tour="talk"] .device-talk-label.big').count() == 0 and goodbye.count():
             rec.pause(0.6)
             rec.click(goodbye)
             rec.notes.append("B5: the companion kept the session open after the goodbye sample; Goodbye was pressed")
@@ -637,7 +673,7 @@ class Demo:
         rec.point_at(writing, dwell=1.0)
         rec.wait_region("archivist", lambda: rec.until(lambda: writing.count() == 0, "the archivist",
                                                        timeout=ARCHIVIST_TIMEOUT_S, every=0.5))
-        rec.pause(0.8)
+        rec.pause(0.4 if rec.part == 2 else 0.8)
         rec.end()
 
     # B6 ----------------------------------------------------------------------------------------
@@ -649,6 +685,7 @@ class Demo:
         banner = rec.page.locator('[data-testid="answer-notice"] .answer-notice-body')
         rec.wait_region("clock", lambda: banner.wait_for(timeout=90_000))
         rec.mark("banner")
+        rec.box("banner", rec.page.locator('[data-testid="answer-notice"]'))
         rec.pause(0.8, keep=True)
         rec.click(banner)
         play = rec.phone.locator("button.answer-play").first
@@ -660,6 +697,7 @@ class Demo:
         # The answer may be several pieces played back to back: done when the card's own player
         # shows Play again and no audio has played for a moment.
         rec.until(lambda: rec.audio_started_since(clicked, "/api/"), "the answer to start")
+        rec.mark("voice")
         playing = lambda: rec.audio_playing() or play.get_attribute("aria-label") == "Pause the answer"
         rec.until(lambda: not playing(), "the answer to finish")
         rec.pause(0.6)
@@ -684,7 +722,9 @@ class Demo:
         rec.pause(0.6)
         rec.phone.locator("#photo-file").set_input_files(str(PHOTO))
         rec.pause(0.5)
+        rec.brisk = rec.part == 2
         rec.type_into(rec.phone.locator("#photo-caption"), PHOTO_CAPTION)
+        rec.brisk = False
         rec.pause(0.5)
         save = rec.phone.get_by_role("button", name="Save the photo")
         rec.click(save)
@@ -705,7 +745,7 @@ class Demo:
         reason = rec.device.locator(".device-reason", has_text="Elif")
         rec.wait_region("clock", lambda: reason.wait_for(timeout=60_000))
         rec.mark("light")
-        rec.point_at(reason, dwell=1.4)
+        rec.point_at(reason, dwell=0.8 if rec.part == 2 else 1.4)
         clicked = time.time()
         rec.click(rec.device.locator('[data-tour="talk"]'))
         rec.wait_region("thinking", lambda: rec.until(lambda: rec.audio_started_since(clicked, "/api/"), "the opening"))
@@ -720,6 +760,114 @@ class Demo:
         writing = rec.page.locator(".demo-archiving")
         rec.page.wait_for_timeout(4000)
         rec.until(lambda: writing.count() == 0, "the archivist", timeout=ARCHIVIST_TIMEOUT_S, every=0.5)
+
+    # B10-B12 (--part 2) --------------------------------------------------------------------------
+    def switch_viewer(self, first_name: str) -> None:
+        """The demo's person picker: navigation, so the editor speeds it up."""
+        rec = self.rec
+
+        def switch() -> None:
+            # What the step before left open (a dialog's reply) closes first; then the picker,
+            # clicked again if its first click only closed something.
+            rec.page.keyboard.press("Escape")
+            rec.page.wait_for_timeout(300)
+            option = rec.page.locator("button.person-option", has=rec.page.locator(
+                "strong", has_text=re.compile(rf"^{first_name}$"))).first
+            for _ in range(3):
+                rec.click(rec.page.locator(".demo-strip-btn.viewer"), before=0.3)
+                try:
+                    option.wait_for(timeout=2500)
+                    break
+                except Exception:
+                    pass
+            rec.click(option, before=0.3)
+            rec.page.locator(".demo-strip-btn.viewer", has_text=first_name).wait_for(timeout=30_000)
+            rec.page.wait_for_timeout(500)
+        rec.wait_region("loading", switch)
+
+    def open_chapters(self, first_name: str) -> None:
+        rec = self.rec
+        rec.click(rec.page.locator(".archive-tabs button", has_text="Life chapters"), before=0.3)
+        title = rec.page.locator("h1.lifeline-elder-title", has_text=first_name)
+        rec.wait_region("loading", lambda: title.wait_for(timeout=30_000))
+
+    def b10(self) -> None:
+        rec = self.rec
+        rec.begin("B10", "Who sees what: Ayse's Life chapters show Father's Workshop (pending, only for her)")
+        rec.pause(0.4)
+        self.switch_viewer("Ayşe")
+        rec.mark("ayse")
+        self.open_chapters("Fatma")
+        workshop = rec.page.locator("h3.story-entry-title", has_text="Workshop").first
+        rec.point_at(workshop, dwell=0.8)
+        rec.mark("workshop")
+        rec.click(workshop, before=0.2)
+        tag = rec.page.locator(".story-access-tag", has_text="Selected people")
+        rec.wait_region("loading", lambda: tag.wait_for(timeout=30_000))
+        rec.mark("tag")
+        rec.point_at(tag, dwell=1.4)
+        rec.end()
+
+    def b11(self) -> None:
+        rec = self.rec
+        rec.begin("B11", "Elif's Record memory: Record, the timer and the level meter, Stop")
+        rec.pause(0.4)
+        self.switch_viewer("Elif")
+        rec.click(rec.page.locator(".archive-actions button", has_text="Record memory"))
+        start = rec.page.get_by_role("button", name="Start recording")
+        rec.wait_region("loading", lambda: start.wait_for(timeout=15_000))
+        rec.mark("dialog")
+        rec.pause(1.0, keep=True)
+        meter = rec.page.locator(".record-meter")
+        for _ in range(3):     # a click while the dialog still opens can be lost
+            rec.click(start)
+            try:
+                meter.wait_for(timeout=3000)
+                break
+            except Exception:
+                rec.notes.append("B11: Record was clicked again (the first click did not start it)")
+        rec.until(lambda: meter.count() > 0, "the level meter", timeout=5)
+        rec.mark("recording")
+        rec.point_at(rec.page.locator(".record-timer"))
+        rec.pause(3.2, keep=True)
+        rec.click(rec.page.get_by_role("button", name="Stop recording"))
+        rec.until(lambda: rec.page.locator("audio.record-playback").count() > 0, "the playback", timeout=15)
+        rec.mark("stopped")
+        rec.pause(1.2, keep=True)
+        rec.end()
+        # Off camera: close the dialog without saving.
+        rec.page.locator('[role="dialog"] button[aria-label="Close"]').first.click()
+        rec.page.wait_for_timeout(500)
+
+    def b12(self) -> None:
+        rec = self.rec
+        rec.begin("B12", "Elif's Life chapters: Fatma's, one of her stories, then Elif's own, and back")
+        rec.pause(0.4)
+        self.open_chapters("Fatma")
+        rec.mark("fatma")
+        rec.pause(1.0, keep=True)
+        story = rec.page.locator("h3.story-entry-title").first
+        rec.point_at(story, dwell=0.6)
+        rec.click(story, before=0.2)
+        back = rec.page.get_by_role("button", name=re.compile("Back to life chapters|Life chapters$")).first
+        rec.wait_region("loading", lambda: back.wait_for(timeout=30_000))
+        rec.mark("story")
+        rec.pause(1.6, keep=True)
+        rec.click(back)
+        title = rec.page.locator("h1.lifeline-elder-title")
+        rec.wait_region("loading", lambda: title.filter(has_text="Fatma").wait_for(timeout=30_000))
+        rec.pause(0.6)
+        rec.click(rec.page.locator("button.whose-life-person", has_text="Elif"))
+        rec.wait_region("loading", lambda: title.filter(has_text="Elif").wait_for(timeout=30_000))
+        rec.mark("elif")
+        rec.pause(1.8, keep=True)
+        rec.click(rec.page.locator("button.whose-life-person", has_text="Fatma"))
+        rec.wait_region("loading", lambda: title.filter(has_text="Fatma").wait_for(timeout=30_000))
+        rec.page.wait_for_timeout(400)
+        rec.mark("fatma_end")
+        rec.box("chapters", rec.page.locator(".lifeline-archive-hero"))
+        rec.pause(2.6, keep=True)
+        rec.end()
 
     # B9 ----------------------------------------------------------------------------------------
     def b9(self, browser: Any) -> None:
@@ -877,7 +1025,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Record the demo video's product part from a real run.")
     parser.add_argument("--headed", action="store_true", help="show the browser while recording")
     parser.add_argument("--until", default="B9", help="stop after this step (to try a part of the loop)")
+    parser.add_argument("--part", type=int, choices=[1, 2], default=1,
+                        help="2: the second product part (more steps, data/video/raw_2/)")
     args = parser.parse_args()
+    global OUT
+    if args.part == 2:
+        OUT = REPO / "data" / "video" / "raw_2"
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     except AttributeError:
@@ -896,6 +1049,7 @@ def main() -> int:
     video_tmp = OUT / "video_tmp"
 
     rec = Recorder(args.headed)
+    rec.part = args.part
     demo = Demo(rec)
     # Start from a reset demo (the same call as "Reset demo"); its people have new ids.
     r = demo.http.post("/api/demo/reset")
@@ -909,10 +1063,17 @@ def main() -> int:
     with sync_playwright() as p:
         # Muted, and deaf to the system's media keys and controls: twice a reply was paused half-way
         # with no pause() from the app. The sound is rebuilt from the files, so nothing is lost.
-        browser = p.chromium.launch(headless=not args.headed,
-                                    args=["--autoplay-policy=no-user-gesture-required", "--hide-scrollbars",
-                                          "--mute-audio",
-                                          "--disable-features=HardwareMediaKeyHandling,GlobalMediaControls,MediaSessionService"])
+        flags = ["--autoplay-policy=no-user-gesture-required", "--hide-scrollbars", "--mute-audio",
+                 "--disable-features=HardwareMediaKeyHandling,GlobalMediaControls,MediaSessionService"]
+        if args.part == 2:
+            # B11's microphone: Chromium's fake device, playing a sample answer (nothing is saved).
+            import imageio_ffmpeg
+            mic = OUT / "fake_mic.wav"
+            subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-v", "error", "-y", "-i", str(FAKE_MIC_SOURCE),
+                            "-t", "10", "-ac", "1", "-ar", "48000", "-c:a", "pcm_s16le", str(mic)], check=True)
+            flags += ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream",
+                      f"--use-file-for-fake-audio-capture={mic}"]
+        browser = p.chromium.launch(headless=not args.headed, args=flags)
         ctx = rec.new_context(browser)
         try:
             rec.open_page(ctx, "stage", f"{WEB}/",
@@ -920,7 +1081,20 @@ def main() -> int:
             steps = [("B0", demo.b0), ("B1", demo.b1), ("B2", demo.b2), ("B3", demo.b3), ("B4", lambda: demo.b4(ctx)),
                      ("B5", demo.b5), ("B6", demo.b6), ("B7", demo.b7), ("B8", demo.b8),
                      ("B9", lambda: demo.b9(browser))]
+            if args.part == 2:
+                ctx.grant_permissions(["microphone"], origin=WEB)
+                steps = [("B0", demo.b0), ("B1", demo.b1), ("B2", demo.b2), ("B3", demo.b3), ("B5", demo.b5),
+                         ("B6", demo.b6), ("B7", demo.b7), ("B8", demo.b8), ("B4", lambda: demo.b4(ctx)),
+                         ("B10", demo.b10), ("B11", demo.b11), ("B12", demo.b12), ("B9", lambda: demo.b9(browser))]
             for step_id, run in steps:
+                if args.part == 2 and step_id == "B11":
+                    try:
+                        run()
+                    except StepError as exc:    # B11 stands alone: note it, and record the rest
+                        rec.notes.append(f"FAILED in B11 (skipped): {exc}")
+                        rec.step = None
+                        rec.page.keyboard.press("Escape")
+                    continue
                 run()
                 if step_id == args.until:
                     break

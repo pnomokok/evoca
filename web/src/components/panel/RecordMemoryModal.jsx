@@ -85,6 +85,8 @@ export default function RecordMemoryModal({ onClose }) {
     const recorderRef = mediaRecorderRef;
     const meter = meterRef;
     const closed = closedRef;
+    // Open again (React's StrictMode mounts, unmounts and mounts the dialog in development).
+    closed.current = false;
     return () => {
       closed.current = true;
       clearInterval(timers.tick);
