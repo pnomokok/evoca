@@ -80,12 +80,15 @@ LIFT: dict[str, int] = {"B5": 70}     # B5: the "Goodbye! Today's memories are b
 # Report frames: (name, step, marker or None for the middle, seconds after it).
 # --part 3 replaces some of the above (configure()).
 PART_3 = {
+    # The film goes on after B9: it ends on the new family's journal (Getting started), with no fade.
+    "order": ["B0", "B1", "B2", "B3", "B5", "B6", "B7", "B8", "B4", "B10", "B11", "B12", "B9"],
+    "end_fade_out": False,
     "raw": "raw_3", "clips": "part_3", "report": "report_3", "captions": "captions_3.txt", "out": "product_part_3",
     "xfade": 0.5, "xfade_after": {"B8": 0.6}, "speed": 3.0,
     # Each step ends once its last screen has been on screen long enough (at least 2 s at normal
     # speed, before the crossfade starts).
     "step_end": {"B6": ("voice", 7.0), "B4": ("answered", 2.4), "B5": ("idle", 2.4), "B7": ("photo", 2.6),
-                 "B10": ("tag", 2.6), "B12": ("elif", 2.4), "B9": ("journal", 2.6)},
+                 "B10": ("tag", 2.6), "B12": ("elif", 2.4), "B9": ("journal", 2.4)},
     "fade_out": {"B6": 1.0, "B8": 1.5},
     # B9 starts on the landing page with "Create your family" (its first part, Exit demo, is left out).
     "skip_parts": {"B9": [0]},
@@ -94,11 +97,13 @@ PART_3 = {
     "zoom_ramp": 1.0,
     "frames": [("B2", "B2", "light", 1.5), ("B4", "B4", "topic", 2.2), ("B5_idle", "B5", "idle", 1.2),
                ("B6", "B6", "banner", 1.0), ("B8", "B8", "opening", 2.0), ("B12", "B12", "fatma", 1.6),
-               ("B12_scroll", "B12", "story", -1.0), ("B12_elif", "B12", "elif", 1.5)],
+               ("B12_scroll", "B12", "story", -1.0), ("B12_elif", "B12", "elif", 1.5),
+               ("B9_end", "B9", "journal", 2.35)],
 }
 OUT_NAME = "product_part_2"
 XFADE_AFTER: dict[str, float] = {}
 SKIP_PARTS: dict[str, list[int]] = {}
+END_FADE_OUT = True
 # B8 in part 3: the step ends this long after the companion's first sentence (its first pause).
 SENTENCE_FADE = {}
 
@@ -109,7 +114,7 @@ REPORT_FRAMES = [("B3", "B3", "trace", 2.0), ("B6", "B6", "banner", 1.0), ("B6_p
 
 def configure(part: int) -> None:
     global RAW, CLIPS, REPORT, CAPTIONS, XFADE_S, STEP_END, FADE_OUT_S, ZOOMS, ZOOM_RAMP_S, REPORT_FRAMES, OUT_NAME
-    global XFADE_AFTER, SENTENCE_FADE, SKIP_PARTS
+    global XFADE_AFTER, SENTENCE_FADE, SKIP_PARTS, ORDER, END_FADE_OUT
     if part != 3:
         return
     c = PART_3
@@ -120,6 +125,7 @@ def configure(part: int) -> None:
     REPORT_FRAMES = c["frames"]
     SENTENCE_FADE = {"B8": 1.5}
     SKIP_PARTS = c["skip_parts"]
+    ORDER, END_FADE_OUT = c["order"], c["end_fade_out"]
     # B4: the topics section is at the bottom of Family settings, so its caption sits above it.
     LIFT["B4"] = 160
     ed.SPEED = c["speed"]
@@ -270,6 +276,10 @@ def main() -> int:
     # the pieces are made one by one (each clip's middle, each 0.4 s crossfade) and then joined
     # in order. Pieces are near-lossless with plain PCM audio, so the joins are seamless.
     full = OUT / f"{OUT_NAME}_full.mp4"
+
+    def end_fade(name: str) -> str:
+        return f"{name}=t=out:st={total - ed.END_FADE_S:.3f}:d={ed.END_FADE_S}," if END_FADE_OUT else ""
+
     lengths = [report["steps"][sid]["seconds"] for sid in order]
     piece_args = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "10", "-r", str(FPS), "-pix_fmt", "yuv420p",
                   "-c:a", "pcm_s16le", "-ar", "48000", "-ac", "2"]
@@ -311,8 +321,8 @@ def main() -> int:
         listing = Path(tmp) / "pieces.txt"
         listing.write_text("".join(f"file '{p.as_posix()}'\n" for p in pieces), encoding="utf-8")
         ed.ffmpeg(["-f", "concat", "-safe", "0", "-i", str(listing),
-                   "-vf", f"fade=t=in:d={ed.END_FADE_S},fade=t=out:st={total - ed.END_FADE_S:.3f}:d={ed.END_FADE_S},format=yuv420p",
-                   "-af", f"afade=t=in:d={ed.END_FADE_S},afade=t=out:st={total - ed.END_FADE_S:.3f}:d={ed.END_FADE_S}",
+                   "-vf", f"fade=t=in:d={ed.END_FADE_S}," + end_fade("fade") + "format=yuv420p",
+                   "-af", f"afade=t=in:d={ed.END_FADE_S}" + ("," + end_fade("afade")).rstrip(","),
                    "-c:v", "libx264", "-preset", "medium", "-crf", "17", "-r", str(FPS),
                    "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-movflags", "+faststart", str(full)])
 
