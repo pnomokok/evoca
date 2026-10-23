@@ -126,8 +126,6 @@ def configure(part: int) -> None:
     SENTENCE_FADE = {"B8": 1.5}
     SKIP_PARTS = c["skip_parts"]
     ORDER, END_FADE_OUT = c["order"], c["end_fade_out"]
-    # B4: the topics section is at the bottom of Family settings, so its caption sits above it.
-    LIFT["B4"] = 160
     ed.SPEED = c["speed"]
     # Long waits keep less of their start and end on screen (the companion thinking, the archivist).
     ed.WAIT_RULES = {**ed.WAIT_RULES, "thinking": (0.8, 0.3), "archivist": (1.0, 0.6)}
