@@ -11,6 +11,12 @@
   background: var(--bg-ivory);
 }
 
+/* "Show MCP calls" off (the default): no trace under the device, so the device takes that height too
+   (its bezel is 28 px; the screen is 16:10). */
+.stage-page.mcp-hidden {
+  --device-w: min(1200px, calc((var(--pane-h) - 28px) * 1.6 + 28px), calc(100vw - 520px));
+}
+
 .demo-controls.inline {
   display: flex;
   align-items: center;

@@ -5,6 +5,7 @@ import { apiClient } from '../api/client';
 import { announceChange, listenForTour, sendTour } from '../utils/stageChannel';
 import { SAMPLE_ANSWERS, isSuggestedQuestion, usePaneTourTargets } from '../utils/tour';
 import { playChime, primeChime } from '../utils/chime';
+import { useShowMcpCalls } from '../utils/mcpCalls';
 import Avatar from './Avatar';
 import { Mic, Volume2, Square, Lock, Sparkles } from 'lucide-react';
 import '../styles/device.css';
@@ -122,6 +123,7 @@ export default function DeviceScreen() {
   const [photo, setPhoto] = useState({ path: null, src: null });
   const [photoTick, setPhotoTick] = useState(0);
   const getPlayer = useAudioElement();
+  const [showMcpCalls] = useShowMcpCalls();
   // The guided tour's answer step (step 4) is showing on this stage: only then the sample answers.
   const tourAnswerStep = usePaneTourTargets().includes('answer');
 
@@ -498,7 +500,9 @@ export default function DeviceScreen() {
 
   const caption = lastTurn?.reply_text || '';
   const showPhoto = Boolean(photoSrc) && screenState === 'idle';
-  const showTrace = turns.length > 0 || Boolean(apiClient.embed);
+  // On the stage only when "Show MCP calls" is on (the device then grows into the room); on its own
+  // page once there is a turn.
+  const showTrace = apiClient.embed ? showMcpCalls : turns.length > 0;
 
   // The sample answers belong to the tour's question: only on the tour's answer step (step 4), and
   // only when that question was asked in this session; otherwise a note in the same place says why.
