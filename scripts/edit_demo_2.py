@@ -3,6 +3,7 @@ Edit the recording of `scripts/record_demo.py --part 2` into the second product 
 video (2:05-2:15).
 
     python scripts/edit_demo_2.py          # after record_demo.py --part 2; re-run after editing the captions
+    python scripts/edit_demo_2.py --part 3 # the third product part (raw_3, captions_3.txt, product_part_3*)
 
 Needs what scripts/edit_demo.py needs (imageio-ffmpeg, Pillow); it reuses its cutting and audio.
 
@@ -18,6 +19,8 @@ What the edit does beyond edit_demo.py (cuts, sped-up waits, the audio rebuilt f
 - B6's answer: its first 6 s of her voice, then a 1 s fade-out; the step ends there.
 - A zoom of about 1.15x, eased in and out, on the MCP panel (B3), the answer banner (B6) and Fatma's
   life chapters (end of B12), centred on where the recorder saw them.
+- --part 3: 0.5 s crossfades (0.6 s out of B8), waits at most 3x, no MCP panel zoom but a slow
+  one on B4's sensitive topics; B8 ends after the companion's first sentence with a 1.5 s fade.
 - Captions full frame at the bottom centre: orange semi-bold with a dark outline and a soft shadow,
   so they read on light and dark screens; lifted (LIFT) where they would cover the device's Talk
   button or a toast.
@@ -25,8 +28,10 @@ What the edit does beyond edit_demo.py (cuts, sped-up waits, the audio rebuilt f
 
 from __future__ import annotations
 
+import argparse
 import json
 import re
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -73,9 +78,61 @@ BAND_H = 220
 LIFT: dict[str, int] = {"B5": 70}     # B5: the "Goodbye! Today's memories are being saved" toast
 
 # Report frames: (name, step, marker or None for the middle, seconds after it).
+# --part 3 replaces some of the above (configure()).
+PART_3 = {
+    "raw": "raw_3", "clips": "part_3", "report": "report_3", "captions": "captions_3.txt", "out": "product_part_3",
+    "xfade": 0.5, "xfade_after": {"B8": 0.6}, "speed": 3.0,
+    # Each step ends once its last screen has been on screen long enough (at least 2 s at normal
+    # speed, before the crossfade starts).
+    "step_end": {"B6": ("voice", 7.0), "B4": ("answered", 2.4), "B5": ("idle", 2.4), "B7": ("photo", 2.6),
+                 "B10": ("tag", 2.6), "B12": ("elif", 2.4), "B9": ("journal", 2.6)},
+    "fade_out": {"B6": 1.0, "B8": 1.5},
+    # B9 starts on the landing page with "Create your family" (its first part, Exit demo, is left out).
+    "skip_parts": {"B9": [0]},
+    "zooms": [("B4", "topics", "topic", 0.3, 3.0), ("B6", "banner", "banner", 0.0, 1.8),
+              ("B12", "chapters", "fatma", 0.2, 0.6)],
+    "zoom_ramp": 1.0,
+    "frames": [("B2", "B2", "light", 1.5), ("B4", "B4", "topic", 2.2), ("B5_idle", "B5", "idle", 1.2),
+               ("B6", "B6", "banner", 1.0), ("B8", "B8", "opening", 2.0), ("B12", "B12", "fatma", 1.6),
+               ("B12_scroll", "B12", "story", -1.0), ("B12_elif", "B12", "elif", 1.5)],
+}
+OUT_NAME = "product_part_2"
+XFADE_AFTER: dict[str, float] = {}
+SKIP_PARTS: dict[str, list[int]] = {}
+# B8 in part 3: the step ends this long after the companion's first sentence (its first pause).
+SENTENCE_FADE = {}
+
 REPORT_FRAMES = [("B3", "B3", "trace", 2.0), ("B6", "B6", "banner", 1.0), ("B6_play", "B6", "voice", 2.5),
                  ("B10", "B10", "tag", 0.8), ("B11", "B11", "recording", 1.5),
                  ("B12_elif", "B12", "elif", 1.0), ("B12", "B12", "fatma_end", 1.5)]
+
+
+def configure(part: int) -> None:
+    global RAW, CLIPS, REPORT, CAPTIONS, XFADE_S, STEP_END, FADE_OUT_S, ZOOMS, ZOOM_RAMP_S, REPORT_FRAMES, OUT_NAME
+    global XFADE_AFTER, SENTENCE_FADE, SKIP_PARTS
+    if part != 3:
+        return
+    c = PART_3
+    RAW, CLIPS, REPORT = REPO / "data" / "video" / c["raw"], OUT / c["clips"], OUT / c["report"]
+    CAPTIONS = REPO / "docs" / "video" / c["captions"]
+    OUT_NAME, XFADE_S, XFADE_AFTER = c["out"], c["xfade"], c["xfade_after"]
+    STEP_END, FADE_OUT_S, ZOOMS, ZOOM_RAMP_S = c["step_end"], c["fade_out"], c["zooms"], c["zoom_ramp"]
+    REPORT_FRAMES = c["frames"]
+    SENTENCE_FADE = {"B8": 1.5}
+    SKIP_PARTS = c["skip_parts"]
+    # B4: the topics section is at the bottom of Family settings, so its caption sits above it.
+    LIFT["B4"] = 160
+    ed.SPEED = c["speed"]
+    # Long waits keep less of their start and end on screen (the companion thinking, the archivist).
+    ed.WAIT_RULES = {**ed.WAIT_RULES, "thinking": (0.8, 0.3), "archivist": (1.0, 0.6)}
+
+
+def first_pause(path: Path, after: float = 2.5) -> float | None:
+    """Where the first pause (0.3 s of quiet) after `after` seconds starts in an audio file."""
+    err = subprocess.run([ed.FFMPEG, "-hide_banner", "-i", str(path), "-af", "silencedetect=n=-35dB:d=0.3",
+                          "-f", "null", "-"], capture_output=True, text=True, errors="replace").stderr
+    starts = [float(x) for x in re.findall(r"silence_start: ([\d.]+)", err)]
+    return next((t for t in starts if t > after), None)
 
 
 def read_captions() -> list[tuple[str, str, str]]:
@@ -132,6 +189,9 @@ def zoom_filter(step: dict[str, Any], segments: list[ed.Segment], length: float)
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Edit the second (or third) product part.")
+    parser.add_argument("--part", type=int, choices=[2, 3], default=2)
+    configure(parser.parse_args().part)
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     except AttributeError:
@@ -149,13 +209,22 @@ def main() -> int:
     order = [sid for sid in ORDER if any(s["id"] == sid for s in timeline["steps"])]
     missing = [sid for sid in ORDER if sid not in order]
     for sid in order:
-        parts = [dict(s) for s in timeline["steps"] if s["id"] == sid]
+        parts = [dict(s) for k, s in enumerate(x for x in timeline["steps"] if x["id"] == sid)
+                 if k not in SKIP_PARTS.get(sid, [])]
         target = CLIPS / f"{sid}.mp4"
         infos, part_files, plans[sid], local = [], [], [], 0.0
         for k, step in enumerate(parts):
             if sid in STEP_END and STEP_END[sid][0] in step["markers"]:
                 marker, after = STEP_END[sid]
                 step["end"] = min(step["end"], step["markers"][marker] + after)
+            if sid in SENTENCE_FADE:
+                voice = next((a for a in timeline["audio"] if a["step"] == sid and a.get("file")), None)
+                if voice:
+                    path = Path(voice["file"]) if Path(voice["file"]).is_absolute() else RAW / voice["file"]
+                    pause = first_pause(path)
+                    if pause is not None:
+                        step["end"] = min(step["end"], voice["start"] + pause + SENTENCE_FADE[sid])
+                        print(f"{sid}: the first sentence ends at {pause:.2f} s of the voice; then {SENTENCE_FADE[sid]} s of fade")
             clip = timeline["clips"][step["place"]]
             audio = [a for a in timeline["audio"] if a["step"] == sid and a["place"] == step["place"]
                      and step["start"] <= a["start"] <= step["end"]]
@@ -180,12 +249,14 @@ def main() -> int:
         print(f"{sid}: {info['seconds']:6.2f} s (recorded {info['recorded_s']} s), audio {len(info['audio'])}", flush=True)
 
     # Where each step starts in the joined video: each crossfade overlaps two steps by XFADE_S.
+    xf = [XFADE_AFTER.get(sid, XFADE_S) for sid in order[:-1]]    # the crossfade after each step
     starts: dict[str, float] = {}
     t = 0.0
     for i, sid in enumerate(order):
         starts[sid] = t
-        t += report["steps"][sid]["seconds"] - XFADE_S
-    total = t + XFADE_S
+        if i < len(xf):
+            t += report["steps"][sid]["seconds"] - xf[i]
+    total = t + report["steps"][order[-1]]["seconds"]
 
     def marker_at(sid: str, name: str) -> float | None:
         for step, segments, local in plans.get(sid, []):
@@ -198,7 +269,7 @@ def main() -> int:
     # graph with every clip ran out of memory (xfade holds the later clips until their turn), so
     # the pieces are made one by one (each clip's middle, each 0.4 s crossfade) and then joined
     # in order. Pieces are near-lossless with plain PCM audio, so the joins are seamless.
-    full = OUT / "product_part_2_full.mp4"
+    full = OUT / f"{OUT_NAME}_full.mp4"
     lengths = [report["steps"][sid]["seconds"] for sid in order]
     piece_args = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "10", "-r", str(FPS), "-pix_fmt", "yuv420p",
                   "-c:a", "pcm_s16le", "-ar", "48000", "-ac", "2"]
@@ -214,8 +285,8 @@ def main() -> int:
             sources.append(f)
         pieces = []
         for i, f in enumerate(sources):
-            a = XFADE_S if i > 0 else 0.0
-            b = lengths[i] - XFADE_S if i < len(sources) - 1 else lengths[i]
+            a = xf[i - 1] if i > 0 else 0.0
+            b = lengths[i] - xf[i] if i < len(sources) - 1 else lengths[i]
             mid = Path(tmp) / f"p{i:02d}_mid.mkv"
             ed.ffmpeg(["-i", str(f), "-filter_complex",
                        f"[0:v]trim=start={a:.3f}:end={b:.3f},setpts=PTS-STARTPTS,fps={FPS}[v];"
@@ -226,15 +297,16 @@ def main() -> int:
                 break
             nxt = sources[i + 1]
             cross = Path(tmp) / f"p{i:02d}_x.mkv"
-            ed.ffmpeg(["-ss", f"{lengths[i] - XFADE_S:.3f}", "-i", str(f), "-t", f"{XFADE_S:.3f}", "-i", str(nxt),
+            d = xf[i]
+            ed.ffmpeg(["-ss", f"{lengths[i] - d:.3f}", "-i", str(f), "-t", f"{d:.3f}", "-i", str(nxt),
                        "-filter_complex",
-                       f"[0:v]trim=duration={XFADE_S},setpts=PTS-STARTPTS,fps={FPS},settb=AVTB[v0];"
-                       f"[1:v]trim=duration={XFADE_S},setpts=PTS-STARTPTS,fps={FPS},settb=AVTB[v1];"
-                       f"[v0][v1]xfade=transition=fade:duration={XFADE_S - 1 / FPS:.3f}:offset=0[v];"
-                       f"[0:a]atrim=duration={XFADE_S},asetpts=PTS-STARTPTS,aresample=48000,afade=t=out:d={XFADE_S}[a0];"
-                       f"[1:a]atrim=duration={XFADE_S},asetpts=PTS-STARTPTS,aresample=48000,afade=t=in:d={XFADE_S}[a1];"
+                       f"[0:v]trim=duration={d},setpts=PTS-STARTPTS,fps={FPS},settb=AVTB[v0];"
+                       f"[1:v]trim=duration={d},setpts=PTS-STARTPTS,fps={FPS},settb=AVTB[v1];"
+                       f"[v0][v1]xfade=transition=fade:duration={d - 1 / FPS:.3f}:offset=0[v];"
+                       f"[0:a]atrim=duration={d},asetpts=PTS-STARTPTS,aresample=48000,afade=t=out:d={d}[a0];"
+                       f"[1:a]atrim=duration={d},asetpts=PTS-STARTPTS,aresample=48000,afade=t=in:d={d}[a1];"
                        f"[a0][a1]amix=inputs=2:normalize=0:duration=longest[a]",
-                       "-map", "[v]", "-map", "[a]", "-t", f"{XFADE_S:.3f}", *piece_args, str(cross)])
+                       "-map", "[v]", "-map", "[a]", "-t", f"{d:.3f}", *piece_args, str(cross)])
             pieces.append(cross)
         listing = Path(tmp) / "pieces.txt"
         listing.write_text("".join(f"file '{p.as_posix()}'\n" for p in pieces), encoding="utf-8")
@@ -252,7 +324,7 @@ def main() -> int:
             print(f"Caption for {sid} skipped: no such step in the recording")
             continue
         if not when:
-            at = XFADE_S / 2 if sid != order[0] else 0.0
+            at = xf[order.index(sid) - 1] / 2 if sid != order[0] else 0.0
         elif re.fullmatch(r"\d+(\.\d+)?", when):
             at = float(when)
         else:
@@ -265,10 +337,11 @@ def main() -> int:
     timed = []
     for i, (sid, start, text) in enumerate(caps):
         same = [c[1] for c in caps[i + 1:] if c[0] == sid]
-        end = same[0] if same else min(total, starts[sid] + report["steps"][sid]["seconds"] - XFADE_S / 2)
+        k = order.index(sid)
+        end = same[0] if same else min(total, starts[sid] + report["steps"][sid]["seconds"] - (xf[k] / 2 if k < len(xf) else 0))
         timed.append({"step": sid, "from": round(start, 2), "to": round(end, 2), "text": text})
     caption_font = ImageFont.truetype(font, FONT_SIZE)
-    srt = OUT / "product_part_2_full.srt"
+    srt = OUT / f"{OUT_NAME}_full.srt"
     srt.write_text("".join(f"{i}\n{ed.srt_time(c['from'])} --> {ed.srt_time(c['to'])}\n{chr(10).join(ed.wrap(c['text'], caption_font))}\n\n"
                            for i, c in enumerate(timed, 1)), encoding="utf-8")
 
@@ -288,7 +361,7 @@ def main() -> int:
         parts.append(f"[{last}]format=yuv420p[vout]")
         script = Path(tmp) / "filter.txt"
         script.write_text(";\n".join(parts), encoding="utf-8")
-        product = OUT / "product_part_2.mp4"
+        product = OUT / f"{OUT_NAME}.mp4"
         ed.ffmpeg([*inputs, "-filter_complex_script", str(script), "-map", "[vout]", "-map", "0:a",
                    "-c:v", "libx264", "-preset", "medium", "-crf", "17", "-r", str(FPS), "-c:a", "copy",
                    "-movflags", "+faststart", str(product)])
@@ -313,7 +386,7 @@ def main() -> int:
     report["frames"] = frames
     (REPORT / "edit.json").write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
     m, s = divmod(report["total_s"], 60)
-    print(f"\nproduct_part_2.mp4: {int(m)}:{s:05.2f}  ({product})")
+    print(f"\n{product.name}: {int(m)}:{s:05.2f}  ({product})")
     if missing:
         print(f"Missing steps: {', '.join(missing)}")
     return 0
