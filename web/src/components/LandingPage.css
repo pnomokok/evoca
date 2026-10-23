@@ -1031,6 +1031,7 @@ html {
   font-family: var(--font-wordmark);
   font-size: 1.25rem;
   font-weight: var(--font-wordmark-weight);
+  text-transform: lowercase;
   color: #FAF6ED;
 }
 
